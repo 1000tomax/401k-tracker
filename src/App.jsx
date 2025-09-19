@@ -7,7 +7,7 @@ import { formatDate } from './utils/formatters.js';
 
 const STORAGE_KEY = '401k-tracker-data';
 const STORAGE_VERSION = 1;
-const DATA_SOURCE_URL = import.meta.env.VITE_GITHUB_DATA_URL || '';
+const SNAPSHOT_ENDPOINT = '/api/snapshot';
 
 function hashTransaction(tx) {
   return [
@@ -88,8 +88,8 @@ export default function App() {
   const [syncStatus, setSyncStatus] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncAt, setLastSyncAt] = useState(null);
-  const [remoteStatus, setRemoteStatus] = useState(DATA_SOURCE_URL ? 'Loading latest data from GitHub…' : '');
-  const [isFetchingRemote, setIsFetchingRemote] = useState(Boolean(DATA_SOURCE_URL));
+  const [remoteStatus, setRemoteStatus] = useState('Loading latest data from GitHub…');
+  const [isFetchingRemote, setIsFetchingRemote] = useState(true);
 
   useEffect(() => {
     const stored = loadData();
@@ -108,15 +108,11 @@ export default function App() {
   }, [transactions, lastSyncAt]);
 
   const fetchFromGitHub = useCallback(async () => {
-    if (!DATA_SOURCE_URL) {
-      return;
-    }
-
     setIsFetchingRemote(true);
     setRemoteStatus('Loading latest data from GitHub…');
 
     try {
-      const response = await fetch(`${DATA_SOURCE_URL}?t=${Date.now()}`, {
+      const response = await fetch(`${SNAPSHOT_ENDPOINT}?t=${Date.now()}`, {
         cache: 'no-store',
         headers: {
           Accept: 'application/json',
@@ -128,11 +124,14 @@ export default function App() {
       }
 
       const payload = await response.json();
-      if (Array.isArray(payload.transactions)) {
-        setTransactions(sortTransactions(payload.transactions));
+      if (payload?.snapshot && Array.isArray(payload.snapshot.transactions)) {
+        setTransactions(sortTransactions(payload.snapshot.transactions));
+      } else {
+        throw new Error('Snapshot response missing transactions array.');
       }
 
-      const syncTimestamp = payload.syncedAt || payload.lastUpdated || null;
+      const syncTimestamp =
+        payload.snapshot.syncedAt || payload.snapshot.lastUpdated || payload.fetchedAt || null;
       if (syncTimestamp) {
         setLastSyncAt(syncTimestamp);
       }
@@ -147,9 +146,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (DATA_SOURCE_URL) {
-      fetchFromGitHub();
-    }
+    fetchFromGitHub();
   }, [fetchFromGitHub]);
 
   const handleParse = useCallback(() => {
@@ -326,7 +323,7 @@ export default function App() {
                   isSyncing={isSyncing}
                   syncStatus={syncStatus}
                   remoteStatus={remoteStatus}
-                  onRefresh={DATA_SOURCE_URL ? fetchFromGitHub : null}
+                  onRefresh={fetchFromGitHub}
                   isRefreshing={isFetchingRemote}
                 />
               )}
