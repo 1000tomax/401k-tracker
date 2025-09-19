@@ -1,4 +1,5 @@
 import { Octokit } from '@octokit/rest';
+import { allowCorsAndAuth, requireSharedToken } from '../src/utils/cors.js';
 
 const REQUIRED_ENV = ['GITHUB_PAT', 'GITHUB_USERNAME', 'GITHUB_REPO'];
 const DEFAULT_BRANCH = process.env.GITHUB_BRANCH || 'main';
@@ -7,25 +8,34 @@ const DATA_PATH = process.env.GITHUB_DATA_PATH || 'data/401k-data.json';
 function send(res, status, payload) {
   res.statusCode = status;
   res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Cache-Control', 'no-store');
   res.end(JSON.stringify(payload));
 }
 
-export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.setHeader('Cache-Control', 'no-store');
+function isSnapshotAuthDisabled() {
+  return String(process.env.DISABLE_SNAPSHOT_AUTH || '').trim() === '1';
+}
 
-  if (req.method === 'OPTIONS') {
-    res.statusCode = 204;
-    res.end();
+export default async function handler(req, res) {
+  const cors = allowCorsAndAuth(req, res);
+  if (cors.ended) {
     return;
   }
+
+  res.setHeader('Cache-Control', 'no-store');
 
   if (req.method !== 'GET') {
     res.setHeader('Allow', 'GET');
     send(res, 405, { ok: false, error: 'Use GET for this endpoint.' });
     return;
+  }
+
+  if (!isSnapshotAuthDisabled()) {
+    const auth = requireSharedToken(req);
+    if (!auth.ok) {
+      send(res, auth.status, { ok: false, error: auth.message });
+      return;
+    }
   }
 
   const missing = REQUIRED_ENV.filter(key => !process.env[key]);
@@ -72,7 +82,7 @@ export default async function handler(req, res) {
       snapshot,
     });
   } catch (error) {
-    console.error('Failed to fetch snapshot', error);
+    console.error('Failed to fetch snapshot', { message: error.message, status: error.status });
     const status = error.status || 500;
     const rawMessage = error?.message || 'Unexpected GitHub error.';
 

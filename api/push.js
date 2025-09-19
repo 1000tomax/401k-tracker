@@ -1,4 +1,6 @@
 import { Octokit } from '@octokit/rest';
+import { allowCorsAndAuth, requireSharedToken } from '../src/utils/cors.js';
+import { SnapshotSchema } from '../src/utils/schemas.js';
 
 const REQUIRED_ENV = ['GITHUB_PAT', 'GITHUB_USERNAME', 'GITHUB_REPO'];
 const DEFAULT_BRANCH = process.env.GITHUB_BRANCH || 'main';
@@ -8,6 +10,7 @@ const HISTORY_DIR = process.env.GITHUB_HISTORY_DIR || 'data/history';
 function send(res, status, payload) {
   res.statusCode = status;
   res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Cache-Control', 'no-store');
   res.end(JSON.stringify(payload));
 }
 
@@ -30,19 +33,22 @@ async function readBody(req) {
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
-  if (req.method === 'OPTIONS') {
-    res.statusCode = 204;
-    res.end();
+  const cors = allowCorsAndAuth(req, res);
+  if (cors.ended) {
     return;
   }
+
+  res.setHeader('Cache-Control', 'no-store');
 
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     send(res, 405, { ok: false, error: 'Use POST for this endpoint.' });
+    return;
+  }
+
+  const auth = requireSharedToken(req);
+  if (!auth.ok) {
+    send(res, auth.status, { ok: false, error: auth.message });
     return;
   }
 
@@ -60,22 +66,23 @@ export default async function handler(req, res) {
   try {
     payload = await readBody(req);
   } catch (error) {
-    console.error('Invalid request body', error);
-    send(res, 400, { ok: false, error: `Invalid JSON body: ${error.message}` });
+    console.error('Invalid request body', { message: error.message });
+    send(res, 400, { ok: false, error: 'Invalid JSON body.' });
     return;
   }
 
-  if (!payload || !Array.isArray(payload.transactions) || typeof payload.portfolio !== 'object') {
-    send(res, 400, {
-      ok: false,
-      error: 'Payload must include transactions array and portfolio object.',
+  const validation = SnapshotSchema.safeParse(payload);
+  if (!validation.success) {
+    console.warn('Snapshot payload validation failed', {
+      issueCount: validation.error.issues.length,
     });
+    send(res, 400, { ok: false, error: 'Invalid payload: schema validation failed.' });
     return;
   }
 
   const timestamp = new Date().toISOString();
   const snapshot = {
-    ...payload,
+    ...validation.data,
     syncedAt: timestamp,
   };
 
@@ -96,7 +103,7 @@ export default async function handler(req, res) {
     const { data } = await octokit.repos.getBranch({ owner, repo, branch: DEFAULT_BRANCH });
     branchInfo = data;
   } catch (error) {
-    console.error('Unable to read branch', error);
+    console.error('Unable to read branch', { message: error.message, status: error.status });
     send(res, error.status || 500, {
       ok: false,
       error: `Unable to read branch ${DEFAULT_BRANCH}: ${error.message}`,
@@ -191,7 +198,7 @@ export default async function handler(req, res) {
       files: files.map(file => file.path),
     });
   } catch (error) {
-    console.error('Failed to push snapshot', error);
+    console.error('Failed to push snapshot', { message: error.message, status: error.status });
     const status = error.status || 500;
     const rawMessage = error?.message || 'Unexpected GitHub error.';
     let friendly = rawMessage;

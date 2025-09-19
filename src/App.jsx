@@ -8,6 +8,11 @@ import { formatDate } from './utils/formatters.js';
 const STORAGE_KEY = '401k-tracker-data';
 const STORAGE_VERSION = 1;
 const SNAPSHOT_ENDPOINT = '/api/snapshot';
+const CLIENT_SHARED_TOKEN =
+  (import.meta.env && import.meta.env.VITE_401K_TOKEN) ||
+  (typeof process !== 'undefined' && process.env ? process.env.NEXT_PUBLIC_401K_TOKEN : undefined) ||
+  '';
+const REQUEST_AUTH_HEADER = CLIENT_SHARED_TOKEN || 'dev-only-token';
 
 function hashTransaction(tx) {
   return [
@@ -116,6 +121,7 @@ export default function App() {
         cache: 'no-store',
         headers: {
           Accept: 'application/json',
+          'X-401K-Token': REQUEST_AUTH_HEADER,
         },
       });
 
@@ -265,6 +271,7 @@ export default function App() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-401K-Token': REQUEST_AUTH_HEADER,
         },
         body: JSON.stringify(payload),
       });
