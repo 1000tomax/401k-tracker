@@ -2,6 +2,7 @@ import React from 'react';
 import {
   formatCurrency,
   formatShares,
+  formatUnitPrice,
   formatPercent,
   formatFundName,
   formatSourceName,
@@ -54,7 +55,7 @@ export default function PortfolioTable({ portfolio, totals }) {
               <td>{formatShares(row.shares)}</td>
               <td>{formatCurrency(row.costBasis)}</td>
               <td>{formatCurrency(row.avgCost)}</td>
-              <td>{formatCurrency(row.latestNAV)}</td>
+              <td>{formatUnitPrice(row.latestNAV)}</td>
               <td>{formatCurrency(row.marketValue)}</td>
               <td className={row.gainLoss >= 0 ? 'positive' : 'negative'}>
                 {formatCurrency(row.gainLoss)}

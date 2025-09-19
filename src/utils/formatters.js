@@ -9,10 +9,20 @@ export function formatCurrency(value) {
 }
 
 export function formatShares(value) {
-  if (!Number.isFinite(value)) return '0';
+  if (!Number.isFinite(value)) return '0.000';
   return new Intl.NumberFormat('en-US', {
     minimumFractionDigits: 3,
-    maximumFractionDigits: 3,
+    maximumFractionDigits: 6,
+  }).format(value);
+}
+
+export function formatUnitPrice(value) {
+  if (!Number.isFinite(value)) return '$0.00';
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 6,
   }).format(value);
 }
 

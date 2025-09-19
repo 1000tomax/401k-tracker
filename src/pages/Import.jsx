@@ -2,6 +2,7 @@ import React from 'react';
 import {
   formatCurrency,
   formatShares,
+  formatUnitPrice,
   formatDate,
   formatFundName,
   formatSourceName,
@@ -81,7 +82,7 @@ export default function ImportPage({
                         <td>{formatSourceName(tx.moneySource)}</td>
                         <td>{tx.activity}</td>
                         <td>{formatShares(tx.units)}</td>
-                        <td>{formatCurrency(tx.unitPrice)}</td>
+                        <td>{formatUnitPrice(tx.unitPrice)}</td>
                         <td>{formatCurrency(tx.amount)}</td>
                       </tr>
                     ))}
@@ -124,7 +125,7 @@ export default function ImportPage({
                 <li>Activity: {tx.activity}</li>
                 <li>Source: {formatSourceName(tx.moneySource)}</li>
                 <li>Shares: {formatShares(tx.units)}</li>
-                <li>Unit Price: {formatCurrency(tx.unitPrice)}</li>
+                <li>Unit Price: {formatUnitPrice(tx.unitPrice)}</li>
                 <li>Amount: {formatCurrency(tx.amount)}</li>
               </ul>
             </details>
