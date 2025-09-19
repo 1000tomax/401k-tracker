@@ -7,6 +7,7 @@ import { formatDate } from './utils/formatters.js';
 
 const STORAGE_KEY = '401k-tracker-data';
 const STORAGE_VERSION = 1;
+const DATA_SOURCE_URL = import.meta.env.VITE_GITHUB_DATA_URL || '';
 
 function hashTransaction(tx) {
   return [
@@ -87,6 +88,8 @@ export default function App() {
   const [syncStatus, setSyncStatus] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncAt, setLastSyncAt] = useState(null);
+  const [remoteStatus, setRemoteStatus] = useState(DATA_SOURCE_URL ? 'Loading latest data from GitHub…' : '');
+  const [isFetchingRemote, setIsFetchingRemote] = useState(Boolean(DATA_SOURCE_URL));
 
   useEffect(() => {
     const stored = loadData();
@@ -103,6 +106,51 @@ export default function App() {
   useEffect(() => {
     saveData({ transactions, lastSyncAt });
   }, [transactions, lastSyncAt]);
+
+  const fetchFromGitHub = useCallback(async () => {
+    if (!DATA_SOURCE_URL) {
+      return;
+    }
+
+    setIsFetchingRemote(true);
+    setRemoteStatus('Loading latest data from GitHub…');
+
+    try {
+      const response = await fetch(`${DATA_SOURCE_URL}?t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: {
+          Accept: 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const payload = await response.json();
+      if (Array.isArray(payload.transactions)) {
+        setTransactions(sortTransactions(payload.transactions));
+      }
+
+      const syncTimestamp = payload.syncedAt || payload.lastUpdated || null;
+      if (syncTimestamp) {
+        setLastSyncAt(syncTimestamp);
+      }
+
+      setRemoteStatus('Loaded latest data from GitHub.');
+    } catch (error) {
+      console.error('Failed to load snapshot from GitHub', error);
+      setRemoteStatus(`Failed to load data from GitHub: ${error.message}`);
+    } finally {
+      setIsFetchingRemote(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (DATA_SOURCE_URL) {
+      fetchFromGitHub();
+    }
+  }, [fetchFromGitHub]);
 
   const handleParse = useCallback(() => {
     const parsed = parseTransactions(rawInput);
@@ -277,6 +325,9 @@ export default function App() {
                   onSync={handleSync}
                   isSyncing={isSyncing}
                   syncStatus={syncStatus}
+                  remoteStatus={remoteStatus}
+                  onRefresh={DATA_SOURCE_URL ? fetchFromGitHub : null}
+                  isRefreshing={isFetchingRemote}
                 />
               )}
             />
