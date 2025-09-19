@@ -31,6 +31,13 @@ export default function ImportPage({
         <p className="meta">
           Paste your latest Voya log here. We'll parse the rows, dedupe against existing data, and let you preview before saving.
         </p>
+        <div className="callout" role="note">
+          <span className="callout-title">Import tips</span>
+          <p>
+            Copy rows directly from Voya—share counts and unit prices keep their full precision. You can preview the
+            first 10 entries before saving and skip duplicates automatically.
+          </p>
+        </div>
         <label htmlFor="transactions-input">Transaction Log</label>
         <textarea
           id="transactions-input"

@@ -39,3 +39,20 @@ curl -i -X GET https://<host>/api/snapshot -H "X-401K-Token: <token>"
 ```
 
 Remember to provision the existing GitHub-related environment variables (`GITHUB_PAT`, `GITHUB_USERNAME`, `GITHUB_REPO`, `GITHUB_BRANCH`, `GITHUB_DATA_PATH`) so commits continue to succeed.
+
+### Local development API
+
+- The Vite dev server now mounts the serverless functions so `/api/snapshot` and `/api/push` work during `npm run dev`.
+- Provide the required secrets in `.env.local` (not checked in):
+
+  ```bash
+  API_SHARED_TOKEN=...
+  VITE_401K_TOKEN=... # must match API_SHARED_TOKEN
+  GITHUB_PAT=...
+  GITHUB_USERNAME=...
+  GITHUB_REPO=...
+  GITHUB_BRANCH=main
+  GITHUB_DATA_PATH=data/401k-data.json
+  ```
+
+- If you use a different dev origin, set `CORS_ORIGIN` accordingly so the API responses include the right header.

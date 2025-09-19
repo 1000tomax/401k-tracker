@@ -265,6 +265,7 @@ export function aggregatePortfolio(transactions) {
     gainLoss: 0,
     contributions: 0,
     netInvested: 0,
+    payPeriods: 0,
   };
   let totalWithdrawals = 0;
   const fundTotals = {};
@@ -347,6 +348,8 @@ export function aggregatePortfolio(transactions) {
     entry.balance = runningBalance;
   }
 
+  const payPeriodDates = new Set();
+
   for (const [key, entries] of byFundSource.entries()) {
     const [fund, source] = key.split('||');
     const shares = entries.reduce((sum, entry) => sum + ensureNumber(entry.units), 0);
@@ -426,6 +429,14 @@ export function aggregatePortfolio(transactions) {
   }
 
   totals.roi = totals.netInvested ? totals.gainLoss / totals.netInvested : 0;
+
+  for (const entry of timeline) {
+    if (entry.contributions > 0) {
+      payPeriodDates.add(entry.date);
+    }
+  }
+
+  totals.payPeriods = payPeriodDates.size;
 
   return {
     portfolio,

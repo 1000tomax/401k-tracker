@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, NavLink, Navigate } from 'react-router-do
 import Dashboard from './pages/Dashboard.jsx';
 import ImportPage from './pages/Import.jsx';
 import { parseTransactions, aggregatePortfolio } from './utils/parseTransactions.js';
-import { formatDate } from './utils/formatters.js';
+import { formatDate, formatCurrency } from './utils/formatters.js';
 
 const STORAGE_KEY = '401k-tracker-data';
 const STORAGE_VERSION = 1;
@@ -37,13 +37,13 @@ function sortTransactions(list) {
 
 function loadData() {
   if (typeof window === 'undefined') {
-    return { version: STORAGE_VERSION, transactions: [], lastSyncAt: null };
+    return { version: STORAGE_VERSION, transactions: [], lastSyncAt: null, navOverrides: {} };
   }
 
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      return { version: STORAGE_VERSION, transactions: [], lastSyncAt: null };
+      return { version: STORAGE_VERSION, transactions: [], lastSyncAt: null, navOverrides: {} };
     }
 
     const parsed = JSON.parse(raw);
@@ -52,6 +52,7 @@ function loadData() {
         version: STORAGE_VERSION,
         transactions: Array.isArray(parsed.transactions) ? parsed.transactions : [],
         lastSyncAt: parsed.lastSyncAt || null,
+        navOverrides: sanitizeOverrides(parsed.navOverrides),
       };
     }
 
@@ -59,14 +60,28 @@ function loadData() {
       version: STORAGE_VERSION,
       transactions: Array.isArray(parsed.transactions) ? parsed.transactions : [],
       lastSyncAt: parsed.lastSyncAt || null,
+      navOverrides: sanitizeOverrides(parsed.navOverrides),
     };
   } catch (error) {
     console.error('Failed to load stored data', error);
-    return { version: STORAGE_VERSION, transactions: [], lastSyncAt: null };
+    return { version: STORAGE_VERSION, transactions: [], lastSyncAt: null, navOverrides: {} };
   }
 }
 
-function saveData({ transactions, lastSyncAt }) {
+function sanitizeOverrides(overrides) {
+  if (!overrides || typeof overrides !== 'object') return {};
+  const cleaned = {};
+  for (const [fund, value] of Object.entries(overrides)) {
+    if (typeof value === 'string') {
+      cleaned[fund] = value;
+    } else if (Number.isFinite(value)) {
+      cleaned[fund] = String(value);
+    }
+  }
+  return cleaned;
+}
+
+function saveData({ transactions, lastSyncAt, navOverrides }) {
   if (typeof window === 'undefined') {
     return;
   }
@@ -78,11 +93,135 @@ function saveData({ transactions, lastSyncAt }) {
         version: STORAGE_VERSION,
         transactions,
         lastSyncAt: lastSyncAt || null,
+        navOverrides: sanitizeOverrides(navOverrides),
       }),
     );
   } catch (error) {
     console.error('Failed to persist tracker data', error);
   }
+}
+
+function applyNavOverrides(summary, rawOverrides) {
+  if (!summary) return summary;
+
+  const overrides = {};
+  for (const [fund, value] of Object.entries(rawOverrides || {})) {
+    const parsed = Number.parseFloat(value);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      overrides[fund] = parsed;
+    }
+  }
+
+  if (!Object.keys(overrides).length) {
+    return summary;
+  }
+
+  const clone = {
+    ...summary,
+    totals: {
+      ...summary.totals,
+      marketValue: 0,
+      gainLoss: 0,
+      roi: 0,
+    },
+    portfolio: {},
+    fundTotals: {},
+    sourceTotals: {},
+  };
+
+  for (const [fund, baseTotals] of Object.entries(summary.fundTotals || {})) {
+    clone.fundTotals[fund] = {
+      ...baseTotals,
+      marketValue: 0,
+      gainLoss: 0,
+    };
+  }
+
+  for (const [source, baseTotals] of Object.entries(summary.sourceTotals || {})) {
+    clone.sourceTotals[source] = {
+      ...baseTotals,
+      marketValue: 0,
+      gainLoss: 0,
+      roi: 0,
+    };
+  }
+
+  let totalMarketValue = 0;
+  let totalGainLoss = 0;
+
+  for (const [fund, sources] of Object.entries(summary.portfolio || {})) {
+    const overrideNav = overrides[fund];
+    const fundClone = {};
+    let fundMarketValue = 0;
+    let fundGainLoss = 0;
+
+    for (const [source, metrics] of Object.entries(sources)) {
+      const navToUse = Number.isFinite(overrideNav) ? overrideNav : metrics.latestNAV;
+      const marketValue = metrics.shares * navToUse;
+      const gainLoss = marketValue - metrics.costBasis;
+
+      fundClone[source] = {
+        ...metrics,
+        latestNAV: navToUse,
+        marketValue,
+        gainLoss,
+      };
+
+      fundMarketValue += marketValue;
+      fundGainLoss += gainLoss;
+
+      if (!clone.sourceTotals[source]) {
+        clone.sourceTotals[source] = {
+          shares: metrics.shares,
+          costBasis: metrics.costBasis,
+          marketValue: 0,
+          gainLoss: 0,
+          avgCost: metrics.shares ? metrics.costBasis / metrics.shares : 0,
+          contributions: 0,
+          netInvested: 0,
+          roi: 0,
+        };
+      }
+
+      clone.sourceTotals[source].marketValue += marketValue;
+      clone.sourceTotals[source].gainLoss += gainLoss;
+    }
+
+    clone.portfolio[fund] = fundClone;
+
+    if (!clone.fundTotals[fund]) {
+      clone.fundTotals[fund] = {
+        shares: summary.fundTotals?.[fund]?.shares ?? 0,
+        costBasis: summary.fundTotals?.[fund]?.costBasis ?? 0,
+        marketValue: 0,
+        gainLoss: 0,
+        avgCost: summary.fundTotals?.[fund]?.avgCost ?? 0,
+      };
+    }
+
+    clone.fundTotals[fund].marketValue = fundMarketValue;
+    clone.fundTotals[fund].gainLoss = fundGainLoss;
+    clone.fundTotals[fund].avgCost = clone.fundTotals[fund].shares
+      ? clone.fundTotals[fund].costBasis / clone.fundTotals[fund].shares
+      : 0;
+
+    totalMarketValue += fundMarketValue;
+    totalGainLoss += fundGainLoss;
+  }
+
+  for (const sourceTotals of Object.values(clone.sourceTotals)) {
+    sourceTotals.roi = sourceTotals.netInvested
+      ? (sourceTotals.marketValue - sourceTotals.netInvested) / sourceTotals.netInvested
+      : 0;
+  }
+
+  clone.totals.marketValue = totalMarketValue;
+  clone.totals.gainLoss = totalGainLoss;
+  clone.totals.roi = clone.totals.netInvested
+    ? clone.totals.gainLoss / clone.totals.netInvested
+    : 0;
+
+  return clone;
 }
 
 export default function App() {
@@ -95,6 +234,7 @@ export default function App() {
   const [lastSyncAt, setLastSyncAt] = useState(null);
   const [remoteStatus, setRemoteStatus] = useState('Loading latest data from GitHub…');
   const [isFetchingRemote, setIsFetchingRemote] = useState(true);
+  const [navOverrides, setNavOverrides] = useState({});
 
   useEffect(() => {
     const stored = loadData();
@@ -104,13 +244,20 @@ export default function App() {
     if (stored.lastSyncAt) {
       setLastSyncAt(stored.lastSyncAt);
     }
+    if (stored.navOverrides) {
+      setNavOverrides(stored.navOverrides);
+    }
   }, []);
 
-  const summary = useMemo(() => aggregatePortfolio(transactions), [transactions]);
+  const baseSummary = useMemo(() => aggregatePortfolio(transactions), [transactions]);
+  const summary = useMemo(
+    () => applyNavOverrides(baseSummary, navOverrides),
+    [baseSummary, navOverrides],
+  );
 
   useEffect(() => {
-    saveData({ transactions, lastSyncAt });
-  }, [transactions, lastSyncAt]);
+    saveData({ transactions, lastSyncAt, navOverrides });
+  }, [transactions, lastSyncAt, navOverrides]);
 
   const fetchFromGitHub = useCallback(async () => {
     setIsFetchingRemote(true);
@@ -249,6 +396,7 @@ export default function App() {
     setImportStatus('Cleared all transactions.');
     setSyncStatus('');
     setLastSyncAt(null);
+    setNavOverrides({});
   }, []);
 
   const handleSync = useCallback(async () => {
@@ -292,21 +440,67 @@ export default function App() {
     }
   }, [summary, transactions]);
 
+  const handleNavOverrideChange = useCallback((fund, value) => {
+    setNavOverrides(prev => {
+      const next = { ...prev };
+      if (value === '' || value == null) {
+        delete next[fund];
+      } else {
+        next[fund] = value;
+      }
+      return next;
+    });
+  }, []);
+
+  const handleResetNavOverrides = useCallback(() => {
+    setNavOverrides({});
+  }, []);
+
   return (
     <BrowserRouter>
       <div className="app">
         <header className="top-bar">
           <div className="brand">
-            <h1>401k Tracker</h1>
-            <p>
-              Monitor your retirement portfolio, sync snapshots to GitHub, and import Voya logs when needed.
-            </p>
-            {summary.lastUpdated && (
-              <p className="meta">Last Portfolio Update: {formatDate(summary.lastUpdated)}</p>
-            )}
-            {lastSyncAt && (
-              <p className="meta">Last GitHub Sync: {formatDate(lastSyncAt.slice(0, 10))}</p>
-            )}
+            <div className="brand-heading">
+              <h1>401k Tracker</h1>
+              <p>
+                Monitor your retirement portfolio, sync snapshots to GitHub, and import Voya logs when needed.
+              </p>
+            </div>
+            <div className="brand-indicators">
+              {summary.lastUpdated && (
+                <span className="status-chip status-chip--accent" role="status">
+                  <span className="status-chip-label">Last Update</span>
+                  <span className="status-chip-value">{formatDate(summary.lastUpdated)}</span>
+                </span>
+              )}
+              {!transactions.length && (
+                <span className="status-chip status-chip--muted" role="status">
+                  <span className="status-chip-label">Getting Started</span>
+                  <span className="status-chip-value">Import your first Voya log</span>
+                </span>
+              )}
+            </div>
+            {transactions.length ? (
+              <div className="hero-metrics" aria-label="Portfolio quick metrics">
+                <div className="hero-metric">
+                  <span className="hero-metric-label">Market Value</span>
+                  <span className="hero-metric-value">
+                    {formatCurrency(summary.totals.marketValue || 0)}
+                  </span>
+                </div>
+                <div className="hero-metric">
+                  <span className="hero-metric-label">Net Contributions</span>
+                  <span className="hero-metric-value">
+                    {formatCurrency(summary.totals.netInvested || 0)}
+                  </span>
+                </div>
+                <div className="hero-metric">
+                  <span className="hero-metric-label">Pay Periods</span>
+                  <span className="hero-metric-value">{summary.totals.payPeriods || 0}</span>
+                </div>
+              </div>
+            ) : null}
           </div>
           <nav className="nav">
             <NavLink to="/" className={({ isActive }) => (isActive ? 'active' : '')} end>
@@ -332,6 +526,9 @@ export default function App() {
                   remoteStatus={remoteStatus}
                   onRefresh={fetchFromGitHub}
                   isRefreshing={isFetchingRemote}
+                  navOverrides={navOverrides}
+                  onNavOverrideChange={handleNavOverrideChange}
+                  onResetNavOverrides={handleResetNavOverrides}
                 />
               )}
             />
