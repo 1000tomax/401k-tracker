@@ -1,5 +1,11 @@
 import React from 'react';
-import { formatCurrency, formatShares, formatDate } from '../utils/formatters.js';
+import {
+  formatCurrency,
+  formatShares,
+  formatDate,
+  formatFundName,
+  formatSourceName,
+} from '../utils/formatters.js';
 
 function transactionKey(tx) {
   return [tx.date, tx.activity, tx.fund, tx.moneySource, tx.units, tx.amount].join('|');
@@ -15,11 +21,12 @@ export default function ImportPage({
   pendingImport,
   importStatus,
   transactionsCount,
+  transactions = [],
 }) {
   return (
     <div className="import-page">
       <section className="input-section">
-        <h2>Import Transactions</h2>
+        <h2>Add Transactions</h2>
         <p className="meta">
           Paste your latest Voya log here. We'll parse the rows, dedupe against existing data, and let you preview before saving.
         </p>
@@ -33,7 +40,7 @@ export default function ImportPage({
         />
         <div className="actions">
           <button type="button" onClick={onParse} disabled={!rawInput.trim()}>
-            Preview Import
+            Preview Additions
           </button>
           <button type="button" className="secondary" onClick={onClearAll} disabled={!transactionsCount}>
             Clear All Stored Data
@@ -44,7 +51,7 @@ export default function ImportPage({
 
       {pendingImport && (
         <section>
-          <h2>Import Preview</h2>
+          <h2>Preview New Entries</h2>
           <p className="meta">
             Previewing {pendingImport.parsedCount} row
             {pendingImport.parsedCount === 1 ? '' : 's'}: {pendingImport.additions.length} new,{' '}
@@ -70,8 +77,8 @@ export default function ImportPage({
                     {pendingImport.additions.slice(0, 10).map(tx => (
                       <tr key={transactionKey(tx)}>
                         <td>{formatDate(tx.date)}</td>
-                        <td>{tx.fund}</td>
-                        <td>{tx.moneySource}</td>
+                        <td>{formatFundName(tx.fund)}</td>
+                        <td>{formatSourceName(tx.moneySource)}</td>
                         <td>{tx.activity}</td>
                         <td>{formatShares(tx.units)}</td>
                         <td>{formatCurrency(tx.unitPrice)}</td>
@@ -96,7 +103,7 @@ export default function ImportPage({
               onClick={onApplyImport}
               disabled={!pendingImport.additions.length}
             >
-              Apply Import
+              Add Transactions
             </button>
             <button type="button" className="secondary" onClick={onCancelImport}>
               Cancel
@@ -104,6 +111,27 @@ export default function ImportPage({
           </div>
         </section>
       )}
+
+      <section className="transactions">
+        <h2>Stored Transactions ({transactions.length})</h2>
+        <div className="transactions-list">
+          {transactions.map(tx => (
+            <details key={transactionKey(tx)}>
+              <summary>
+                {formatDate(tx.date)} · {formatFundName(tx.fund)} · {formatSourceName(tx.moneySource)}
+              </summary>
+              <ul>
+                <li>Activity: {tx.activity}</li>
+                <li>Source: {formatSourceName(tx.moneySource)}</li>
+                <li>Shares: {formatShares(tx.units)}</li>
+                <li>Unit Price: {formatCurrency(tx.unitPrice)}</li>
+                <li>Amount: {formatCurrency(tx.amount)}</li>
+              </ul>
+            </details>
+          ))}
+          {!transactions.length && <p>No transactions stored yet.</p>}
+        </div>
+      </section>
     </div>
   );
 }

@@ -33,3 +33,23 @@ export function formatDate(value) {
     day: 'numeric',
   });
 }
+
+const FUND_NAME_OVERRIDES = {
+  '0899 Vanguard 500 Index Fund Adm': 'Vanguard 500',
+};
+
+const SOURCE_NAME_OVERRIDES = {
+  'Safe Harbor Match': 'Match',
+  'Employee PreTax': 'Traditional',
+  'Employee Post Tax': 'Roth',
+};
+
+export function formatFundName(name) {
+  if (!name) return 'Unknown';
+  return FUND_NAME_OVERRIDES[name] || name;
+}
+
+export function formatSourceName(name) {
+  if (!name) return 'Unknown';
+  return SOURCE_NAME_OVERRIDES[name] || name;
+}

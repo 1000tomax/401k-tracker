@@ -1,5 +1,11 @@
 import React from 'react';
-import { formatCurrency, formatShares, formatPercent } from '../utils/formatters.js';
+import {
+  formatCurrency,
+  formatShares,
+  formatPercent,
+  formatFundName,
+  formatSourceName,
+} from '../utils/formatters.js';
 
 export default function PortfolioTable({ portfolio, totals }) {
   const rows = [];
@@ -9,6 +15,8 @@ export default function PortfolioTable({ portfolio, totals }) {
       rows.push({
         fund,
         source,
+        displayFund: formatFundName(fund),
+        displaySource: formatSourceName(source),
         ...metrics,
       });
     });
@@ -41,8 +49,8 @@ export default function PortfolioTable({ portfolio, totals }) {
         <tbody>
           {rows.map(row => (
             <tr key={`${row.fund}-${row.source}`}>
-              <td>{row.fund}</td>
-              <td>{row.source}</td>
+              <td>{row.displayFund}</td>
+              <td>{row.displaySource}</td>
               <td>{formatShares(row.shares)}</td>
               <td>{formatCurrency(row.costBasis)}</td>
               <td>{formatCurrency(row.avgCost)}</td>

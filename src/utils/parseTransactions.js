@@ -264,9 +264,9 @@ export function aggregatePortfolio(transactions) {
     marketValue: 0,
     gainLoss: 0,
     contributions: 0,
-    withdrawals: 0,
     netInvested: 0,
   };
+  let totalWithdrawals = 0;
   const fundTotals = {};
   const sourceTotals = {};
   const sourceCashFlows = {};
@@ -298,7 +298,7 @@ export function aggregatePortfolio(transactions) {
     if (amount >= 0) {
       totals.contributions += amount;
     } else {
-      totals.withdrawals += Math.abs(amount);
+      totalWithdrawals += Math.abs(amount);
     }
 
     const sourceKey = tx.moneySource || 'Unknown';
@@ -332,11 +332,15 @@ export function aggregatePortfolio(transactions) {
     timelineEntry.net = timelineEntry.contributions - timelineEntry.withdrawals;
   }
 
-  totals.netInvested = totals.contributions - totals.withdrawals;
+  totals.netInvested = totals.contributions - totalWithdrawals;
 
-  const timeline = Array.from(timelineByDate.values()).sort((a, b) =>
-    a.date.localeCompare(b.date),
-  );
+  const timeline = Array.from(timelineByDate.values())
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map(entry => ({
+      date: entry.date,
+      contributions: entry.contributions,
+      net: entry.contributions - entry.withdrawals,
+    }));
   let runningBalance = 0;
   for (const entry of timeline) {
     runningBalance += entry.net;
@@ -384,7 +388,6 @@ export function aggregatePortfolio(transactions) {
         gainLoss: 0,
         avgCost: 0,
         contributions: 0,
-        withdrawals: 0,
         netInvested: 0,
         roi: 0,
       };
@@ -405,15 +408,14 @@ export function aggregatePortfolio(transactions) {
         gainLoss: 0,
         avgCost: 0,
         contributions: 0,
-        withdrawals: 0,
         netInvested: 0,
         roi: 0,
       };
     }
     const entry = sourceTotals[sourceKey];
     entry.contributions += flows.contributions;
-    entry.withdrawals += flows.withdrawals;
-    entry.netInvested = entry.contributions - entry.withdrawals;
+    const withdrawalsForSource = flows.withdrawals || 0;
+    entry.netInvested = entry.contributions - withdrawalsForSource;
   }
 
   for (const sourceEntry of Object.values(sourceTotals)) {

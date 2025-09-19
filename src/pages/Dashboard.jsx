@@ -1,7 +1,7 @@
 import React from 'react';
 import SummaryOverview from '../components/SummaryOverview.jsx';
 import PortfolioTable from '../components/PortfolioTable.jsx';
-import { formatCurrency, formatShares } from '../utils/formatters.js';
+import { formatCurrency, formatDate } from '../utils/formatters.js';
 
 export default function Dashboard({
   summary,
@@ -32,12 +32,7 @@ export default function Dashboard({
         {remoteStatus && <p className="meta">{remoteStatus}</p>}
         {syncStatus && <p className="status">{syncStatus}</p>}
         {!transactions.length && <p className="meta">No transactions stored yet. Visit the Import page to get started.</p>}
-        <SummaryOverview
-          totals={summary.totals}
-          sourceTotals={summary.sourceTotals}
-          timeline={summary.timeline}
-          firstTransaction={summary.firstTransaction}
-        />
+        <SummaryOverview totals={summary.totals} firstTransaction={summary.firstTransaction} />
       </section>
 
       <section>
@@ -45,25 +40,35 @@ export default function Dashboard({
         <PortfolioTable portfolio={summary.portfolio} totals={summary.totals} />
       </section>
 
-      <section className="transactions">
-        <h2>Stored Transactions ({transactions.length})</h2>
-        <div className="transactions-list">
-          {transactions.map(tx => (
-            <details key={[tx.date, tx.fund, tx.moneySource, tx.units, tx.amount].join('|')}>
-              <summary>
-                {tx.date} · {tx.fund} · {tx.moneySource}
-              </summary>
-              <ul>
-                <li>Activity: {tx.activity}</li>
-                <li>Units: {formatShares(tx.units)}</li>
-                <li>Unit Price: {formatCurrency(tx.unitPrice)}</li>
-                <li>Amount: {formatCurrency(tx.amount)}</li>
-              </ul>
-            </details>
-          ))}
-          {!transactions.length && <p>No transactions stored yet.</p>}
-        </div>
-      </section>
+      {summary.timeline?.length ? (
+        <section>
+          <h2>Recent Activity</h2>
+          <div className="table-wrapper compact">
+            <table className="summary-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Contributions</th>
+                  <th>Net</th>
+                  <th>Running Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {summary.timeline.slice(-6).reverse().map(entry => (
+                  <tr key={entry.date}>
+                    <td>{formatDate(entry.date)}</td>
+                    <td>{formatCurrency(entry.contributions)}</td>
+                    <td className={entry.net >= 0 ? 'positive' : 'negative'}>
+                      {formatCurrency(entry.net)}
+                    </td>
+                    <td>{formatCurrency(entry.balance)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }

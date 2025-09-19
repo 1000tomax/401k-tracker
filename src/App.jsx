@@ -313,7 +313,7 @@ export default function App() {
               Dashboard
             </NavLink>
             <NavLink to="/import" className={({ isActive }) => (isActive ? 'active' : '')}>
-              Import Data
+              Add Transactions
             </NavLink>
           </nav>
         </header>
@@ -348,6 +348,7 @@ export default function App() {
                   pendingImport={pendingImport}
                   importStatus={importStatus}
                   transactionsCount={transactions.length}
+                  transactions={transactions}
                 />
               )}
             />
