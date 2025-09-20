@@ -1,10 +1,17 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import SummaryOverview from '../components/SummaryOverview.jsx';
 import PortfolioTable from '../components/PortfolioTable.jsx';
-import { formatCurrency, formatDate, formatFundName, formatUnitPrice } from '../utils/formatters.js';
+import {
+  formatCurrency,
+  formatDate,
+  formatFundName,
+  formatSourceName,
+  formatShares,
+  formatUnitPrice,
+} from '../utils/formatters.js';
 import {
   ResponsiveContainer,
-  AreaChart,
+  ComposedChart,
   Area,
   Line,
   XAxis,
@@ -23,16 +30,13 @@ export default function Dashboard({
   remoteStatus,
   onRefresh,
   isRefreshing,
-  navOverrides,
-  onNavOverrideChange,
-  onResetNavOverrides,
 }) {
   const remoteTone = remoteStatus?.toLowerCase().includes('failed') ? 'error' : 'info';
   const syncTone = syncStatus?.toLowerCase().includes('failed') ? 'error' : 'success';
   const baseTrend = (summary.timeline || []).map(entry => ({
     date: entry.date,
-    marketValue: entry.marketValue ?? entry.balance ?? 0,
-    contributed: entry.investedBalance ?? entry.balance ?? 0,
+    marketValue: entry.marketValue ?? 0,
+    contributed: entry.investedBalance ?? 0,
   }));
   const isDev = Boolean(import.meta.env?.DEV);
 
@@ -71,34 +75,10 @@ export default function Dashboard({
   const formattedTrend = trendData.map(point => ({
     ...point,
     label: formatDate(point.date),
+    marketValueShade: point.marketValue,
   }));
 
   const axisLabel = usingSampleData ? 'Sample Balance' : 'Account Value';
-
-  const activeFundKeys = useMemo(() => {
-    if (!summary.portfolio) return [];
-    return Object.entries(summary.portfolio)
-      .filter(([, sources]) => {
-        const totalShares = Object.values(sources || {}).reduce((sum, metrics) => {
-          const shares = Number.isFinite(metrics?.shares) ? metrics.shares : 0;
-          return sum + shares;
-        }, 0);
-        return Math.abs(totalShares) > 1e-6;
-      })
-      .map(([fund]) => fund);
-  }, [summary.portfolio]);
-
-  const hasOverrides = useMemo(
-    () =>
-      activeFundKeys.some(fund => {
-        const overrideValue = navOverrides?.[fund];
-        const parsed = Number.parseFloat(overrideValue);
-        return Number.isFinite(parsed) && parsed > 0;
-      }),
-    [activeFundKeys, navOverrides],
-  );
-
-  const tooltipFormatter = value => formatCurrency(value);
 
   const tickFormatter = value => {
     if (!Number.isFinite(value)) return '';
@@ -109,6 +89,39 @@ export default function Dashboard({
       return `$${(value / 1_000).toFixed(1)}K`;
     }
     return formatCurrency(value);
+  };
+
+  const [expandedDate, setExpandedDate] = useState(null);
+
+  const handleToggleDetails = date => {
+    setExpandedDate(prev => (prev === date ? null : date));
+  };
+
+  const renderTooltip = ({ active, payload, label }) => {
+    if (!active || !payload || !payload.length) {
+      return null;
+    }
+    const filtered = payload.filter(item => item.dataKey !== 'marketValueShade');
+    if (!filtered.length) {
+      return null;
+    }
+
+    return (
+      <div className="chart-tooltip">
+        <div className="chart-tooltip-label">{label}</div>
+        <ul>
+          {filtered.map(item => (
+            <li key={item.dataKey}>
+              <span className="dot" style={{ background: item.color || item.stroke }} />
+              <span className="name">
+                {item.dataKey === 'contributed' ? 'Total contributions' : 'Market value'}
+              </span>
+              <span className="value">{formatCurrency(item.value ?? 0)}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
   };
 
   return (
@@ -133,61 +146,6 @@ export default function Dashboard({
         <SummaryOverview totals={summary.totals} firstTransaction={summary.firstTransaction} />
       </section>
 
-      {activeFundKeys.length ? (
-        <section>
-          <div className="section-header">
-            <h2>NAV Overrides</h2>
-            <div className="section-actions">
-              <button
-                type="button"
-                className="secondary"
-                onClick={onResetNavOverrides}
-                disabled={!hasOverrides}
-              >
-                Clear Overrides
-              </button>
-            </div>
-          </div>
-          <p className="meta">
-            Enter optional net asset values to preview updated market values without changing stored data.
-          </p>
-          <div className="nav-override-grid">
-            {activeFundKeys.map(fund => {
-              const sources = summary.portfolio[fund];
-              const firstSource = sources ? Object.values(sources)[0] : null;
-              const latestNav = firstSource?.latestNAV ?? 0;
-              const overrideValue = navOverrides?.[fund] ?? '';
-
-              return (
-                <div className="nav-override-card" key={fund}>
-                  <div className="nav-override-header">
-                    <h3>{formatFundName(fund)}</h3>
-                    <span className="nav-override-current">Current NAV: {formatUnitPrice(latestNav)}</span>
-                  </div>
-                  <label className="nav-override-label" htmlFor={`nav-override-${fund}`}>
-                    Override NAV
-                  </label>
-                  <input
-                    id={`nav-override-${fund}`}
-                    type="number"
-                    min="0"
-                    step="0.0001"
-                    inputMode="decimal"
-                    className="nav-override-input"
-                    value={overrideValue}
-                    placeholder={formatUnitPrice(latestNav)}
-                    onChange={event => onNavOverrideChange(fund, event.target.value)}
-                  />
-                  <p className="nav-override-note">
-                    Leave blank to use the latest imported NAV.
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      ) : null}
-
       {trendData.length ? (
         <section className="chart-section">
           <div className="section-header">
@@ -200,10 +158,10 @@ export default function Dashboard({
             )}
             <div className="chart-wrapper">
               <ResponsiveContainer width="100%" height={260}>
-                <AreaChart data={formattedTrend} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                <ComposedChart data={formattedTrend} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="balanceTrendGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="rgba(129, 140, 248, 0.9)" stopOpacity={0.6} />
+                      <stop offset="0%" stopColor="rgba(129, 140, 248, 0.85)" stopOpacity={0.55} />
                       <stop offset="100%" stopColor="rgba(99, 102, 241, 0.05)" stopOpacity={0} />
                     </linearGradient>
                   </defs>
@@ -232,45 +190,53 @@ export default function Dashboard({
                       fontWeight: 600,
                     }}
                   />
-                  <Tooltip
-                    contentStyle={{
-                      background: 'rgba(15, 23, 42, 0.92)',
-                      border: '1px solid rgba(99, 102, 241, 0.3)',
-                      borderRadius: '0.75rem',
-                      color: '#e2e8f0',
-                    }}
-                    labelStyle={{ color: 'rgba(203, 213, 225, 0.8)', fontWeight: 600 }}
-                    formatter={tooltipFormatter}
+                  <Tooltip content={renderTooltip} />
+                  <Legend
+                    verticalAlign="top"
+                    height={32}
+                    iconType="circle"
+                    payload={[
+                      { value: 'Market value', type: 'line', color: 'rgba(99, 102, 241, 0.95)' },
+                      { value: 'Total contributions', type: 'line', color: '#f97316' }
+                    ]}
                   />
-                  <Legend verticalAlign="top" height={32} iconType="circle" />
                   <Area
+                    type="monotone"
+                    dataKey="marketValueShade"
+                    stroke="rgba(129, 140, 248, 0.35)"
+                    strokeWidth={1}
+                    fill="url(#balanceTrendGradient)"
+                    fillOpacity={1}
+                    dot={false}
+                    activeDot={false}
+                    legendType="none"
+                  />
+                  <Line
                     type="monotone"
                     dataKey="marketValue"
                     name="Market value"
-                    stroke="rgba(129, 140, 248, 0.95)"
+                    stroke="rgba(99, 102, 241, 0.95)"
                     strokeWidth={2.5}
-                    fill="url(#balanceTrendGradient)"
-                    fillOpacity={1}
-                    dot={{ r: 3, strokeWidth: 0, fill: 'rgba(129, 140, 248, 0.95)' }}
-                    activeDot={{ r: 5 }}
+                    dot={false}
+                    activeDot={{ r: 4, strokeWidth: 0, fill: 'rgba(99, 102, 241, 0.95)' }}
+                    connectNulls
+                    isAnimationActive={false}
                   />
-                  <Area
+                  <Line
                     type="monotone"
                     dataKey="contributed"
                     name="Total contributions"
                     stroke="#f97316"
                     strokeDasharray="6 3"
                     strokeWidth={2.5}
-                    strokeOpacity={0.95}
-                    fill="none"
-                    fillOpacity={0}
-                    dot={{ r: 3, strokeWidth: 1.8, stroke: '#f97316', fill: '#0f172a' }}
+                    dot={{ r: 3, strokeWidth: 1.5, stroke: '#f97316', fill: '#0f172a' }}
                     activeDot={{ r: 6, strokeWidth: 2, stroke: '#f97316', fill: '#fff' }}
                     connectNulls
                     isAnimationActive={false}
-                    legendType="line"
+                    strokeOpacity={0.95}
+                    z={3}
                   />
-                </AreaChart>
+                </ComposedChart>
               </ResponsiveContainer>
             </div>
           </div>
@@ -293,18 +259,68 @@ export default function Dashboard({
                   <th>Deposits</th>
                   <th>Net Invested</th>
                   <th>Market Value</th>
+                  <th>Details</th>
                 </tr>
               </thead>
               <tbody>
                 {summary.timeline.slice(-6).reverse().map(entry => (
-                  <tr key={entry.date}>
-                    <td>{formatDate(entry.date)}</td>
-                    <td>{formatCurrency(entry.contributions)}</td>
-                    <td>{formatCurrency(entry.investedBalance ?? entry.balance)}</td>
-                    <td>
-                      {formatCurrency(entry.marketValue ?? entry.investedBalance ?? entry.balance)}
-                    </td>
-                  </tr>
+                  <React.Fragment key={entry.date}>
+                    <tr>
+                      <td>{formatDate(entry.date)}</td>
+                      <td>{formatCurrency(entry.contributions)}</td>
+                      <td>{formatCurrency(entry.investedBalance ?? entry.balance)}</td>
+                      <td>
+                        {formatCurrency(entry.marketValue ?? entry.investedBalance ?? entry.balance)}
+                      </td>
+                      <td>
+                        {entry.transactions?.length ? (
+                          <button
+                            type="button"
+                            className="link-button"
+                            onClick={() => handleToggleDetails(entry.date)}
+                          >
+                            {expandedDate === entry.date ? 'Hide' : 'View'}
+                          </button>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
+                    </tr>
+                    {expandedDate === entry.date && entry.transactions?.length ? (
+                      <tr className="recent-details">
+                        <td colSpan={5}>
+                          <div className="recent-details-wrapper">
+                            <table className="recent-details-table">
+                              <thead>
+                                <tr>
+                                  <th>Fund</th>
+                                  <th>Source</th>
+                                  <th>Activity</th>
+                                  <th>Shares</th>
+                                  <th>Unit Price</th>
+                                  <th>Amount</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {entry.transactions.map(tx => (
+                                  <tr
+                                    key={`${tx.date}-${tx.fund}-${tx.moneySource}-${tx.activity}-${tx.units}-${tx.amount}`}
+                                  >
+                                    <td>{formatFundName(tx.fund)}</td>
+                                    <td>{formatSourceName(tx.moneySource)}</td>
+                                    <td>{tx.activity}</td>
+                                    <td className="numeric">{formatShares(tx.units)}</td>
+                                    <td className="numeric">{formatUnitPrice(tx.unitPrice)}</td>
+                                    <td className="numeric">{formatCurrency(tx.amount)}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : null}
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   formatCurrency,
   formatShares,
@@ -8,22 +8,42 @@ import {
   formatSourceName,
 } from '../utils/formatters.js';
 
-export default function PortfolioTable({ portfolio, totals }) {
-  const rows = [];
+const EPSILON = 1e-6;
 
-  Object.entries(portfolio).forEach(([fund, sources]) => {
-    Object.entries(sources).forEach(([source, metrics]) => {
-      rows.push({
-        fund,
-        source,
-        displayFund: formatFundName(fund),
-        displaySource: formatSourceName(source),
-        ...metrics,
+export default function PortfolioTable({ portfolio, totals }) {
+  const { allRows, activeRows } = useMemo(() => {
+    const list = [];
+
+    Object.entries(portfolio || {}).forEach(([fund, sources]) => {
+      Object.entries(sources || {}).forEach(([source, metrics]) => {
+        list.push({
+          fund,
+          source,
+          displayFund: formatFundName(fund),
+          displaySource: formatSourceName(source),
+          ...metrics,
+        });
       });
     });
-  });
 
-  if (!rows.length) {
+    const active = list.filter(row => {
+      const shares = Number.isFinite(row.shares) ? row.shares : 0;
+      const marketValue = Number.isFinite(row.marketValue) ? row.marketValue : 0;
+      return Math.abs(shares) > EPSILON || Math.abs(marketValue) > EPSILON;
+    });
+
+    return {
+      allRows: list,
+      activeRows: active,
+    };
+  }, [portfolio]);
+
+  const closedCount = allRows.length - activeRows.length;
+  const [showClosed, setShowClosed] = useState(false);
+  const displayRows = showClosed || !activeRows.length ? allRows : activeRows;
+  const canToggleClosed = closedCount > 0 && activeRows.length > 0;
+
+  if (!displayRows.length) {
     return (
       <div className="empty-state">
         <p>No portfolio data yet. Paste transactions and press Update.</p>
@@ -33,6 +53,24 @@ export default function PortfolioTable({ portfolio, totals }) {
 
   return (
     <div className="table-wrapper">
+      {closedCount > 0 && (
+        <div className="table-notice">
+          <p className="meta">
+            {showClosed || !activeRows.length
+              ? 'Showing closed positions.'
+              : `Hiding ${closedCount} closed position${closedCount === 1 ? '' : 's'}.`}
+          </p>
+          {canToggleClosed && (
+            <button
+              type="button"
+              className="secondary"
+              onClick={() => setShowClosed(prev => !prev)}
+            >
+              {showClosed ? 'Hide Closed Positions' : 'Show Closed Positions'}
+            </button>
+          )}
+        </div>
+      )}
       <table>
         <thead>
           <tr>
@@ -48,7 +86,7 @@ export default function PortfolioTable({ portfolio, totals }) {
           </tr>
         </thead>
         <tbody>
-          {rows.map(row => (
+          {displayRows.map(row => (
             <tr key={`${row.fund}-${row.source}`}>
               <td>{row.displayFund}</td>
               <td>{row.displaySource}</td>

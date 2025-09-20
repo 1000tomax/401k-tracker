@@ -23,7 +23,21 @@ export default function ImportPage({
   importStatus,
   transactionsCount,
   transactions = [],
+  onImportFiles,
+  isImportingFiles = false,
 }) {
+  const handleFileChange = event => {
+    if (!onImportFiles) {
+      return;
+    }
+    const files = Array.from(event.target.files || []);
+    if (!files.length) {
+      return;
+    }
+    onImportFiles(files);
+    event.target.value = '';
+  };
+
   return (
     <div className="import-page">
       <section className="input-section">
@@ -38,6 +52,20 @@ export default function ImportPage({
             first 10 entries before saving and skip duplicates automatically.
           </p>
         </div>
+        <div className="file-import">
+          <label htmlFor="transactions-file">Upload CSV Export</label>
+          <input
+            id="transactions-file"
+            type="file"
+            accept=".csv,text/csv"
+            multiple
+            onChange={handleFileChange}
+            disabled={isImportingFiles}
+          />
+          <p className="meta">
+            Select one or more Voya downloads—new rows are merged and deduped automatically.
+          </p>
+        </div>
         <label htmlFor="transactions-input">Transaction Log</label>
         <textarea
           id="transactions-input"
@@ -47,13 +75,14 @@ export default function ImportPage({
           rows={12}
         />
         <div className="actions">
-          <button type="button" onClick={onParse} disabled={!rawInput.trim()}>
+          <button type="button" onClick={onParse} disabled={!rawInput.trim() || isImportingFiles}>
             Preview Additions
           </button>
           <button type="button" className="secondary" onClick={onClearAll} disabled={!transactionsCount}>
             Clear All Stored Data
           </button>
         </div>
+        {isImportingFiles && <p className="status">Reading file(s)…</p>}
         {importStatus && <p className="status">{importStatus}</p>}
       </section>
 
