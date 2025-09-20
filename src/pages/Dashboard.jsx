@@ -6,10 +6,12 @@ import {
   ResponsiveContainer,
   AreaChart,
   Area,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
+  Legend,
 } from 'recharts';
 
 export default function Dashboard({
@@ -29,7 +31,8 @@ export default function Dashboard({
   const syncTone = syncStatus?.toLowerCase().includes('failed') ? 'error' : 'success';
   const baseTrend = (summary.timeline || []).map(entry => ({
     date: entry.date,
-    value: entry.balance,
+    marketValue: entry.marketValue ?? entry.balance ?? 0,
+    contributed: entry.investedBalance ?? entry.balance ?? 0,
   }));
   const isDev = Boolean(import.meta.env?.DEV);
 
@@ -42,41 +45,57 @@ export default function Dashboard({
       return { trendData: baseTrend, usingSampleData: false };
     }
 
-    const seedValue = baseTrend.length ? baseTrend[0].value : summary.totals.netInvested || 0;
+    const seedInvested = summary.totals.netInvested || 0;
+    const seedMarket = summary.totals.marketValue || seedInvested;
     const today = new Date();
     const days = [60, 45, 30, 20, 10, 0];
     const increments = [0.6, 0.75, 0.9, 1, 1.15, 1.32];
     const sample = days.map((offset, index) => {
       const date = new Date(today);
       date.setDate(today.getDate() - offset);
-      const value = seedValue * increments[index] + index * 500;
+      const invested = seedInvested * (0.85 + index * 0.03);
+      const marketValue = seedMarket * increments[index] + index * 250;
       const yyyy = date.getFullYear();
       const mm = String(date.getMonth() + 1).padStart(2, '0');
       const dd = String(date.getDate()).padStart(2, '0');
       return {
         date: `${yyyy}-${mm}-${dd}`,
-        value,
+        marketValue,
+        contributed: invested,
       };
     });
 
     return { trendData: sample, usingSampleData: true };
-  }, [baseTrend, isDev, summary.totals.netInvested]);
+  }, [baseTrend, isDev, summary.totals.marketValue, summary.totals.netInvested]);
 
   const formattedTrend = trendData.map(point => ({
     ...point,
     label: formatDate(point.date),
-    balance: point.value,
   }));
 
-  const axisLabel = usingSampleData ? 'Sample Balance' : 'Balance';
+  const axisLabel = usingSampleData ? 'Sample Balance' : 'Account Value';
 
-  const fundKeys = Object.keys(summary.portfolio || {});
+  const activeFundKeys = useMemo(() => {
+    if (!summary.portfolio) return [];
+    return Object.entries(summary.portfolio)
+      .filter(([, sources]) => {
+        const totalShares = Object.values(sources || {}).reduce((sum, metrics) => {
+          const shares = Number.isFinite(metrics?.shares) ? metrics.shares : 0;
+          return sum + shares;
+        }, 0);
+        return Math.abs(totalShares) > 1e-6;
+      })
+      .map(([fund]) => fund);
+  }, [summary.portfolio]);
+
   const hasOverrides = useMemo(
-    () => Object.values(navOverrides || {}).some(value => {
-      const parsed = Number.parseFloat(value);
-      return Number.isFinite(parsed) && parsed > 0;
-    }),
-    [navOverrides],
+    () =>
+      activeFundKeys.some(fund => {
+        const overrideValue = navOverrides?.[fund];
+        const parsed = Number.parseFloat(overrideValue);
+        return Number.isFinite(parsed) && parsed > 0;
+      }),
+    [activeFundKeys, navOverrides],
   );
 
   const tooltipFormatter = value => formatCurrency(value);
@@ -114,7 +133,7 @@ export default function Dashboard({
         <SummaryOverview totals={summary.totals} firstTransaction={summary.firstTransaction} />
       </section>
 
-      {fundKeys.length ? (
+      {activeFundKeys.length ? (
         <section>
           <div className="section-header">
             <h2>NAV Overrides</h2>
@@ -133,7 +152,7 @@ export default function Dashboard({
             Enter optional net asset values to preview updated market values without changing stored data.
           </p>
           <div className="nav-override-grid">
-            {fundKeys.map(fund => {
+            {activeFundKeys.map(fund => {
               const sources = summary.portfolio[fund];
               const firstSource = sources ? Object.values(sources)[0] : null;
               const latestNav = firstSource?.latestNAV ?? 0;
@@ -172,12 +191,12 @@ export default function Dashboard({
       {trendData.length ? (
         <section className="chart-section">
           <div className="section-header">
-            <h2>Balance Trend</h2>
-            <p className="meta">Running net contributions across your full transaction history.</p>
+            <h2>Account Growth</h2>
+            <p className="meta">Compare market value against cumulative net contributions across your history.</p>
           </div>
           <div className="chart-panel">
             {usingSampleData && (
-              <p className="chart-demo-note">Showing sample trend data locally until more transactions are imported.</p>
+              <p className="chart-demo-note">Showing sample data until more transactions are imported locally.</p>
             )}
             <div className="chart-wrapper">
               <ResponsiveContainer width="100%" height={260}>
@@ -197,7 +216,7 @@ export default function Dashboard({
                     minTickGap={32}
                   />
                   <YAxis
-                    dataKey="balance"
+                    dataKey="marketValue"
                     stroke="rgba(203, 213, 225, 0.65)"
                     tickLine={false}
                     axisLine={{ stroke: 'rgba(148, 163, 184, 0.2)' }}
@@ -223,14 +242,33 @@ export default function Dashboard({
                     labelStyle={{ color: 'rgba(203, 213, 225, 0.8)', fontWeight: 600 }}
                     formatter={tooltipFormatter}
                   />
+                  <Legend verticalAlign="top" height={32} iconType="circle" />
                   <Area
                     type="monotone"
-                    dataKey="balance"
+                    dataKey="marketValue"
+                    name="Market value"
                     stroke="rgba(129, 140, 248, 0.95)"
                     strokeWidth={2.5}
                     fill="url(#balanceTrendGradient)"
+                    fillOpacity={1}
                     dot={{ r: 3, strokeWidth: 0, fill: 'rgba(129, 140, 248, 0.95)' }}
                     activeDot={{ r: 5 }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="contributed"
+                    name="Total contributions"
+                    stroke="#f97316"
+                    strokeDasharray="6 3"
+                    strokeWidth={2.5}
+                    strokeOpacity={0.95}
+                    fill="none"
+                    fillOpacity={0}
+                    dot={{ r: 3, strokeWidth: 1.8, stroke: '#f97316', fill: '#0f172a' }}
+                    activeDot={{ r: 6, strokeWidth: 2, stroke: '#f97316', fill: '#fff' }}
+                    connectNulls
+                    isAnimationActive={false}
+                    legendType="line"
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -252,9 +290,9 @@ export default function Dashboard({
               <thead>
                 <tr>
                   <th>Date</th>
-                  <th>Contributions</th>
-                  <th>Net</th>
-                  <th>Running Total</th>
+                  <th>Deposits</th>
+                  <th>Net Invested</th>
+                  <th>Market Value</th>
                 </tr>
               </thead>
               <tbody>
@@ -262,10 +300,10 @@ export default function Dashboard({
                   <tr key={entry.date}>
                     <td>{formatDate(entry.date)}</td>
                     <td>{formatCurrency(entry.contributions)}</td>
-                    <td className={entry.net >= 0 ? 'positive' : 'negative'}>
-                      {formatCurrency(entry.net)}
+                    <td>{formatCurrency(entry.investedBalance ?? entry.balance)}</td>
+                    <td>
+                      {formatCurrency(entry.marketValue ?? entry.investedBalance ?? entry.balance)}
                     </td>
-                    <td>{formatCurrency(entry.balance)}</td>
                   </tr>
                 ))}
               </tbody>
