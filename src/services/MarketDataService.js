@@ -141,12 +141,18 @@ class MarketDataService {
 
   // Fetch prices via server-side API (bypasses CORS)
   async fetchFromServer(symbols) {
+    // Get the auth token from the environment (same as main app)
+    const authToken =
+      (import.meta.env && import.meta.env.VITE_401K_TOKEN) ||
+      (typeof process !== 'undefined' && process.env ? process.env.NEXT_PUBLIC_401K_TOKEN : undefined) ||
+      'dev-only-token';
+
     try {
       const response = await fetch('/api/fetch-live-prices', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-401K-Token': 'dev-only-token' // Use your actual token
+          'X-401K-Token': authToken
         },
         body: JSON.stringify({
           symbols: symbols,
