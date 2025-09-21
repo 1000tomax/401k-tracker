@@ -95,17 +95,17 @@ export default function Dashboard({
       const sourceKeys = Object.keys(sources);
       const hasNonVoyaSources = sourceKeys.some(source => {
         const lowerSource = source.toLowerCase();
-        return !lowerSource.includes('pre tax') &&
+        return !lowerSource.includes('pretax') &&
+               !lowerSource.includes('pre tax') &&
+               !lowerSource.includes('posttax') &&
                !lowerSource.includes('post tax') &&
                !lowerSource.includes('safe harbor') &&
+               !lowerSource.includes('employee') &&
+               !lowerSource.includes('match') &&
                !lowerSource.includes('401') &&
                !lowerSource.includes('voya');
       });
 
-      // Debug logging
-      if (hasNonVoyaSources) {
-        console.log('Found non-Voya fund:', fund, 'Sources:', sourceKeys);
-      }
 
       // Only look for ETF symbols in funds from non-Voya sources
       if (hasNonVoyaSources) {
@@ -128,11 +128,9 @@ export default function Dashboard({
               if (match.includes('(') || match.includes('ETF')) {
                 const symbolMatch = match.match(/([A-Z]{2,5})/);
                 if (symbolMatch) {
-                  console.log('Found ETF symbol:', symbolMatch[1], 'in fund:', fund);
                   symbols.add(symbolMatch[1]);
                 }
               } else {
-                console.log('Found ETF symbol:', match, 'in fund:', fund);
                 symbols.add(match);
               }
             });
