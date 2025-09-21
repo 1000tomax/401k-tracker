@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import SummaryOverview from '../components/SummaryOverview.jsx';
 import PortfolioTable from '../components/PortfolioTable.jsx';
 import {
@@ -20,6 +20,7 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
+import MarketDataService from '../services/MarketDataService.js';
 
 export default function Dashboard({
   summary,
@@ -31,6 +32,10 @@ export default function Dashboard({
   onRefresh,
   isRefreshing,
 }) {
+  const [livePrices, setLivePrices] = useState({});
+  const [isLoadingPrices, setIsLoadingPrices] = useState(false);
+  const [marketStatus, setMarketStatus] = useState(null);
+  const [showLivePrices, setShowLivePrices] = useState(false);
   const remoteTone = remoteStatus?.toLowerCase().includes('failed') ? 'error' : 'info';
   const syncTone = syncStatus?.toLowerCase().includes('failed') ? 'error' : 'success';
   const baseTrend = (summary.timeline || []).map(entry => ({
@@ -80,6 +85,66 @@ export default function Dashboard({
     setExpandedDate(prev => (prev === date ? null : date));
   };
 
+  // Extract ETF symbols from portfolio holdings
+  const etfSymbols = useMemo(() => {
+    const symbols = new Set();
+
+    // Look for ETF-like symbols in fund names
+    Object.keys(summary.portfolio || {}).forEach(fund => {
+      const cleanName = fund.toUpperCase();
+
+      // Common ETF patterns
+      const etfPatterns = [
+        /\b(VTI|VXUS|VEA|VWO|BND|VB|SPY|QQQ|IWM|EFA)\b/,
+        /\b[A-Z]{2,5}\b/  // 2-5 letter symbols
+      ];
+
+      etfPatterns.forEach(pattern => {
+        const matches = cleanName.match(pattern);
+        if (matches) {
+          matches.forEach(match => symbols.add(match));
+        }
+      });
+    });
+
+    return Array.from(symbols);
+  }, [summary.portfolio]);
+
+  // Fetch live prices for detected ETF symbols
+  const fetchLivePrices = useCallback(async () => {
+    if (etfSymbols.length === 0) return;
+
+    setIsLoadingPrices(true);
+    try {
+      const prices = await MarketDataService.getBatchPrices(etfSymbols);
+      setLivePrices(prices);
+      setShowLivePrices(Object.keys(prices).length > 0);
+
+      // Update market status
+      const status = MarketDataService.getMarketStatus();
+      setMarketStatus(status);
+    } catch (error) {
+      console.error('Failed to fetch live prices:', error);
+    } finally {
+      setIsLoadingPrices(false);
+    }
+  }, [etfSymbols]);
+
+  // Initial price fetch and periodic updates
+  useEffect(() => {
+    fetchLivePrices();
+
+    // Auto-refresh during market hours
+    const interval = setInterval(() => {
+      const status = MarketDataService.getMarketStatus();
+      if (status.isOpen) {
+        fetchLivePrices();
+      }
+    }, 5 * 60 * 1000); // 5 minutes
+
+    return () => clearInterval(interval);
+  }, [fetchLivePrices]);
+
   const renderTooltip = ({ active, payload, label }) => {
     if (!active || !payload || !payload.length) {
       return null;
@@ -113,6 +178,16 @@ export default function Dashboard({
         <div className="section-header">
           <h2>Account Overview</h2>
           <div className="section-actions">
+            {etfSymbols.length > 0 && (
+              <button
+                type="button"
+                className="secondary"
+                onClick={fetchLivePrices}
+                disabled={isLoadingPrices}
+              >
+                {isLoadingPrices ? 'Updating…' : 'Update Prices'}
+              </button>
+            )}
             {onRefresh && (
               <button type="button" className="secondary" onClick={onRefresh} disabled={isRefreshing}>
                 {isRefreshing ? 'Refreshing…' : 'Refresh from GitHub'}
@@ -126,6 +201,27 @@ export default function Dashboard({
 
         {remoteStatus && <div className={`status-banner status-banner--${remoteTone}`}>{remoteStatus}</div>}
         {syncStatus && <div className={`status-banner status-banner--${syncTone}`}>{syncStatus}</div>}
+
+        {/* Market Status Banner */}
+        {marketStatus && showLivePrices && (
+          <div className={`status-banner status-banner--${marketStatus.isOpen ? 'success' : 'info'}`}>
+            <div className="market-status-content">
+              <span className="market-status-indicator">
+                {marketStatus.isOpen ? '🟢' : '🔴'} {marketStatus.isOpen ? 'Market Open' : 'Market Closed'}
+              </span>
+              <span className="market-status-time">
+                {marketStatus.isOpen
+                  ? `Closes at ${marketStatus.localCloseTime} ${marketStatus.timezone}`
+                  : `Opens at ${marketStatus.localOpenTime} ${marketStatus.timezone}`}
+              </span>
+              {Object.keys(livePrices).length > 0 && (
+                <span className="price-count">
+                  Live prices for {Object.keys(livePrices).length} ETF{Object.keys(livePrices).length === 1 ? '' : 's'}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
 
         {!transactions.length && <p className="meta">No transactions stored yet. Visit the Import page to get started.</p>}
         <SummaryOverview
@@ -236,8 +332,9 @@ export default function Dashboard({
           closedPositions={summary.closedPositions}
           openPositionsTotals={summary.openPositionsTotals}
           closedPositionsTotals={summary.closedPositionsTotals}
-          livePrices={{}}
-          showLivePrices={false}
+          totals={summary.totals}
+          livePrices={livePrices}
+          showLivePrices={showLivePrices}
         />
       </section>
 
