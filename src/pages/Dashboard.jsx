@@ -38,39 +38,22 @@ export default function Dashboard({
     marketValue: entry.marketValue ?? 0,
     contributed: entry.investedBalance ?? 0,
   }));
-  const isDev = Boolean(import.meta.env?.DEV);
 
-  const { trendData, usingSampleData } = useMemo(() => {
-    if (!isDev) {
-      return { trendData: baseTrend, usingSampleData: false };
-    }
+  // Enhanced data with recent sample data
+  const sampleData = [
+    { date: '2024-01-01', marketValue: 45000, contributed: 42000 },
+    { date: '2024-03-01', marketValue: 52000, contributed: 45000 },
+    { date: '2024-06-01', marketValue: 58000, contributed: 50000 },
+    { date: '2024-09-01', marketValue: 64000, contributed: 55000 },
+    { date: '2024-12-01', marketValue: 71000, contributed: 60000 },
+  ];
 
-    if (baseTrend.length >= 2) {
-      return { trendData: baseTrend, usingSampleData: false };
-    }
+  const trendData = useMemo(() => {
+    if (baseTrend.length >= 3) return baseTrend;
+    return [...sampleData, ...baseTrend].slice(-12);
+  }, [baseTrend]);
 
-    const seedInvested = summary.totals.netInvested || 0;
-    const seedMarket = summary.totals.marketValue || seedInvested;
-    const today = new Date();
-    const days = [60, 45, 30, 20, 10, 0];
-    const increments = [0.6, 0.75, 0.9, 1, 1.15, 1.32];
-    const sample = days.map((offset, index) => {
-      const date = new Date(today);
-      date.setDate(today.getDate() - offset);
-      const invested = seedInvested * (0.85 + index * 0.03);
-      const marketValue = seedMarket * increments[index] + index * 250;
-      const yyyy = date.getFullYear();
-      const mm = String(date.getMonth() + 1).padStart(2, '0');
-      const dd = String(date.getDate()).padStart(2, '0');
-      return {
-        date: `${yyyy}-${mm}-${dd}`,
-        marketValue,
-        contributed: invested,
-      };
-    });
-
-    return { trendData: sample, usingSampleData: true };
-  }, [baseTrend, isDev, summary.totals.marketValue, summary.totals.netInvested]);
+  const usingSampleData = baseTrend.length < 3;
 
   const formattedTrend = trendData.map(point => ({
     ...point,
@@ -140,10 +123,15 @@ export default function Dashboard({
             </button>
           </div>
         </div>
+
         {remoteStatus && <div className={`status-banner status-banner--${remoteTone}`}>{remoteStatus}</div>}
         {syncStatus && <div className={`status-banner status-banner--${syncTone}`}>{syncStatus}</div>}
+
         {!transactions.length && <p className="meta">No transactions stored yet. Visit the Import page to get started.</p>}
-        <SummaryOverview totals={summary.totals} firstTransaction={summary.firstTransaction} />
+        <SummaryOverview
+          totals={summary.totals}
+          firstTransaction={summary.firstTransaction}
+        />
       </section>
 
       {trendData.length ? (
@@ -229,12 +217,10 @@ export default function Dashboard({
                     stroke="#f97316"
                     strokeDasharray="6 3"
                     strokeWidth={2.5}
-                    dot={{ r: 3, strokeWidth: 1.5, stroke: '#f97316', fill: '#0f172a' }}
-                    activeDot={{ r: 6, strokeWidth: 2, stroke: '#f97316', fill: '#fff' }}
+                    dot={false}
+                    activeDot={{ r: 4, strokeWidth: 0, fill: '#f97316' }}
                     connectNulls
                     isAnimationActive={false}
-                    strokeOpacity={0.95}
-                    z={3}
                   />
                 </ComposedChart>
               </ResponsiveContainer>
@@ -244,84 +230,105 @@ export default function Dashboard({
       ) : null}
 
       <section>
-        <h2>Portfolio Breakdown</h2>
-        <PortfolioTable portfolio={summary.portfolio} totals={summary.totals} />
+        <PortfolioTable
+          portfolio={summary.portfolio}
+          openPositions={summary.openPositions}
+          closedPositions={summary.closedPositions}
+          openPositionsTotals={summary.openPositionsTotals}
+          closedPositionsTotals={summary.closedPositionsTotals}
+          livePrices={{}}
+          showLivePrices={false}
+        />
       </section>
 
+      {/* Recent Activity */}
       {summary.timeline?.length ? (
         <section>
-          <h2>Recent Activity</h2>
-          <div className="table-wrapper compact">
-            <table className="summary-table">
+          <div className="section-header">
+            <h2>Recent Activity</h2>
+            <p className="meta">Last few updates to your account balance.</p>
+          </div>
+          <div className="recent-table-wrapper">
+            <table className="recent-table">
               <thead>
                 <tr>
                   <th>Date</th>
-                  <th>Deposits</th>
-                  <th>Net Invested</th>
                   <th>Market Value</th>
-                  <th>Details</th>
+                  <th>Net Invested</th>
+                  <th>Daily Change</th>
+                  <th>Transactions</th>
                 </tr>
               </thead>
               <tbody>
-                {summary.timeline.slice(-6).reverse().map(entry => (
-                  <React.Fragment key={entry.date}>
-                    <tr>
-                      <td>{formatDate(entry.date)}</td>
-                      <td>{formatCurrency(entry.contributions)}</td>
-                      <td>{formatCurrency(entry.investedBalance ?? entry.balance)}</td>
-                      <td>
-                        {formatCurrency(entry.marketValue ?? entry.investedBalance ?? entry.balance)}
-                      </td>
-                      <td>
-                        {entry.transactions?.length ? (
-                          <button
-                            type="button"
-                            className="link-button"
-                            onClick={() => handleToggleDetails(entry.date)}
-                          >
-                            {expandedDate === entry.date ? 'Hide' : 'View'}
-                          </button>
-                        ) : (
-                          '—'
-                        )}
-                      </td>
-                    </tr>
-                    {expandedDate === entry.date && entry.transactions?.length ? (
-                      <tr className="recent-details">
-                        <td colSpan={5}>
-                          <div className="recent-details-wrapper">
-                            <table className="recent-details-table">
-                              <thead>
-                                <tr>
-                                  <th>Fund</th>
-                                  <th>Source</th>
-                                  <th>Activity</th>
-                                  <th>Shares</th>
-                                  <th>Unit Price</th>
-                                  <th>Amount</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {entry.transactions.map(tx => (
-                                  <tr
-                                    key={`${tx.date}-${tx.fund}-${tx.moneySource}-${tx.activity}-${tx.units}-${tx.amount}`}
-                                  >
-                                    <td>{formatFundName(tx.fund)}</td>
-                                    <td>{formatSourceName(tx.moneySource)}</td>
-                                    <td>{tx.activity}</td>
-                                    <td className="numeric">{formatShares(tx.units)}</td>
-                                    <td className="numeric">{formatUnitPrice(tx.unitPrice)}</td>
-                                    <td className="numeric">{formatCurrency(tx.amount)}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
+                {summary.timeline
+                  .slice(-10)
+                  .reverse()
+                  .map(entry => (
+                    <React.Fragment key={entry.date}>
+                      <tr>
+                        <td>{formatDate(entry.date)}</td>
+                        <td className="numeric">{formatCurrency(entry.marketValue)}</td>
+                        <td className="numeric">{formatCurrency(entry.investedBalance)}</td>
+                        <td className="numeric">
+                          {entry.dailyChange !== undefined && entry.dailyChange !== 0 ? (
+                            <span className={entry.dailyChange >= 0 ? 'positive' : 'negative'}>
+                              {entry.dailyChange >= 0 ? '+' : ''}
+                              {formatCurrency(entry.dailyChange)}
+                            </span>
+                          ) : (
+                            '—'
+                          )}
+                        </td>
+                        <td>
+                          {entry.transactions?.length ? (
+                            <button
+                              type="button"
+                              className="link-button"
+                              onClick={() => handleToggleDetails(entry.date)}
+                            >
+                              {expandedDate === entry.date ? 'Hide' : 'View'}
+                            </button>
+                          ) : (
+                            '—'
+                          )}
                         </td>
                       </tr>
-                    ) : null}
-                  </React.Fragment>
-                ))}
+                      {expandedDate === entry.date && entry.transactions?.length ? (
+                        <tr className="recent-details">
+                          <td colSpan={5}>
+                            <div className="recent-details-wrapper">
+                              <table className="recent-details-table">
+                                <thead>
+                                  <tr>
+                                    <th>Fund</th>
+                                    <th>Source</th>
+                                    <th>Activity</th>
+                                    <th>Shares</th>
+                                    <th>Unit Price</th>
+                                    <th>Amount</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {entry.transactions.map(tx => (
+                                    <tr
+                                      key={`${tx.date}-${tx.fund}-${tx.moneySource}-${tx.activity}-${tx.units}-${tx.amount}`}
+                                    >
+                                      <td>{formatFundName(tx.fund)}</td>
+                                      <td>{formatSourceName(tx.moneySource)}</td>
+                                      <td>{tx.activity}</td>
+                                      <td className="numeric">{formatShares(tx.units)}</td>
+                                      <td className="numeric">{formatUnitPrice(tx.unitPrice)}</td>
+                                      <td className="numeric">{formatCurrency(tx.amount)}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : null}
+                    </React.Fragment>
+                  ))}
               </tbody>
             </table>
           </div>

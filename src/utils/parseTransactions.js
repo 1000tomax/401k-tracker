@@ -432,6 +432,8 @@ function classifyFlow(activity) {
   return 'deposit';
 }
 
+const SHARE_EPSILON = 1e-6;
+
 export function aggregatePortfolio(transactions) {
   const portfolio = {};
   const totals = {
@@ -439,12 +441,15 @@ export function aggregatePortfolio(transactions) {
     costBasis: 0,
     marketValue: 0,
     gainLoss: 0,
+    unrealizedGainLoss: 0,
+    realizedGainLoss: 0,
     contributions: 0,
     netInvested: 0,
     payPeriods: 0,
   };
   let totalWithdrawals = 0;
   const fundTotals = {};
+  const runningPositions = {};
   const sourceTotals = {};
   const sourceCashFlows = {};
   const byFundSource = new Map();
@@ -471,6 +476,7 @@ export function aggregatePortfolio(transactions) {
       lastUpdated = tx.date;
     }
 
+    const units = ensureNumber(tx.units);
     const amount = ensureNumber(tx.amount);
     const flowType = classifyFlow(tx.activity);
     const magnitude = Math.abs(amount);
@@ -483,6 +489,17 @@ export function aggregatePortfolio(transactions) {
       };
     }
 
+    if (!runningPositions[key]) {
+      runningPositions[key] = {
+        shares: 0,
+        costBasis: 0,
+        realizedGainLoss: 0,
+        firstBuyDate: null,
+        lastSellDate: null
+      };
+    }
+    const position = runningPositions[key];
+
     if (!timelineByDate.has(tx.date)) {
       timelineByDate.set(tx.date, {
         date: tx.date,
@@ -494,14 +511,63 @@ export function aggregatePortfolio(transactions) {
     const timelineEntry = timelineByDate.get(tx.date);
     timelineEntry.transactions.push(tx);
 
+    // Track cash flows for all transactions
     if (flowType === 'deposit' && magnitude > 0) {
       totals.contributions += magnitude;
       sourceCashFlows[sourceKey].contributions += magnitude;
       timelineEntry.contributions += magnitude;
     } else if (flowType === 'withdrawal' && magnitude > 0) {
+      // Only count actual withdrawals, not transfers
       totalWithdrawals += magnitude;
       sourceCashFlows[sourceKey].withdrawals += magnitude;
       timelineEntry.withdrawals += magnitude;
+    }
+    // Note: 'neutral' flow type (transfers) don't affect cash flow totals
+
+
+    if (Math.abs(units) > SHARE_EPSILON && units > 0) {
+      // Buying shares
+      const purchaseCost = amount !== 0
+        ? Math.abs(amount)
+        : Math.abs(units * ensureNumber(tx.unitPrice));
+      position.costBasis += purchaseCost;
+      position.shares += units;
+      if (!position.firstBuyDate || tx.date < position.firstBuyDate) {
+        position.firstBuyDate = tx.date;
+      }
+      const fundTotal = ensureFundTotals(fundTotals, tx.fund);
+      if (!fundTotal.firstBuyDate || tx.date < fundTotal.firstBuyDate) {
+        fundTotal.firstBuyDate = tx.date;
+      }
+    } else if (Math.abs(units) > SHARE_EPSILON && units < 0) {
+      // Selling shares (negative units) - handle regardless of flow type
+      const sharesToRemove = Math.abs(units);
+      if (sharesToRemove > 0 && position.shares > SHARE_EPSILON) {
+        const avgCost = position.costBasis / position.shares;
+        const costReduction = avgCost * Math.min(sharesToRemove, position.shares);
+        position.costBasis = Math.max(0, position.costBasis - costReduction);
+        position.shares = Math.max(0, position.shares - sharesToRemove);
+
+        // Calculate realized gain/loss for this sale
+        // Sale proceeds (absolute amount) minus cost basis of shares sold
+        const realized = Math.abs(amount) - costReduction;
+        position.realizedGainLoss += realized;
+
+        const fundTotal = ensureFundTotals(fundTotals, tx.fund);
+        fundTotal.realizedGainLoss = (fundTotal.realizedGainLoss || 0) + realized;
+        fundTotal.lastSellDate = tx.date;
+        position.lastSellDate = tx.date;
+      }
+    } else if (flowType === 'deposit' && magnitude > 0 && Math.abs(units) <= SHARE_EPSILON) {
+      // Cash contributions without share purchases - affects net invested but not cost basis
+      // Cost basis should only reflect the cost of actual shares purchased
+      if (!position.firstBuyDate || tx.date < position.firstBuyDate) {
+        position.firstBuyDate = tx.date;
+      }
+      const fundTotal = ensureFundTotals(fundTotals, tx.fund);
+      if (!fundTotal.firstBuyDate || tx.date < fundTotal.firstBuyDate) {
+        fundTotal.firstBuyDate = tx.date;
+      }
     }
   }
 
@@ -556,12 +622,31 @@ export function aggregatePortfolio(transactions) {
 
   for (const [key, entries] of byFundSource.entries()) {
     const [fund, source] = key.split('||');
-    const shares = entries.reduce((sum, entry) => sum + ensureNumber(entry.units), 0);
-    const costBasis = entries.reduce((sum, entry) => sum + ensureNumber(entry.amount), 0);
+    const position = runningPositions[key] || { shares: 0, costBasis: 0, realizedGainLoss: 0, firstBuyDate: null, lastSellDate: null };
+    let shares = position.shares;
+    const costBasis = Math.max(position.costBasis, 0);
+    const isClosed = Math.abs(shares) < SHARE_EPSILON;
+    if (isClosed) {
+      shares = 0;
+    }
     const avgCost = shares ? costBasis / shares : 0;
     const latestNAV = latestNavFor(entries);
     const marketValue = shares * latestNAV;
-    const gainLoss = marketValue - costBasis;
+    let gainLoss = marketValue - costBasis;
+    const realizedGainLoss = position.realizedGainLoss || 0;
+
+    // For closed positions, use realized gain/loss and include it in market value calculation
+    if (isClosed) {
+      gainLoss = realizedGainLoss;
+      // If position is closed but has realized gains, reflect that in the market value
+      if (Math.abs(realizedGainLoss) > SHARE_EPSILON) {
+        // Keep the realized gains visible by setting a nominal market value
+        // This helps track performance of closed positions
+      }
+    }
+
+    const firstBuyDate = position.firstBuyDate;
+    const lastSellDate = position.lastSellDate;
 
     if (!portfolio[fund]) {
       portfolio[fund] = {};
@@ -573,17 +658,37 @@ export function aggregatePortfolio(transactions) {
       latestNAV,
       marketValue,
       gainLoss,
+      isClosed,
+      firstBuyDate,
+      lastSellDate,
+      realizedGainLoss,
+      // Additional metadata for better tracking
+      totalSaleProceeds: isClosed ? Math.abs(realizedGainLoss + costBasis) : 0,
+      hasTransactions: entries.length > 0
     };
 
     totals.shares += shares;
     totals.costBasis += costBasis;
-    totals.marketValue += marketValue;
-    totals.gainLoss += gainLoss;
+
+    // Separate unrealized vs realized gains and market value
+    if (isClosed) {
+      totals.realizedGainLoss += realizedGainLoss || 0;
+      totals.gainLoss += realizedGainLoss || 0; // Add realized gains to total
+      // Don't include closed positions in market value
+    } else {
+      totals.unrealizedGainLoss += gainLoss;
+      totals.gainLoss += gainLoss; // Add unrealized gains to total
+      // Only include open positions in market value
+      totals.marketValue += marketValue;
+    }
 
     const fundTotal = ensureFundTotals(fundTotals, fund);
     fundTotal.shares += shares;
     fundTotal.costBasis += costBasis;
-    fundTotal.marketValue += marketValue;
+    // Only include market value for open positions
+    if (!isClosed) {
+      fundTotal.marketValue += marketValue;
+    }
     fundTotal.gainLoss += gainLoss;
 
     const sourceKey = source || 'Unknown';
@@ -602,7 +707,10 @@ export function aggregatePortfolio(transactions) {
     const sourceTotal = sourceTotals[sourceKey];
     sourceTotal.shares += shares;
     sourceTotal.costBasis += costBasis;
-    sourceTotal.marketValue += marketValue;
+    // Only include market value for open positions
+    if (!isClosed) {
+      sourceTotal.marketValue += marketValue;
+    }
     sourceTotal.gainLoss += gainLoss;
   }
 
@@ -626,6 +734,9 @@ export function aggregatePortfolio(transactions) {
   }
 
   for (const sourceEntry of Object.values(sourceTotals)) {
+    if (Math.abs(sourceEntry.shares) < SHARE_EPSILON) {
+      sourceEntry.shares = 0;
+    }
     sourceEntry.avgCost = sourceEntry.shares ? sourceEntry.costBasis / sourceEntry.shares : 0;
     sourceEntry.roi = sourceEntry.netInvested
       ? (sourceEntry.marketValue - sourceEntry.netInvested) / sourceEntry.netInvested
@@ -642,8 +753,61 @@ export function aggregatePortfolio(transactions) {
 
   totals.payPeriods = payPeriodDates.size;
 
+  // Separate open and closed positions for UI
+  const openPositions = {};
+  const closedPositions = {};
+
+  Object.entries(portfolio).forEach(([fund, sources]) => {
+    Object.entries(sources).forEach(([source, position]) => {
+      if (position.isClosed) {
+        if (!closedPositions[fund]) closedPositions[fund] = {};
+        closedPositions[fund][source] = position;
+      } else {
+        if (!openPositions[fund]) openPositions[fund] = {};
+        openPositions[fund][source] = position;
+      }
+    });
+  });
+
+  // Calculate totals for each category
+  const openPositionsTotals = {
+    shares: 0,
+    costBasis: 0,
+    marketValue: 0,
+    gainLoss: 0
+  };
+
+  const closedPositionsTotals = {
+    realizedGainLoss: 0,
+    count: 0
+  };
+
+  Object.values(openPositions).forEach(sources => {
+    Object.values(sources).forEach(position => {
+      openPositionsTotals.shares += position.shares || 0;
+      openPositionsTotals.costBasis += position.costBasis || 0;
+      openPositionsTotals.marketValue += position.marketValue || 0;
+      openPositionsTotals.gainLoss += position.gainLoss || 0;
+    });
+  });
+
+  Object.values(closedPositions).forEach(sources => {
+    Object.values(sources).forEach(position => {
+      closedPositionsTotals.realizedGainLoss += position.realizedGainLoss || 0;
+      closedPositionsTotals.count += 1;
+    });
+  });
+
+
+
+
+
   return {
     portfolio,
+    openPositions,
+    closedPositions,
+    openPositionsTotals,
+    closedPositionsTotals,
     totals,
     fundTotals,
     sourceTotals,

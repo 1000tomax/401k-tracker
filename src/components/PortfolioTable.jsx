@@ -10,40 +10,144 @@ import {
 
 const EPSILON = 1e-6;
 
-export default function PortfolioTable({ portfolio, totals }) {
-  const { allRows, activeRows } = useMemo(() => {
+function LivePriceDisplay({ symbol, livePrices, showLivePrices }) {
+  if (!showLivePrices || !livePrices[symbol]) {
+    return null;
+  }
+
+  const priceData = livePrices[symbol];
+  const changeColor = priceData.change >= 0 ? 'positive' : 'negative';
+  const changePercent = priceData.changePercent;
+
+  return (
+    <div className="live-price-display">
+      <div className="live-price-main">
+        {formatUnitPrice(priceData.price)}
+        {priceData.isStale && <span className="price-stale">*</span>}
+      </div>
+      <div className={`live-price-change ${changeColor}`}>
+        {priceData.change >= 0 ? '+' : ''}{formatCurrency(priceData.change)}
+        ({changePercent})
+      </div>
+    </div>
+  );
+}
+
+export default function PortfolioTable({
+  portfolio,
+  openPositions,
+  closedPositions,
+  openPositionsTotals,
+  closedPositionsTotals,
+  totals,
+  livePrices = {},
+  showLivePrices = false
+}) {
+  // Helper function to extract symbol from fund name
+  const extractSymbol = (fundName) => {
+    // Simple extraction - in production, you'd have a proper mapping
+    const cleaned = fundName.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+    return cleaned.length >= 2 && cleaned.length <= 5 ? cleaned : null;
+  };
+
+  const { allRows, activeRows, closedRows } = useMemo(() => {
     const list = [];
 
-    Object.entries(portfolio || {}).forEach(([fund, sources]) => {
-      Object.entries(sources || {}).forEach(([source, metrics]) => {
-        list.push({
-          fund,
-          source,
-          displayFund: formatFundName(fund),
-          displaySource: formatSourceName(source),
-          ...metrics,
+    // Use separated data if available, otherwise fall back to legacy format
+    if (openPositions || closedPositions) {
+      // Process open positions
+      Object.entries(openPositions || {}).forEach(([fund, sources]) => {
+        Object.entries(sources || {}).forEach(([source, metrics]) => {
+          const symbol = extractSymbol(fund);
+          list.push({
+            fund,
+            source,
+            symbol,
+            displayFund: formatFundName(fund),
+            displaySource: formatSourceName(source),
+            ...metrics,
+            isClosed: false
+          });
         });
       });
-    });
+
+      // Process closed positions
+      Object.entries(closedPositions || {}).forEach(([fund, sources]) => {
+        Object.entries(sources || {}).forEach(([source, metrics]) => {
+          const symbol = extractSymbol(fund);
+          list.push({
+            fund,
+            source,
+            symbol,
+            displayFund: formatFundName(fund),
+            displaySource: formatSourceName(source),
+            ...metrics,
+            isClosed: true
+          });
+        });
+      });
+    } else {
+      // Legacy format - process all positions and filter by isClosed flag
+      Object.entries(portfolio || {}).forEach(([fund, sources]) => {
+        Object.entries(sources || {}).forEach(([source, metrics]) => {
+          const symbol = extractSymbol(fund);
+          const isClosed = metrics.isClosed || false;
+          list.push({
+            fund,
+            source,
+            symbol,
+            displayFund: formatFundName(fund),
+            displaySource: formatSourceName(source),
+            ...metrics,
+            isClosed
+          });
+        });
+      });
+    }
 
     const active = list.filter(row => {
       const shares = Number.isFinite(row.shares) ? row.shares : 0;
       const marketValue = Number.isFinite(row.marketValue) ? row.marketValue : 0;
-      return Math.abs(shares) > EPSILON || Math.abs(marketValue) > EPSILON;
+      return !row.isClosed && (Math.abs(shares) > EPSILON || Math.abs(marketValue) > EPSILON);
     });
+
+    const closed = list.filter(row => row.isClosed);
 
     return {
       allRows: list,
       activeRows: active,
+      closedRows: closed,
     };
-  }, [portfolio]);
+  }, [portfolio, openPositions, closedPositions]);
 
   const closedCount = allRows.length - activeRows.length;
   const [showClosed, setShowClosed] = useState(false);
-  const displayRows = showClosed || !activeRows.length ? allRows : activeRows;
-  const canToggleClosed = closedCount > 0 && activeRows.length > 0;
 
-  if (!displayRows.length) {
+  const activeTotals = useMemo(() => {
+    return activeRows.reduce((acc, row) => {
+      const shares = Number.isFinite(row.shares) ? row.shares : 0;
+      const costBasis = Number.isFinite(row.costBasis) ? row.costBasis : 0;
+      const marketValue = Number.isFinite(row.marketValue) ? row.marketValue : 0;
+      const gainLoss = Number.isFinite(row.gainLoss) ? row.gainLoss : 0;
+
+      acc.shares += shares;
+      acc.costBasis += costBasis;
+      acc.marketValue += marketValue;
+      acc.gainLoss += gainLoss;
+      return acc;
+    }, { shares: 0, costBasis: 0, marketValue: 0, gainLoss: 0 });
+  }, [activeRows]);
+
+  const closedSummary = useMemo(() => {
+    return closedRows.reduce((acc, row) => {
+      const realized = row.realizedGainLoss ?? row.gainLoss;
+      const gainLoss = Number.isFinite(realized) ? realized : 0;
+      acc.gainLoss += gainLoss;
+      return acc;
+    }, { gainLoss: 0 });
+  }, [closedRows]);
+
+  if (!allRows.length) {
     return (
       <div className="empty-state">
         <p>No portfolio data yet. Paste transactions and press Update.</p>
@@ -53,24 +157,6 @@ export default function PortfolioTable({ portfolio, totals }) {
 
   return (
     <div className="table-wrapper">
-      {closedCount > 0 && (
-        <div className="table-notice">
-          <p className="meta">
-            {showClosed || !activeRows.length
-              ? 'Showing closed positions.'
-              : `Hiding ${closedCount} closed position${closedCount === 1 ? '' : 's'}.`}
-          </p>
-          {canToggleClosed && (
-            <button
-              type="button"
-              className="secondary"
-              onClick={() => setShowClosed(prev => !prev)}
-            >
-              {showClosed ? 'Hide Closed Positions' : 'Show Closed Positions'}
-            </button>
-          )}
-        </div>
-      )}
       <table>
         <thead>
           <tr>
@@ -80,20 +166,48 @@ export default function PortfolioTable({ portfolio, totals }) {
             <th>Cost Basis</th>
             <th>Avg Cost</th>
             <th>Latest NAV</th>
+            {showLivePrices && <th>Live Price</th>}
             <th>Market Value</th>
             <th>Gain / Loss</th>
             <th>ROI</th>
           </tr>
         </thead>
         <tbody>
-          {displayRows.map(row => (
-            <tr key={`${row.fund}-${row.source}`}>
-              <td>{row.displayFund}</td>
+          {activeRows.length === 0 && (
+            <tr>
+              <td colSpan={showLivePrices ? 10 : 9} className="empty">
+                No open positions.
+              </td>
+            </tr>
+          )}
+          {activeRows.map(row => (
+            <tr key={`${row.fund}-${row.source}`}
+              className={row.isClosed ? 'row-closed' : ''}
+            >
+              <td>
+                {row.displayFund}
+                {showLivePrices && row.symbol && (
+                  <div className="symbol-indicator">({row.symbol})</div>
+                )}
+              </td>
               <td>{row.displaySource}</td>
               <td>{formatShares(row.shares)}</td>
               <td>{formatCurrency(row.costBasis)}</td>
               <td>{formatCurrency(row.avgCost)}</td>
               <td>{formatUnitPrice(row.latestNAV)}</td>
+              {showLivePrices && (
+                <td>
+                  {row.symbol ? (
+                    <LivePriceDisplay
+                      symbol={row.symbol}
+                      livePrices={livePrices}
+                      showLivePrices={showLivePrices}
+                    />
+                  ) : (
+                    <span className="no-symbol">—</span>
+                  )}
+                </td>
+              )}
               <td>{formatCurrency(row.marketValue)}</td>
               <td className={row.gainLoss >= 0 ? 'positive' : 'negative'}>
                 {formatCurrency(row.gainLoss)}
@@ -105,23 +219,101 @@ export default function PortfolioTable({ portfolio, totals }) {
           ))}
         </tbody>
         <tfoot>
-          <tr>
-            <td>Total</td>
-            <td>—</td>
-            <td>{formatShares(totals.shares)}</td>
-            <td>{formatCurrency(totals.costBasis)}</td>
-            <td>—</td>
-            <td>—</td>
-            <td>{formatCurrency(totals.marketValue)}</td>
-            <td className={totals.gainLoss >= 0 ? 'positive' : 'negative'}>
-              {formatCurrency(totals.gainLoss)}
-            </td>
-            <td className={totals.gainLoss >= 0 ? 'positive' : 'negative'}>
-              {formatPercent(totals.costBasis ? totals.gainLoss / totals.costBasis : 0)}
-            </td>
-          </tr>
+          {activeRows.length > 0 && (
+            <tr>
+              <td>Total</td>
+              <td>—</td>
+              <td>{formatShares(activeTotals.shares)}</td>
+              <td>{formatCurrency(activeTotals.costBasis)}</td>
+              <td>—</td>
+              <td>—</td>
+              {showLivePrices && <td>—</td>}
+              <td>{formatCurrency(activeTotals.marketValue)}</td>
+              <td className={activeTotals.gainLoss >= 0 ? 'positive' : 'negative'}>
+                {formatCurrency(activeTotals.gainLoss)}
+              </td>
+              <td className={activeTotals.gainLoss >= 0 ? 'positive' : 'negative'}>
+                {formatPercent(activeTotals.costBasis ? activeTotals.gainLoss / activeTotals.costBasis : 0)}
+              </td>
+            </tr>
+          )}
         </tfoot>
       </table>
+
+      {closedRows.length > 0 && (
+        <div className="closed-positions">
+          <div className="table-notice">
+            <div className="closed-header">
+              <h3>Closed Positions</h3>
+              <p className="meta">
+                {closedRows.length === 1
+                  ? '1 position with realized gains/losses'
+                  : `${closedRows.length} positions with realized gains/losses`}
+              </p>
+            </div>
+            <div className="closed-summary">
+              <span className="summary-label">Total Realized:</span>
+              <span className={`summary-value ${closedSummary.gainLoss >= 0 ? 'positive' : 'negative'}`}>
+                {formatCurrency(closedSummary.gainLoss)}
+              </span>
+            </div>
+            <button
+              type="button"
+              className="secondary"
+              onClick={() => setShowClosed(prev => !prev)}
+            >
+              {showClosed ? 'Hide Details' : 'Show Details'}
+            </button>
+          </div>
+
+          {showClosed && (
+            <table className="closed-table">
+              <thead>
+                <tr>
+                  <th>Fund</th>
+                  <th>Source</th>
+                  <th>Realized Gain / Loss</th>
+                  {closedRows.some(row => row.firstBuyDate) && <th>Held Period</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {closedRows.map(row => {
+                  const realizedGainLoss = row.realizedGainLoss ?? row.gainLoss;
+                  const hasDateInfo = row.firstBuyDate && row.lastSellDate;
+
+                  return (
+                    <tr key={`${row.fund}-${row.source}`} className="closed-row">
+                      <td>{row.displayFund}</td>
+                      <td>{row.displaySource}</td>
+                      <td className={realizedGainLoss >= 0 ? 'positive' : 'negative'}>
+                        {formatCurrency(realizedGainLoss)}
+                      </td>
+                      {closedRows.some(r => r.firstBuyDate) && (
+                        <td className="date-range">
+                          {hasDateInfo
+                            ? `${row.firstBuyDate} to ${row.lastSellDate}`
+                            : '—'
+                          }
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot>
+                <tr className="total-row">
+                  <td><strong>Total Realized</strong></td>
+                  <td>—</td>
+                  <td className={`total-value ${closedSummary.gainLoss >= 0 ? 'positive' : 'negative'}`}>
+                    <strong>{formatCurrency(closedSummary.gainLoss)}</strong>
+                  </td>
+                  {closedRows.some(row => row.firstBuyDate) && <td>—</td>}
+                </tr>
+              </tfoot>
+            </table>
+          )}
+        </div>
+      )}
     </div>
   );
 }

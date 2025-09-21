@@ -15,7 +15,8 @@ export default function SummaryOverview({ totals, firstTransaction }) {
   const contributionsLabel = totals.contributions ? formatCurrency(totals.contributions) : '$0.00';
   const netInvestedLabel = formatCurrency(totals.netInvested);
   const marketValueLabel = formatCurrency(totals.marketValue);
-  const gainLossLabel = formatCurrency(totals.gainLoss);
+  // Use total gainLoss for "Total Gain / Loss" display (includes both open and closed positions)
+  const totalGainLossLabel = formatCurrency(totals.gainLoss);
   const roiLabel = formatPercent(totals.roi);
 
   const firstDate = firstTransaction ? formatDate(firstTransaction) : '—';
@@ -27,8 +28,8 @@ export default function SummaryOverview({ totals, firstTransaction }) {
         <SummaryCard label="Net Invested" value={netInvestedLabel} />
         <SummaryCard label="Market Value" value={marketValueLabel} />
         <SummaryCard
-          label="Unrealized Gain / Loss"
-          value={gainLossLabel}
+          label="Total Gain / Loss"
+          value={totalGainLossLabel}
           tone={totals.gainLoss >= 0 ? 'positive' : 'negative'}
         />
         <SummaryCard

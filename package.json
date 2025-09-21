@@ -10,8 +10,13 @@
   },
   "dependencies": {
     "@octokit/rest": "^20.1.1",
+    "date-fns": "^4.1.0",
+    "lodash": "^4.17.21",
+    "node-cron": "^4.2.1",
+    "plaid": "^38.1.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-plaid-link": "^4.1.1",
     "react-router-dom": "^6.23.1",
     "recharts": "^2.12.5",
     "zod": "^4.1.9"

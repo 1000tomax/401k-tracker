@@ -2,7 +2,9 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, NavLink, Navigate } from 'react-router-dom';
 import Dashboard from './pages/Dashboard.jsx';
 import ImportPage from './pages/Import.jsx';
+import Settings from './pages/Settings.jsx';
 import { parseTransactions, aggregatePortfolio } from './utils/parseTransactions.js';
+import { migrateLegacyToMultiAccount } from './utils/schemas.js';
 import { formatDate, formatCurrency } from './utils/formatters.js';
 
 const STORAGE_KEY = '401k-tracker-data';
@@ -13,6 +15,34 @@ const CLIENT_SHARED_TOKEN =
   (typeof process !== 'undefined' && process.env ? process.env.NEXT_PUBLIC_401K_TOKEN : undefined) ||
   '';
 const REQUEST_AUTH_HEADER = CLIENT_SHARED_TOKEN || 'dev-only-token';
+const SETTINGS_STORAGE_KEY = 'portfolio-settings';
+const DEFAULT_PORTFOLIO_SETTINGS = {
+  multiAccountMode: false,
+  defaultView: 'consolidated',
+  userAge: '',
+  autoRefreshPrices: false
+};
+
+function readStoredSettings() {
+  if (typeof window === 'undefined') {
+    return DEFAULT_PORTFOLIO_SETTINGS;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(SETTINGS_STORAGE_KEY);
+    if (!raw) {
+      return DEFAULT_PORTFOLIO_SETTINGS;
+    }
+    const parsed = JSON.parse(raw);
+    return {
+      ...DEFAULT_PORTFOLIO_SETTINGS,
+      ...parsed,
+    };
+  } catch (error) {
+    console.warn('Failed to load portfolio settings', error);
+    return DEFAULT_PORTFOLIO_SETTINGS;
+  }
+}
 
 function hashTransaction(tx) {
   return [
@@ -97,6 +127,31 @@ export default function App() {
   const [isFetchingRemote, setIsFetchingRemote] = useState(true);
   const [isImportingFiles, setIsImportingFiles] = useState(false);
 
+  const [portfolioSettings, setPortfolioSettings] = useState(() => readStoredSettings());
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(portfolioSettings));
+    } catch (error) {
+      console.warn('Failed to persist portfolio settings', error);
+    }
+  }, [portfolioSettings]);
+
+  const handleSettingChange = useCallback((key, value) => {
+    setPortfolioSettings(prev => {
+      const next = {
+        ...prev,
+        [key]: key === 'userAge' ? (value === '' ? '' : value) : value,
+      };
+      return next;
+    });
+  }, []);
+
+  const handleResetSettings = useCallback(() => {
+    setPortfolioSettings(DEFAULT_PORTFOLIO_SETTINGS);
+  }, []);
+
   useEffect(() => {
     const stored = loadData();
     if (stored.transactions?.length) {
@@ -108,6 +163,59 @@ export default function App() {
   }, []);
 
   const summary = useMemo(() => aggregatePortfolio(transactions), [transactions]);
+
+  const userSettingsForPortfolio = useMemo(() => ({
+    multiAccountMode: !!portfolioSettings.multiAccountMode,
+    defaultView: portfolioSettings.defaultView || 'consolidated',
+    userAge: (() => {
+      if (portfolioSettings.userAge === '' || portfolioSettings.userAge == null) {
+        return undefined;
+      }
+      const numeric = Number(portfolioSettings.userAge);
+      return Number.isFinite(numeric) ? numeric : undefined;
+    })(),
+    autoRefreshPrices: !!portfolioSettings.autoRefreshPrices
+  }), [portfolioSettings]);
+
+  const multiAccountPortfolio = useMemo(() => {
+    if (!portfolioSettings.multiAccountMode) {
+      return null;
+    }
+
+    let aggregated = null;
+
+    if (transactions.length) {
+      const legacyData = {
+        version: '1.0',
+        transactions,
+        totals: summary.totals,
+        portfolio: summary.portfolio,
+        lastSyncAt,
+        lastUpdated: summary.lastUpdated,
+      };
+
+      try {
+        const migrated = migrateLegacyToMultiAccount(legacyData);
+        aggregated = {
+          ...migrated,
+          settings: {
+            ...migrated.settings,
+            ...userSettingsForPortfolio,
+            multiAccountMode: true,
+          },
+          sampleData: false,
+        };
+      } catch (error) {
+        console.warn('Failed to migrate legacy portfolio to multi-account format', error);
+      }
+    }
+
+    if (!aggregated) {
+      aggregated = null;
+    }
+
+    return aggregated;
+  }, [portfolioSettings.multiAccountMode, transactions, summary, lastSyncAt, userSettingsForPortfolio]);
 
   useEffect(() => {
     saveData({ transactions, lastSyncAt });
@@ -155,6 +263,11 @@ export default function App() {
   useEffect(() => {
     fetchFromGitHub();
   }, [fetchFromGitHub]);
+
+  const handleRefreshMarket = useCallback(() => {
+    // Placeholder until live market data pipeline is wired for multi-account dashboard
+    console.info('Market refresh requested (stub)');
+  }, []);
 
   const handleParse = useCallback(() => {
     const parsed = parseTransactions(rawInput);
@@ -410,6 +523,9 @@ export default function App() {
             <NavLink to="/import" className={({ isActive }) => (isActive ? 'active' : '')}>
               Add Transactions
             </NavLink>
+            <NavLink to="/settings" className={({ isActive }) => (isActive ? 'active' : '')}>
+              Settings
+            </NavLink>
           </nav>
         </header>
 
@@ -417,8 +533,8 @@ export default function App() {
           <Routes>
             <Route
               path="/"
-              element={(
-                <Dashboard
+              element={
+<Dashboard
                   summary={summary}
                   transactions={transactions}
                   onSync={handleSync}
@@ -428,7 +544,7 @@ export default function App() {
                   onRefresh={fetchFromGitHub}
                   isRefreshing={isFetchingRemote}
                 />
-              )}
+              }
             />
             <Route
               path="/import"
@@ -448,6 +564,16 @@ export default function App() {
                   isImportingFiles={isImportingFiles}
                 />
               )}
+            />
+            <Route
+              path="/settings"
+              element={
+                <Settings
+                  settings={portfolioSettings}
+                  onSettingChange={handleSettingChange}
+                  onResetSettings={handleResetSettings}
+                />
+              }
             />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
