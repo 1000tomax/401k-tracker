@@ -8212,20 +8212,26 @@
   "portfolio": {
     "0757 Vanguard Small-Cap Index Fund Adm": {
       "Employee PreTax": {
-        "shares": 7.105427357601002e-15,
+        "shares": 0,
         "costBasis": -52.81999999999988,
-        "avgCost": -7433754134928408,
+        "avgCost": 0,
         "latestNAV": 25.175784,
-        "marketValue": 1.7888470438265358e-13,
-        "gainLoss": 52.82000000000006
+        "marketValue": 0,
+        "gainLoss": 52.81999999999988,
+        "isClosed": true,
+        "firstBuyDate": "2024-01-12",
+        "lastSellDate": "2025-09-15"
       },
       "Safe Harbor Match": {
-        "shares": 1.7763568394002505e-15,
+        "shares": 0,
         "costBasis": -36.7000000000001,
-        "avgCost": -20660263290562210,
+        "avgCost": 0,
         "latestNAV": 25.175784,
-        "marketValue": 4.4721176095663396e-14,
-        "gainLoss": 36.700000000000145
+        "marketValue": 0,
+        "gainLoss": 36.7000000000001,
+        "isClosed": true,
+        "firstBuyDate": "2024-01-12",
+        "lastSellDate": "2025-09-15"
       }
     },
     "0899 Vanguard 500 Index Fund Adm": {
@@ -8235,7 +8241,10 @@
         "avgCost": 38.44405074349233,
         "latestNAV": 39.006156,
         "marketValue": 4143.561542030399,
-        "gainLoss": 59.71154203039896
+        "gainLoss": 59.71154203039896,
+        "isClosed": false,
+        "firstBuyDate": "2024-01-12",
+        "lastSellDate": "2025-09-15"
       },
       "Safe Harbor Match": {
         "shares": 74.8046,
@@ -8243,43 +8252,58 @@
         "avgCost": 38.458731147549756,
         "latestNAV": 39.006156,
         "marketValue": 2917.8398971175993,
-        "gainLoss": 40.949897117598994
+        "gainLoss": 40.949897117598994,
+        "isClosed": false,
+        "firstBuyDate": "2024-01-12",
+        "lastSellDate": "2025-09-15"
       }
     },
     "1723 American Funds EUPAC Fund R6": {
       "Employee PreTax": {
-        "shares": 1.4210854715202004e-14,
+        "shares": 0,
         "costBasis": -184.32000000000016,
-        "avgCost": -12970366926827040,
+        "avgCost": 0,
         "latestNAV": 23.115838,
-        "marketValue": 3.2849581543814566e-13,
-        "gainLoss": 184.3200000000005
+        "marketValue": 0,
+        "gainLoss": 184.32000000000016,
+        "isClosed": true,
+        "firstBuyDate": "2024-01-12",
+        "lastSellDate": "2025-09-15"
       },
       "Safe Harbor Match": {
-        "shares": 7.105427357601002e-15,
+        "shares": 0,
         "costBasis": -126.60999999999956,
-        "avgCost": -17818773400668016,
+        "avgCost": 0,
         "latestNAV": 23.115838,
-        "marketValue": 1.6424790771907283e-13,
-        "gainLoss": 126.60999999999973
+        "marketValue": 0,
+        "gainLoss": 126.60999999999956,
+        "isClosed": true,
+        "firstBuyDate": "2024-01-12",
+        "lastSellDate": "2025-09-15"
       }
     },
     "1899 American Funds New Perspective R6": {
       "Employee PreTax": {
-        "shares": -3.552713678800501e-15,
+        "shares": 0,
         "costBasis": -124.5100000000001,
-        "avgCost": 35046449350243810,
+        "avgCost": 0,
         "latestNAV": 44.002143,
-        "marketValue": -1.563270153326357e-13,
-        "gainLoss": 124.50999999999995
+        "marketValue": 0,
+        "gainLoss": 124.5100000000001,
+        "isClosed": true,
+        "firstBuyDate": "2024-01-12",
+        "lastSellDate": "2025-09-15"
       },
       "Safe Harbor Match": {
-        "shares": -1.7763568394002505e-15,
+        "shares": 0,
         "costBasis": -84.68999999999994,
-        "avgCost": 47676231555250880,
+        "avgCost": 0,
         "latestNAV": 44.002143,
-        "marketValue": -7.816350766631785e-14,
-        "gainLoss": 84.68999999999986
+        "marketValue": 0,
+        "gainLoss": 84.68999999999994,
+        "isClosed": true,
+        "firstBuyDate": "2024-01-12",
+        "lastSellDate": "2025-09-15"
       }
     },
     "2323 American Funds Fundamental Invst R6": {
@@ -8289,87 +8313,117 @@
         "avgCost": 0,
         "latestNAV": 48.501097,
         "marketValue": 0,
-        "gainLoss": 70.07999999999993
+        "gainLoss": 70.07999999999993,
+        "isClosed": true,
+        "firstBuyDate": "2024-01-12",
+        "lastSellDate": "2024-11-22"
       },
       "Safe Harbor Match": {
-        "shares": -1.7763568394002505e-15,
+        "shares": 0,
         "costBasis": -44.17999999999989,
-        "avgCost": 24871128942153504,
+        "avgCost": 0,
         "latestNAV": 48.501097,
-        "marketValue": -8.615525537436497e-14,
-        "gainLoss": 44.17999999999981
+        "marketValue": 0,
+        "gainLoss": 44.17999999999989,
+        "isClosed": true,
+        "firstBuyDate": "2024-01-12",
+        "lastSellDate": "2024-11-22"
       }
     },
     "2566 DFA U.S. Targeted Value Port Inst": {
       "Employee PreTax": {
-        "shares": 1.7763568394002505e-15,
+        "shares": 0,
         "costBasis": -20.379999999999967,
-        "avgCost": -11472920050726320,
+        "avgCost": 0,
         "latestNAV": 39.427409,
-        "marketValue": 7.003714763698098e-14,
-        "gainLoss": 20.380000000000038
+        "marketValue": 0,
+        "gainLoss": 20.379999999999967,
+        "isClosed": true,
+        "firstBuyDate": "2024-01-12",
+        "lastSellDate": "2025-09-15"
       },
       "Safe Harbor Match": {
-        "shares": 8.881784197001252e-16,
+        "shares": 0,
         "costBasis": -14.069999999999965,
-        "avgCost": -15841411689275680,
+        "avgCost": 0,
         "latestNAV": 39.427409,
-        "marketValue": 3.501857381849049e-14,
-        "gainLoss": 14.07
+        "marketValue": 0,
+        "gainLoss": 14.069999999999965,
+        "isClosed": true,
+        "firstBuyDate": "2024-01-12",
+        "lastSellDate": "2025-09-15"
       }
     },
     "3869 BrandywineGLOBAL Glbl Opp Bnd Fd IS": {
       "Employee PreTax": {
-        "shares": -1.7763568394002505e-15,
+        "shares": 0,
         "costBasis": -3.8500000000000227,
-        "avgCost": 2167357320672064,
+        "avgCost": 0,
         "latestNAV": 10.01289,
-        "marketValue": -1.7786465633662375e-14,
-        "gainLoss": 3.850000000000005
+        "marketValue": 0,
+        "gainLoss": 3.8500000000000227,
+        "isClosed": true,
+        "firstBuyDate": "2024-01-12",
+        "lastSellDate": "2025-09-15"
       },
       "Safe Harbor Match": {
-        "shares": 1.7763568394002505e-15,
+        "shares": 0,
         "costBasis": -2.829999999999977,
-        "avgCost": -1593148368182300,
+        "avgCost": 0,
         "latestNAV": 10.01289,
-        "marketValue": 1.7786465633662375e-14,
-        "gainLoss": 2.8299999999999947
+        "marketValue": 0,
+        "gainLoss": 2.829999999999977,
+        "isClosed": true,
+        "firstBuyDate": "2024-01-12",
+        "lastSellDate": "2025-09-15"
       }
     },
     "6595 Victory Sycmr Established Value F R6": {
       "Employee PreTax": {
-        "shares": 8.881784197001252e-16,
+        "shares": 0,
         "costBasis": -11.889999999999944,
-        "avgCost": -13386949892358736,
+        "avgCost": 0,
         "latestNAV": 28.311058,
-        "marketValue": 2.5145270754478587e-14,
-        "gainLoss": 11.889999999999969
+        "marketValue": 0,
+        "gainLoss": 11.889999999999944,
+        "isClosed": true,
+        "firstBuyDate": "2024-01-12",
+        "lastSellDate": "2025-09-15"
       },
       "Safe Harbor Match": {
-        "shares": -1.1102230246251565e-15,
+        "shares": 0,
         "costBasis": -7.640000000000029,
-        "avgCost": 6881500230622144,
+        "avgCost": 0,
         "latestNAV": 28.311058,
-        "marketValue": -3.143158844309823e-14,
-        "gainLoss": 7.639999999999998
+        "marketValue": 0,
+        "gainLoss": 7.640000000000029,
+        "isClosed": true,
+        "firstBuyDate": "2024-01-12",
+        "lastSellDate": "2025-09-15"
       }
     },
     "1990 American Funds Wash Mutual Inv R6": {
       "Employee PreTax": {
-        "shares": -3.552713678800501e-15,
+        "shares": 0,
         "costBasis": -75.11000000000001,
-        "avgCost": 21141585500737376,
+        "avgCost": 0,
         "latestNAV": 47.215926,
-        "marketValue": -1.6774466615743223e-13,
-        "gainLoss": 75.10999999999984
+        "marketValue": 0,
+        "gainLoss": 75.11000000000001,
+        "isClosed": true,
+        "firstBuyDate": "2024-11-22",
+        "lastSellDate": "2025-09-15"
       },
       "Safe Harbor Match": {
-        "shares": 1.7763568394002505e-15,
+        "shares": 0,
         "costBasis": -52.37000000000012,
-        "avgCost": -29481689060674176,
+        "avgCost": 0,
         "latestNAV": 47.215926,
-        "marketValue": 8.387233307871612e-14,
-        "gainLoss": 52.3700000000002
+        "marketValue": 0,
+        "gainLoss": 52.37000000000012,
+        "isClosed": true,
+        "firstBuyDate": "2024-11-22",
+        "lastSellDate": "2025-09-15"
       }
     },
     "4062 Voya Fixed Account (4062)": {
@@ -8379,15 +8433,21 @@
         "avgCost": 0,
         "latestNAV": 25.415789,
         "marketValue": 0,
-        "gainLoss": 0.5500000000000114
+        "gainLoss": 0.5500000000000114,
+        "isClosed": true,
+        "firstBuyDate": "2024-11-22",
+        "lastSellDate": "2025-09-15"
       },
       "Safe Harbor Match": {
-        "shares": 4.440892098500626e-16,
+        "shares": 0,
         "costBasis": -0.38000000000001677,
-        "avgCost": -855683929200432,
+        "avgCost": 0,
         "latestNAV": 25.415789,
-        "marketValue": 1.1286877654725913e-14,
-        "gainLoss": 0.38000000000002804
+        "marketValue": 0,
+        "gainLoss": 0.38000000000001677,
+        "isClosed": true,
+        "firstBuyDate": "2024-11-22",
+        "lastSellDate": "2025-09-15"
       }
     },
     "3214 Voya Index Solution 2060 Portfolio Z": {
@@ -8397,7 +8457,10 @@
         "avgCost": 0,
         "latestNAV": 24.835156,
         "marketValue": 0,
-        "gainLoss": 10.660000000000764
+        "gainLoss": 10.660000000000764,
+        "isClosed": true,
+        "firstBuyDate": "2025-09-15",
+        "lastSellDate": "2025-09-18"
       },
       "Safe Harbor Match": {
         "shares": 0,
@@ -8405,26 +8468,29 @@
         "avgCost": 0,
         "latestNAV": 24.835156,
         "marketValue": 0,
-        "gainLoss": 7.510000000000218
+        "gainLoss": 7.510000000000218,
+        "isClosed": true,
+        "firstBuyDate": "2025-09-15",
+        "lastSellDate": "2025-09-18"
       }
     }
   },
   "totals": {
-    "shares": 181.03300000000002,
+    "shares": 181.033,
     "costBasis": 6029.59,
     "marketValue": 7061.401439147999,
-    "gainLoss": 1031.811439147999,
+    "gainLoss": 1031.8114391479985,
     "contributions": 6079.829999999988,
     "netInvested": 6079.829999999988,
     "payPeriods": 48,
-    "roi": 0.16971057400420753
+    "roi": 0.16971057400420744
   },
   "fundTotals": {
     "0757 Vanguard Small-Cap Index Fund Adm": {
-      "shares": 8.881784197001252e-15,
+      "shares": 0,
       "costBasis": -89.51999999999998,
-      "marketValue": 2.2360588047831697e-13,
-      "gainLoss": 89.52000000000021
+      "marketValue": 0,
+      "gainLoss": 89.51999999999998
     },
     "0899 Vanguard 500 Index Fund Adm": {
       "shares": 181.033,
@@ -8433,28 +8499,28 @@
       "gainLoss": 100.66143914799795
     },
     "1723 American Funds EUPAC Fund R6": {
-      "shares": 2.1316282072803006e-14,
+      "shares": 0,
       "costBasis": -310.9299999999997,
-      "marketValue": 4.927437231572185e-13,
-      "gainLoss": 310.93000000000023
+      "marketValue": 0,
+      "gainLoss": 310.9299999999997
     },
     "1899 American Funds New Perspective R6": {
-      "shares": -5.329070518200751e-15,
+      "shares": 0,
       "costBasis": -209.20000000000005,
-      "marketValue": -2.3449052299895356e-13,
-      "gainLoss": 209.19999999999982
+      "marketValue": 0,
+      "gainLoss": 209.20000000000005
     },
     "2323 American Funds Fundamental Invst R6": {
-      "shares": -1.7763568394002505e-15,
+      "shares": 0,
       "costBasis": -114.25999999999982,
-      "marketValue": -8.615525537436497e-14,
-      "gainLoss": 114.25999999999974
+      "marketValue": 0,
+      "gainLoss": 114.25999999999982
     },
     "2566 DFA U.S. Targeted Value Port Inst": {
-      "shares": 2.6645352591003757e-15,
+      "shares": 0,
       "costBasis": -34.44999999999993,
-      "marketValue": 1.0505572145547148e-13,
-      "gainLoss": 34.45000000000004
+      "marketValue": 0,
+      "gainLoss": 34.44999999999993
     },
     "3869 BrandywineGLOBAL Glbl Opp Bnd Fd IS": {
       "shares": 0,
@@ -8463,22 +8529,22 @@
       "gainLoss": 6.68
     },
     "6595 Victory Sycmr Established Value F R6": {
-      "shares": -2.220446049250313e-16,
+      "shares": 0,
       "costBasis": -19.529999999999973,
-      "marketValue": -6.2863176886196445e-15,
-      "gainLoss": 19.529999999999966
+      "marketValue": 0,
+      "gainLoss": 19.529999999999973
     },
     "1990 American Funds Wash Mutual Inv R6": {
-      "shares": -1.7763568394002505e-15,
+      "shares": 0,
       "costBasis": -127.48000000000013,
-      "marketValue": -8.387233307871612e-14,
-      "gainLoss": 127.48000000000005
+      "marketValue": 0,
+      "gainLoss": 127.48000000000013
     },
     "4062 Voya Fixed Account (4062)": {
-      "shares": 4.440892098500626e-16,
+      "shares": 0,
       "costBasis": -0.9300000000000281,
-      "marketValue": 1.1286877654725913e-14,
-      "gainLoss": 0.9300000000000395
+      "marketValue": 0,
+      "gainLoss": 0.9300000000000281
     },
     "3214 Voya Index Solution 2060 Portfolio Z": {
       "shares": 0,
@@ -8489,11 +8555,11 @@
   },
   "sourceTotals": {
     "Employee PreTax": {
-      "shares": 106.22840000000001,
+      "shares": 106.2284,
       "costBasis": 3529.6799999999994,
       "marketValue": 4143.561542030399,
-      "gainLoss": 613.8815420303999,
-      "avgCost": 33.227272556114926,
+      "gainLoss": 613.8815420303997,
+      "avgCost": 33.22727255611493,
       "contributions": 3559.8599999999997,
       "netInvested": 3559.8599999999997,
       "roi": 0.16396755547420397
@@ -8502,7 +8568,7 @@
       "shares": 74.8046,
       "costBasis": 2499.91,
       "marketValue": 2917.8398971175993,
-      "gainLoss": 417.92989711759907,
+      "gainLoss": 417.9298971175988,
       "avgCost": 33.41920149295632,
       "contributions": 2519.969999999998,
       "netInvested": 2519.969999999998,
@@ -17292,6 +17358,6 @@
     }
   ],
   "lastUpdated": "2025-09-18",
-  "generatedAt": "2025-09-20T04:40:02.592Z",
-  "syncedAt": "2025-09-20T04:40:02.917Z"
+  "generatedAt": "2025-09-21T03:50:22.795Z",
+  "syncedAt": "2025-09-21T03:50:22.815Z"
 }
