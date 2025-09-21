@@ -31,6 +31,7 @@ export default function Dashboard({
   remoteStatus,
   onRefresh,
   isRefreshing,
+  onLoadDemo,
 }) {
   const [livePrices, setLivePrices] = useState({});
   const [isLoadingPrices, setIsLoadingPrices] = useState(false);
@@ -255,7 +256,25 @@ export default function Dashboard({
           </div>
         )}
 
-        {!transactions.length && <p className="meta">No transactions stored yet. Visit the Import page to get started.</p>}
+        {!transactions.length && (
+          <div className="empty-state">
+            <p className="meta">No transactions stored yet.</p>
+            <div className="empty-state-actions">
+              <button
+                className="demo-button"
+                onClick={onLoadDemo}
+                title="Load sample portfolio data to explore features"
+              >
+                🎯 Load Demo Data
+              </button>
+              <span className="empty-state-divider">or</span>
+              <a href="/import" className="import-link">Import your transactions</a>
+            </div>
+            <p className="demo-description">
+              👆 Try the demo to see charts, analytics, and multi-account tracking with realistic 401k data
+            </p>
+          </div>
+        )}
         <SummaryOverview
           totals={summary.totals}
           firstTransaction={summary.firstTransaction}

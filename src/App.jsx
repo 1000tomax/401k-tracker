@@ -6,6 +6,7 @@ import Settings from './pages/Settings.jsx';
 import { parseTransactions, aggregatePortfolio } from './utils/parseTransactions.js';
 import { migrateLegacyToMultiAccount } from './utils/schemas.js';
 import { formatDate, formatCurrency } from './utils/formatters.js';
+import { generateDemoData, getDemoSettings } from './utils/demoData.js';
 
 const STORAGE_KEY = '401k-tracker-data';
 const STORAGE_VERSION = 1;
@@ -433,6 +434,20 @@ export default function App() {
     setLastSyncAt(null);
   }, []);
 
+  const handleLoadDemo = useCallback(() => {
+    const demoData = generateDemoData();
+    const demoSettings = getDemoSettings();
+
+    setTransactions(sortTransactions(demoData.transactions));
+    setPortfolioSettings(prev => ({
+      ...prev,
+      ...demoSettings
+    }));
+    setLastSyncAt(demoData.lastSyncAt);
+    setImportStatus('Demo data loaded! This shows a realistic 401k portfolio with multiple accounts and 2 years of transaction history.');
+    setSyncStatus('');
+  }, []);
+
   const handleSync = useCallback(async () => {
     setIsSyncing(true);
     setSyncStatus('Syncing to GitHub…');
@@ -523,9 +538,11 @@ export default function App() {
             <NavLink to="/import" className={({ isActive }) => (isActive ? 'active' : '')}>
               Add Transactions
             </NavLink>
+            {/* Temporarily hidden for demo - Settings controls APIs not yet implemented
             <NavLink to="/settings" className={({ isActive }) => (isActive ? 'active' : '')}>
               Settings
             </NavLink>
+            */}
           </nav>
         </header>
 
@@ -543,6 +560,7 @@ export default function App() {
                   remoteStatus={remoteStatus}
                   onRefresh={fetchFromGitHub}
                   isRefreshing={isFetchingRemote}
+                  onLoadDemo={handleLoadDemo}
                 />
               }
             />
@@ -565,6 +583,7 @@ export default function App() {
                 />
               )}
             />
+            {/* Temporarily hidden for demo - Settings controls APIs not yet implemented
             <Route
               path="/settings"
               element={
@@ -575,6 +594,7 @@ export default function App() {
                 />
               }
             />
+            */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>

@@ -2,6 +2,21 @@
 
 A modern, secure web application for tracking your 401k portfolio performance with automatic data synchronization to GitHub for backup and historical analysis.
 
+## 🔗 Live Demo
+
+**[Try it now: https://401k.mreedon.com](https://401k.mreedon.com)**
+
+### Demo Instructions
+1. Visit the live demo link above
+2. Click the **"🎯 Load Demo Data"** button on the dashboard
+3. Explore the features:
+   - View portfolio analytics with $20k+ market value and realistic gains
+   - Check the interactive growth charts showing 2+ years of investment performance
+   - Browse transaction history across multiple fund types
+   - Test the CSV import functionality on the "Add Transactions" page
+
+*Demo includes realistic 401k data with $13k+ contributions and 50%+ ROI over 2 years.*
+
 ## Features
 
 ### 📊 Portfolio Tracking
@@ -39,7 +54,7 @@ A modern, secure web application for tracking your 401k portfolio performance wi
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/401k-tracker.git
+   git clone https://github.com/1000tomax/401k-tracker.git
    cd 401k-tracker
    ```
 
@@ -118,6 +133,18 @@ Your data is automatically:
 - **Storage**: Local storage + GitHub for persistence
 - **API**: GitHub REST API via Octokit
 
+## 🚀 Technical Highlights
+
+**Advanced Features Implemented:**
+- **Custom CSV Parser**: Robust transaction parsing with error handling and duplicate detection
+- **Real-time Calculations**: Dynamic portfolio valuation, ROI tracking, and gain/loss analytics
+- **Data Visualization**: Interactive charts with responsive design and custom tooltips
+- **Schema Validation**: Type-safe data handling with Zod validation schemas
+- **Multi-account Architecture**: Extensible design supporting multiple investment account types
+- **GitHub Integration**: Automated data backup and versioning using GitHub as secure storage
+- **Responsive Design**: Mobile-first approach with professional financial UI/UX
+- **Error Boundaries**: Graceful error handling and user feedback systems
+
 ## Security Features
 
 - **Token authentication** for all API endpoints
@@ -186,7 +213,7 @@ CORS_ORIGIN=https://your-domain.com
 
 ## License
 
-This project is private and intended for personal use. All rights reserved.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Support
 

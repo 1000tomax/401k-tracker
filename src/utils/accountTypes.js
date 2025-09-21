@@ -5,7 +5,8 @@ export const ACCOUNT_TYPES = {
 
 export const ACCOUNT_PROVIDERS = {
   VOYA: 'voya',
-  M1: 'm1'
+  M1: 'm1',
+  OTHER: 'other'
 };
 
 export const ACCOUNT_RULES = {
