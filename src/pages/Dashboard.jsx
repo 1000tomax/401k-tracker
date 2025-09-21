@@ -85,26 +85,50 @@ export default function Dashboard({
     setExpandedDate(prev => (prev === date ? null : date));
   };
 
-  // Extract ETF symbols from portfolio holdings
+  // Extract ETF symbols from portfolio holdings (exclude Voya 401k funds)
   const etfSymbols = useMemo(() => {
     const symbols = new Set();
 
-    // Look for ETF-like symbols in fund names
-    Object.keys(summary.portfolio || {}).forEach(fund => {
-      const cleanName = fund.toUpperCase();
-
-      // Common ETF patterns
-      const etfPatterns = [
-        /\b(VTI|VXUS|VEA|VWO|BND|VB|SPY|QQQ|IWM|EFA)\b/,
-        /\b[A-Z]{2,5}\b/  // 2-5 letter symbols
-      ];
-
-      etfPatterns.forEach(pattern => {
-        const matches = cleanName.match(pattern);
-        if (matches) {
-          matches.forEach(match => symbols.add(match));
-        }
+    // Only look for ETFs in non-Voya accounts
+    Object.entries(summary.portfolio || {}).forEach(([fund, sources]) => {
+      // Check if this fund has any non-Voya money sources
+      const hasNonVoyaSources = Object.keys(sources).some(source => {
+        const lowerSource = source.toLowerCase();
+        return !lowerSource.includes('pre tax') &&
+               !lowerSource.includes('post tax') &&
+               !lowerSource.includes('safe harbor') &&
+               !lowerSource.includes('401') &&
+               !lowerSource.includes('voya');
       });
+
+      // Only look for ETF symbols in funds from non-Voya sources
+      if (hasNonVoyaSources) {
+        const cleanName = fund.toUpperCase();
+
+        // Common ETF patterns (now that we've filtered out Voya funds)
+        const etfPatterns = [
+          // Specific well-known ETFs
+          /\b(VTI|VXUS|VEA|VWO|BND|VB|VTEB|VYM|VGT|VUG|VTV|SPY|QQQ|IWM|EFA)\b/,
+          // Pattern for funds that clearly indicate ETF symbols
+          /\(([A-Z]{2,5})\)/,  // Symbol in parentheses like "Total Stock Market (VTI)"
+          /ETF[:\s]*([A-Z]{2,5})/  // "ETF: VTI" format
+        ];
+
+        etfPatterns.forEach(pattern => {
+          const matches = cleanName.match(pattern);
+          if (matches) {
+            matches.forEach(match => {
+              // If it's a capture group, use the captured symbol
+              if (match.includes('(') || match.includes('ETF')) {
+                const symbolMatch = match.match(/([A-Z]{2,5})/);
+                if (symbolMatch) symbols.add(symbolMatch[1]);
+              } else {
+                symbols.add(match);
+              }
+            });
+          }
+        });
+      }
     });
 
     return Array.from(symbols);
