@@ -8,7 +8,7 @@ const RATE_LIMIT_DELAY = 12000; // 12 seconds between calls (5 calls/minute)
 class MarketDataService {
   constructor() {
     this.apiKey = (typeof window !== 'undefined' && (import.meta?.env?.VITE_ALPHA_VANTAGE_API_KEY || import.meta?.env?.ALPHA_VANTAGE_API_KEY)) || DEFAULT_API_KEY;
-    console.log('MarketDataService initialized with API key:', this.apiKey === 'demo' ? 'DEMO KEY' : 'REAL KEY');
+    console.log('📊 MarketDataService initialized with', this.apiKey === 'demo' ? 'DEMO KEY' : 'REAL KEY');
     this.cache = new Map();
     this.cacheTimeout = 3 * 60 * 1000; // 3 minutes - longer cache for rate limiting
     this.lastApiCall = 0;
@@ -184,8 +184,7 @@ class MarketDataService {
     const prioritySymbols = symbols.slice(startIndex, endIndex);
     const remainingSymbols = [...symbols.slice(0, startIndex), ...symbols.slice(endIndex)];
 
-    console.log(`Rotation cycle ${rotationIndex + 1}: Fetching live prices for symbols ${startIndex + 1}-${endIndex}:`, prioritySymbols);
-    console.log(`Using demo prices for remaining symbols:`, remainingSymbols);
+    console.log(`🔄 Rotation cycle ${rotationIndex + 1}: Fetching LIVE prices for [${prioritySymbols.join(', ')}]`);
 
     const allResults = {};
 
@@ -212,14 +211,14 @@ class MarketDataService {
         if (result.ok) {
           Object.assign(allResults, result.data);
         } else {
-          console.warn(`Priority symbols failed:`, result.error);
+          console.warn(`⚠️ Live price fetch failed:`, result.error);
           // Add demo fallbacks for failed symbols
           prioritySymbols.forEach(symbol => {
             allResults[symbol] = this.getDemoPrice(symbol);
           });
         }
       } catch (error) {
-        console.error(`Priority symbols failed:`, error);
+        console.error(`⚠️ Live price API error:`, error.message);
         // Add demo fallbacks for failed symbols
         prioritySymbols.forEach(symbol => {
           allResults[symbol] = this.getDemoPrice(symbol);
@@ -237,7 +236,6 @@ class MarketDataService {
 
   // Generate demo/fallback price data
   getDemoPrice(symbol) {
-    console.log(`getDemoPrice called for ${symbol}`);
     // Realistic demo prices for common ETFs (based on actual recent prices)
     const demoPrices = {
       // Common ETFs
@@ -281,7 +279,6 @@ class MarketDataService {
       fallback: true // Flag to indicate this is a generic fallback
     };
 
-    console.log(`Demo price for ${symbol}:`, demo);
     const changePercent = demo.price > 0 ? `${(demo.change / demo.price * 100).toFixed(2)}%` : '0.00%';
 
     return {
@@ -297,9 +294,7 @@ class MarketDataService {
 
   // Fetch prices for multiple symbols (batched with rate limiting)
   async getBatchPrices(symbols) {
-    console.log('getBatchPrices called with symbols:', symbols);
     if (!Array.isArray(symbols) || symbols.length === 0) {
-      console.log('No symbols to fetch prices for');
       return {};
     }
 
@@ -310,10 +305,6 @@ class MarketDataService {
     // Check if we should skip API calls due to recent batch update
     const timeSinceLastBatch = now - this.lastBatchUpdate;
     const shouldSkipApiCalls = timeSinceLastBatch < this.batchUpdateInterval;
-
-    if (shouldSkipApiCalls) {
-      console.log(`Skipping API calls - last batch update was ${Math.round(timeSinceLastBatch / 1000)}s ago (min interval: ${this.batchUpdateInterval / 1000}s)`);
-    }
 
     // Check cache first and use demo for uncached if skipping API calls
     const uncachedSymbols = [];
@@ -331,7 +322,6 @@ class MarketDataService {
 
     // Only make API calls if enough time has passed
     if (!shouldSkipApiCalls && uncachedSymbols.length > 0) {
-      console.log('Making API calls for uncached symbols:', uncachedSymbols);
       this.lastBatchUpdate = now;
 
       // Fetch via server-side API (limited to first 4 symbols)
@@ -339,14 +329,12 @@ class MarketDataService {
         const serverResults = await this.fetchFromServer(uncachedSymbols);
         Object.assign(results, serverResults);
       } catch (error) {
-        console.error('Server API failed, using demo data:', error);
+        console.error('⚠️ Live price API failed, using demo data:', error.message);
         // Fallback to demo data for all uncached symbols
         uncachedSymbols.forEach(symbol => {
           results[symbol] = this.getDemoPrice(symbol);
         });
       }
-    } else if (uncachedSymbols.length > 0) {
-      console.log('Using demo data for uncached symbols due to rate limiting:', uncachedSymbols);
     }
 
     return results;
