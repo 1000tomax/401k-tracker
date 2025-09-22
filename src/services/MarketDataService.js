@@ -187,6 +187,21 @@ class MarketDataService {
     const now = new Date();
     const timeStr = now.toLocaleTimeString();
     const nextUpdateTime = new Date(now.getTime() + 2 * 60 * 1000).toLocaleTimeString();
+
+    // Check if market is open before making API calls
+    const marketStatus = this.getMarketStatus();
+    if (!marketStatus.isOpen) {
+      console.log(`🏛️ ${timeStr} - Market closed (${marketStatus.currentTime}) - Using cached/demo prices only`);
+      // Still return demo prices for all symbols when market is closed
+      prioritySymbols.forEach(symbol => {
+        allResults[symbol] = this.getDemoPrice(symbol);
+      });
+      remainingSymbols.forEach(symbol => {
+        allResults[symbol] = this.getDemoPrice(symbol);
+      });
+      return allResults;
+    }
+
     console.log(`🔄 ${timeStr} - Rotation cycle ${rotationIndex + 1}: Fetching LIVE prices for [${prioritySymbols.join(', ')}] (next update ~${nextUpdateTime})`);
 
     const allResults = {};
@@ -305,9 +320,12 @@ class MarketDataService {
     const uniqueSymbols = [...new Set(symbols.map(s => s.trim().toUpperCase()))];
     const now = Date.now();
 
-    // Check if we should skip API calls due to recent batch update
+    // Check market status
+    const marketStatus = this.getMarketStatus();
+
+    // Check if we should skip API calls due to recent batch update or market closed
     const timeSinceLastBatch = now - this.lastBatchUpdate;
-    const shouldSkipApiCalls = timeSinceLastBatch < this.batchUpdateInterval;
+    const shouldSkipApiCalls = timeSinceLastBatch < this.batchUpdateInterval || !marketStatus.isOpen;
 
     // Check cache first and use demo for uncached if skipping API calls
     const uncachedSymbols = [];
@@ -350,25 +368,32 @@ class MarketDataService {
       timeZone: 'America/New_York',
       hour: 'numeric',
       minute: 'numeric',
-      hour12: false
+      hour12: false,
+      weekday: 'short'
     }).format(now);
 
-    const [hours, minutes] = easternTime.split(':').map(n => parseInt(n));
-    const currentTime = hours * 60 + minutes;
+    const timeMatch = easternTime.match(/(\d+):(\d+)/);
+    if (!timeMatch) return { isOpen: false, error: 'Could not parse time' };
 
-    const marketOpen = 9 * 60 + 30; // 9:30 AM
-    const marketClose = 16 * 60; // 4:00 PM
+    const [, hours, minutes] = timeMatch;
+    const currentTime = parseInt(hours) * 60 + parseInt(minutes);
 
-    const isWeekday = now.getDay() >= 1 && now.getDay() <= 5;
+    const marketOpen = 9 * 60 + 30; // 9:30 AM ET
+    const marketClose = 16 * 60; // 4:00 PM ET
+
+    const dayOfWeek = now.getDay(); // 0 = Sunday, 6 = Saturday
+    const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
     const isMarketHours = currentTime >= marketOpen && currentTime < marketClose;
 
     return {
       isOpen: isWeekday && isMarketHours,
-      localOpenTime: '9:30 AM',
-      localCloseTime: '4:00 PM',
-      timezone: 'ET',
-      lastUpdated: now.toISOString(),
-      fallback: true // This is a simplified calculation
+      currentTime: easternTime,
+      dayOfWeek,
+      isWeekday,
+      isMarketHours,
+      localOpenTime: '9:30 AM ET',
+      localCloseTime: '4:00 PM ET',
+      lastUpdated: now.toISOString()
     };
   }
 
