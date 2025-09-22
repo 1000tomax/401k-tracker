@@ -33,12 +33,13 @@ async function readBody(req) {
 }
 
 export default async function handler(req, res) {
-  const cors = allowCorsAndAuth(req, res);
-  if (cors.ended) {
-    return;
-  }
+  try {
+    const cors = allowCorsAndAuth(req, res);
+    if (cors.ended) {
+      return;
+    }
 
-  res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Cache-Control', 'no-store');
 
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -71,12 +72,33 @@ export default async function handler(req, res) {
     return;
   }
 
-  const validation = SnapshotSchema.safeParse(payload);
+  let validation;
+  try {
+    validation = SnapshotSchema.safeParse(payload);
+  } catch (schemaError) {
+    console.error('Schema validation threw an exception:', schemaError);
+    send(res, 500, {
+      ok: false,
+      error: 'Schema validation error: ' + schemaError.message,
+      details: schemaError.stack
+    });
+    return;
+  }
+
   if (!validation.success) {
     console.warn('Snapshot payload validation failed', {
       issueCount: validation.error.issues.length,
+      issues: validation.error.issues.map(issue => ({
+        path: issue.path.join('.'),
+        message: issue.message,
+        code: issue.code
+      }))
     });
-    send(res, 400, { ok: false, error: 'Invalid payload: schema validation failed.' });
+    send(res, 400, {
+      ok: false,
+      error: 'Invalid payload: schema validation failed.',
+      validationErrors: validation.error.issues
+    });
     return;
   }
 
@@ -215,6 +237,15 @@ export default async function handler(req, res) {
       error: friendly,
       rawError: rawMessage,
       details: error.response?.data || null,
+    });
+  }
+  } catch (globalError) {
+    console.error('Unhandled error in push handler:', globalError);
+    send(res, 500, {
+      ok: false,
+      error: 'Internal server error: ' + globalError.message,
+      stack: globalError.stack,
+      type: globalError.constructor.name
     });
   }
 }
