@@ -106,7 +106,7 @@ export default async function handler(req, res) {
       return;
     }
 
-    const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
+    const apiKey = process.env.ALPHA_VANTAGE_API_KEY || process.env.VITE_ALPHA_VANTAGE_API_KEY;
     const results = {};
     const errors = {};
 
