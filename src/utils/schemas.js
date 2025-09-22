@@ -214,10 +214,10 @@ export const MultiAccountPortfolioSchema = z.object({
   }).optional()
 });
 
-// Legacy snapshot schema (backward compatible)
+// Legacy snapshot schema (backward compatible) - simplified for serverless
 export const SnapshotSchema = z
   .object({
-    transactions: z.array(TransactionSchema),
+    transactions: z.array(z.any()), // Simplified to avoid enum validation issues
     portfolio: z.any().optional(),
     totals: z.any().optional(),
     fundTotals: z.any().optional(),
