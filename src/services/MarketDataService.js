@@ -63,6 +63,7 @@ class MarketDataService {
   // Parse Alpha Vantage response
   parseQuoteData(data, symbol) {
     console.log('Alpha Vantage raw response for', symbol, ':', data);
+    console.log('Response keys:', Object.keys(data));
 
     const quote = data['Global Quote'];
     if (!quote) {
@@ -122,7 +123,9 @@ class MarketDataService {
 
     try {
       const url = `${ALPHA_VANTAGE_BASE_URL}?function=GLOBAL_QUOTE&symbol=${cleanSymbol}&apikey=${this.apiKey}`;
+      console.log(`Making Alpha Vantage API call for ${cleanSymbol}:`, url);
       const data = await this.makeApiCall(url);
+      console.log(`Alpha Vantage API response for ${cleanSymbol}:`, data);
 
       const priceData = this.parseQuoteData(data, cleanSymbol);
 
@@ -241,6 +244,8 @@ class MarketDataService {
       change: 0.00,
       fallback: true // Flag to indicate this is a generic fallback
     };
+
+    console.log(`Demo price for ${symbol}:`, demo);
     const changePercent = demo.price > 0 ? `${(demo.change / demo.price * 100).toFixed(2)}%` : '0.00%';
 
     return {
