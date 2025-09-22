@@ -184,7 +184,10 @@ class MarketDataService {
     const prioritySymbols = symbols.slice(startIndex, endIndex);
     const remainingSymbols = [...symbols.slice(0, startIndex), ...symbols.slice(endIndex)];
 
-    console.log(`🔄 Rotation cycle ${rotationIndex + 1}: Fetching LIVE prices for [${prioritySymbols.join(', ')}]`);
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString();
+    const nextUpdateTime = new Date(now.getTime() + 2 * 60 * 1000).toLocaleTimeString();
+    console.log(`🔄 ${timeStr} - Rotation cycle ${rotationIndex + 1}: Fetching LIVE prices for [${prioritySymbols.join(', ')}] (next update ~${nextUpdateTime})`);
 
     const allResults = {};
 
