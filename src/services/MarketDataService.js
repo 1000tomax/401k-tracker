@@ -106,12 +106,16 @@ class MarketDataService {
 
     // Try server-side API first (bypasses CORS)
     try {
+      console.log(`Trying server-side API first for ${cleanSymbol}`);
       const serverResponse = await this.fetchFromServer([cleanSymbol]);
+      console.log(`Server API response for ${cleanSymbol}:`, serverResponse);
       if (serverResponse && serverResponse[cleanSymbol]) {
         const priceData = serverResponse[cleanSymbol];
+        console.log(`Using server-side price data for ${cleanSymbol}:`, priceData);
         this.setCachedPrice(cleanSymbol, priceData);
         return priceData;
       }
+      console.log(`No server-side data for ${cleanSymbol}, falling back to direct API`);
     } catch (serverError) {
       console.warn('Server API failed, trying direct call:', serverError);
     }
