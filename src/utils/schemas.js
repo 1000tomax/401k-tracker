@@ -1,5 +1,21 @@
 import { z } from 'zod';
-import { ACCOUNT_TYPES, ACCOUNT_PROVIDERS } from './accountTypes.js';
+
+// Hardcoded account types to avoid serverless import issues
+const ACCOUNT_TYPE_VALUES = [
+  'traditional_401k',
+  'roth_401k',
+  'traditional_ira',
+  'roth_ira',
+  'taxable_brokerage',
+  'hsa'
+];
+
+const ACCOUNT_PROVIDER_VALUES = [
+  'voya',
+  'm1_finance',
+  'plaid',
+  'other'
+];
 
 // Enhanced transaction schema for multi-account support (backward compatible)
 export const TransactionSchema = z
@@ -18,9 +34,9 @@ export const TransactionSchema = z
     notes: z.string().optional(),
 
     // New fields for multi-account support
-    accountType: z.enum(Object.values(ACCOUNT_TYPES)).optional(),
+    accountType: z.enum(ACCOUNT_TYPE_VALUES).optional(),
     accountId: z.string().optional(),
-    provider: z.enum(Object.values(ACCOUNT_PROVIDERS)).optional(),
+    provider: z.enum(ACCOUNT_PROVIDER_VALUES).optional(),
     symbol: z.string().optional(),
     securityId: z.string().optional(),
 
@@ -74,8 +90,8 @@ export const AccountSchema = z.object({
   subtype: z.string().optional(),
 
   // Classification
-  accountType: z.enum(Object.values(ACCOUNT_TYPES)),
-  provider: z.enum(Object.values(ACCOUNT_PROVIDERS)),
+  accountType: z.enum(ACCOUNT_TYPE_VALUES),
+  provider: z.enum(ACCOUNT_PROVIDER_VALUES),
 
   // Balances
   balances: z.object({
@@ -245,8 +261,8 @@ export function migrateLegacyToMultiAccount(legacyData) {
     name: 'Legacy 401(k) Account',
     type: 'investment',
     subtype: '401k',
-    accountType: ACCOUNT_TYPES.TRADITIONAL_401K,
-    provider: ACCOUNT_PROVIDERS.OTHER,
+    accountType: 'traditional_401k',
+    provider: 'other',
     balances: {
       current: legacyData.totals?.marketValue || 0,
       isoCurrencyCode: 'USD'
@@ -298,7 +314,7 @@ export function migrateLegacyToMultiAccount(legacyData) {
       lastUpdated: new Date().toISOString()
     },
     byAccountType: {
-      [ACCOUNT_TYPES.TRADITIONAL_401K]: {
+      'traditional_401k': {
         totalValue: legacyData.totals?.marketValue || 0,
         totalContributions: legacyData.totals?.contributions || legacyData.totals?.netInvested || 0,
         totalEarnings: legacyData.totals?.gainLoss || 0,
