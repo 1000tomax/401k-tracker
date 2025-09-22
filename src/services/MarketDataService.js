@@ -7,7 +7,7 @@ const RATE_LIMIT_DELAY = 12000; // 12 seconds between calls (5 calls/minute)
 
 class MarketDataService {
   constructor() {
-    this.apiKey = import.meta.env.VITE_ALPHA_VANTAGE_API_KEY || DEFAULT_API_KEY;
+    this.apiKey = (typeof window !== 'undefined' && import.meta?.env?.VITE_ALPHA_VANTAGE_API_KEY) || DEFAULT_API_KEY;
     this.cache = new Map();
     this.cacheTimeout = 5 * 60 * 1000; // 5 minutes
     this.lastApiCall = 0;
@@ -178,10 +178,11 @@ class MarketDataService {
 
   // Generate demo/fallback price data
   getDemoPrice(symbol) {
-    // Realistic demo prices for common ETFs
+    // Realistic demo prices for common ETFs (based on actual recent prices)
     const demoPrices = {
-      'VTI': { price: 245.50, change: 2.15 },
-      'VXUS': { price: 61.20, change: -0.45 },
+      // Common ETFs
+      'VTI': { price: 328.44, change: 1.23 },
+      'VXUS': { price: 73.12, change: -0.25 },
       'BND': { price: 79.85, change: 0.12 },
       'VB': { price: 182.30, change: 1.80 },
       'SPY': { price: 445.20, change: 3.50 },
@@ -189,7 +190,27 @@ class MarketDataService {
       'IWM': { price: 195.80, change: -1.20 },
       'EFA': { price: 72.40, change: 0.85 },
       'VEA': { price: 49.60, change: 0.25 },
-      'VWO': { price: 41.80, change: -0.30 }
+      'VWO': { price: 53.95, change: -0.30 },
+
+      // M1 Finance ETFs (from holdings data)
+      'QQQM': { price: 246.44, change: 0.26 },
+      'AVUV': { price: 100.16, change: 0.08 },
+      'DES': { price: 33.92, change: 0.00 },
+      'SCHD': { price: 27.27, change: 0.01 },
+      'JEPI': { price: 56.82, change: 0.01 },
+      'GNOM': { price: 37.47, change: 0.03 },
+      'MJ': { price: 32.02, change: 0.01 },
+      'SMH': { price: 317.78, change: 0.16 },
+      'XT': { price: 71.54, change: 0.03 },
+      'MSOS': { price: 4.47, change: 0.03 },
+      'XBI': { price: 95.89, change: 0.16 },
+      'YOLO': { price: 3.23, change: 0.02 },
+      'IBB': { price: 142.57, change: 0.15 },
+
+      // Schwab ETFs
+      'SCHH': { price: 21.30, change: -0.05 },
+      'SCHF': { price: 23.21, change: -0.12 },
+      'SCHB': { price: 25.67, change: 0.18 }
     };
 
     const demo = demoPrices[symbol] || { price: 100.00, change: 0.00 };

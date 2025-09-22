@@ -43,13 +43,12 @@ export default function ImportPage({
       <section className="input-section">
         <h2>Add Transactions</h2>
         <p className="meta">
-          Paste your latest Voya log here. We'll parse the rows, dedupe against existing data, and let you preview before saving.
+          Import from various sources: paste Voya logs, upload M1 Finance CSV exports, or enter data manually. We'll parse the data, dedupe against existing entries, and let you preview before saving.
         </p>
         <div className="callout" role="note">
           <span className="callout-title">Import tips</span>
           <p>
-            Copy rows directly from Voya—share counts and unit prices keep their full precision. You can preview the
-            first 10 entries before saving and skip duplicates automatically.
+            Copy rows directly from Voya or upload M1 Finance activity/holdings CSV files. Share counts and unit prices keep their full precision. You can preview the first 10 entries before saving and skip duplicates automatically.
           </p>
         </div>
         <div className="file-import">
@@ -63,7 +62,7 @@ export default function ImportPage({
             disabled={isImportingFiles}
           />
           <p className="meta">
-            Select one or more Voya downloads—new rows are merged and deduped automatically.
+            Select Voya downloads or M1 Finance exports (Activity + Holdings CSV files)—new rows are merged and deduped automatically.
           </p>
         </div>
         <label htmlFor="transactions-input">Transaction Log</label>

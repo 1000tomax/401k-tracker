@@ -418,7 +418,7 @@ function ensureFundTotals(target, fund) {
 }
 
 const FLOW_RULES = {
-  deposit: [/contribution/i, /dividend/i, /interest/i, /match/i, /loan repayment/i],
+  deposit: [/contribution/i, /dividend/i, /interest/i, /match/i, /loan repayment/i, /deposit/i],
   withdrawal: [/loan issue/i, /withdrawal/i, /distribution/i, /fee/i, /service fee/i],
   neutral: [/transfer/i, /exchange/i, /rebalance/i, /reallocation/i],
 };

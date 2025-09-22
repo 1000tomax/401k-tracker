@@ -45,9 +45,32 @@ export default function PortfolioTable({
 }) {
   // Helper function to extract symbol from fund name
   const extractSymbol = (fundName) => {
-    // Simple extraction - in production, you'd have a proper mapping
-    const cleaned = fundName.replace(/[^A-Z0-9]/gi, '').toUpperCase();
-    return cleaned.length >= 2 && cleaned.length <= 5 ? cleaned : null;
+    if (!fundName) return null;
+
+    const cleaned = fundName.trim().toUpperCase();
+
+    // If the fund name is already a symbol (2-5 uppercase letters)
+    if (/^[A-Z]{2,5}$/.test(cleaned)) {
+      return cleaned;
+    }
+
+    // Try to extract from patterns like "Fund Name (SYMBOL)" or "SYMBOL - Fund Name"
+    const patterns = [
+      /\(([A-Z]{2,5})\)/,  // Symbol in parentheses
+      /^([A-Z]{2,5})\s*[-:]/,  // Symbol at start followed by dash or colon
+      /\b([A-Z]{2,5})\b/   // Any 2-5 letter symbol as a word
+    ];
+
+    for (const pattern of patterns) {
+      const match = cleaned.match(pattern);
+      if (match) {
+        return match[1];
+      }
+    }
+
+    // Fallback: remove non-alphanumeric and check if it looks like a symbol
+    const fallback = cleaned.replace(/[^A-Z0-9]/g, '');
+    return fallback.length >= 2 && fallback.length <= 5 ? fallback : null;
   };
 
   const { allRows, activeRows, closedRows } = useMemo(() => {

@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import SummaryOverview from '../components/SummaryOverview.jsx';
-import PortfolioTable from '../components/PortfolioTable.jsx';
+import AccountSeparatedPortfolio from '../components/AccountSeparatedPortfolio.jsx';
 import {
   formatCurrency,
   formatDate,
@@ -55,11 +55,13 @@ export default function Dashboard({
   ];
 
   const trendData = useMemo(() => {
-    if (baseTrend.length >= 3) return baseTrend;
-    return [...sampleData, ...baseTrend].slice(-12);
+    // If we have any real data, use only real data (don't mix with sample data)
+    if (baseTrend.length > 0) return baseTrend;
+    // Only use sample data if there's no real data at all
+    return sampleData;
   }, [baseTrend]);
 
-  const usingSampleData = baseTrend.length < 3;
+  const usingSampleData = baseTrend.length === 0;
 
   const formattedTrend = trendData.map(point => ({
     ...point,
@@ -86,57 +88,62 @@ export default function Dashboard({
     setExpandedDate(prev => (prev === date ? null : date));
   };
 
-  // Extract ETF symbols from portfolio holdings (exclude Voya 401k funds)
+  // Extract ETF symbols from brokerage holdings only
   const etfSymbols = useMemo(() => {
     const symbols = new Set();
 
-    // Only look for ETFs in non-Voya accounts
+    // Helper function to classify account type
+    const isBrokerageAccount = (source) => {
+      const lowerSource = source.toLowerCase();
+      return lowerSource.includes('m1') ||
+             lowerSource.includes('brokerage') ||
+             lowerSource.includes('taxable') ||
+             (!lowerSource.includes('401') &&
+              !lowerSource.includes('voya') &&
+              !lowerSource.includes('pretax') &&
+              !lowerSource.includes('pre tax') &&
+              !lowerSource.includes('posttax') &&
+              !lowerSource.includes('post tax') &&
+              !lowerSource.includes('safe harbor') &&
+              !lowerSource.includes('employee') &&
+              !lowerSource.includes('match'));
+    };
+
+    // Only extract symbols from brokerage accounts
     Object.entries(summary.portfolio || {}).forEach(([fund, sources]) => {
-      // Check if this fund has any non-Voya money sources
       const sourceKeys = Object.keys(sources);
-      const hasNonVoyaSources = sourceKeys.some(source => {
-        const lowerSource = source.toLowerCase();
-        return !lowerSource.includes('pretax') &&
-               !lowerSource.includes('pre tax') &&
-               !lowerSource.includes('posttax') &&
-               !lowerSource.includes('post tax') &&
-               !lowerSource.includes('safe harbor') &&
-               !lowerSource.includes('employee') &&
-               !lowerSource.includes('match') &&
-               !lowerSource.includes('401') &&
-               !lowerSource.includes('voya');
-      });
+      const hasBrokerageSources = sourceKeys.some(source => isBrokerageAccount(source));
 
-
-      // Only look for ETF symbols in funds from non-Voya sources
-      if (hasNonVoyaSources) {
+      if (hasBrokerageSources) {
         const cleanName = fund.toUpperCase();
 
-        // Common ETF patterns (now that we've filtered out Voya funds)
-        const etfPatterns = [
-          // Specific well-known ETFs
-          /\b(VTI|VXUS|VEA|VWO|BND|VB|VTEB|VYM|VGT|VUG|VTV|SPY|QQQ|IWM|EFA)\b/,
-          // Pattern for funds that clearly indicate ETF symbols
-          /\(([A-Z]{2,5})\)/,  // Symbol in parentheses like "Total Stock Market (VTI)"
-          /ETF[:\s]*([A-Z]{2,5})/  // "ETF: VTI" format
-        ];
+        // For ETF symbols (most M1 Finance funds are already symbols)
+        if (/^[A-Z]{2,5}$/.test(cleanName) && cleanName !== 'CASH') {
+          symbols.add(cleanName);
+        } else {
+          // For longer fund names, try to extract symbols
+          const etfPatterns = [
+            /\b(VTI|VXUS|VEA|VWO|BND|VB|VTEB|VYM|VGT|VUG|VTV|SPY|QQQ|IWM|EFA|QQQM|AVUV|DES|SCHD|JEPI|GNOM|MJ|SMH|XT|MSOS|XBI|YOLO|IBB|SCHH|SCHF|SCHB)\b/,
+            /\(([A-Z]{2,5})\)/,  // Symbol in parentheses
+            /ETF[:\s]*([A-Z]{2,5})/  // "ETF: SYMBOL" format
+          ];
 
-        etfPatterns.forEach(pattern => {
-          const matches = cleanName.match(pattern);
-          if (matches) {
-            matches.forEach(match => {
-              // If it's a capture group, use the captured symbol
-              if (match.includes('(') || match.includes('ETF')) {
-                const symbolMatch = match.match(/([A-Z]{2,5})/);
-                if (symbolMatch) {
-                  symbols.add(symbolMatch[1]);
+          etfPatterns.forEach(pattern => {
+            const matches = cleanName.match(pattern);
+            if (matches) {
+              matches.forEach(match => {
+                if (match.includes('(') || match.includes('ETF')) {
+                  const symbolMatch = match.match(/([A-Z]{2,5})/);
+                  if (symbolMatch) {
+                    symbols.add(symbolMatch[1]);
+                  }
+                } else {
+                  symbols.add(match);
                 }
-              } else {
-                symbols.add(match);
-              }
-            });
-          }
-        });
+              });
+            }
+          });
+        }
       }
     });
 
@@ -377,12 +384,10 @@ export default function Dashboard({
       ) : null}
 
       <section>
-        <PortfolioTable
+        <AccountSeparatedPortfolio
           portfolio={summary.portfolio}
           openPositions={summary.openPositions}
           closedPositions={summary.closedPositions}
-          openPositionsTotals={summary.openPositionsTotals}
-          closedPositionsTotals={summary.closedPositionsTotals}
           totals={summary.totals}
           livePrices={livePrices}
           showLivePrices={showLivePrices}
@@ -394,16 +399,13 @@ export default function Dashboard({
         <section>
           <div className="section-header">
             <h2>Recent Activity</h2>
-            <p className="meta">Last few updates to your account balance.</p>
+            <p className="meta">Recent transaction activity by date.</p>
           </div>
           <div className="recent-table-wrapper">
             <table className="recent-table">
               <thead>
                 <tr>
                   <th>Date</th>
-                  <th>Market Value</th>
-                  <th>Net Invested</th>
-                  <th>Daily Change</th>
                   <th>Transactions</th>
                 </tr>
               </thead>
@@ -415,18 +417,6 @@ export default function Dashboard({
                     <React.Fragment key={entry.date}>
                       <tr>
                         <td>{formatDate(entry.date)}</td>
-                        <td className="numeric">{formatCurrency(entry.marketValue)}</td>
-                        <td className="numeric">{formatCurrency(entry.investedBalance)}</td>
-                        <td className="numeric">
-                          {entry.dailyChange !== undefined && entry.dailyChange !== 0 ? (
-                            <span className={entry.dailyChange >= 0 ? 'positive' : 'negative'}>
-                              {entry.dailyChange >= 0 ? '+' : ''}
-                              {formatCurrency(entry.dailyChange)}
-                            </span>
-                          ) : (
-                            '—'
-                          )}
-                        </td>
                         <td>
                           {entry.transactions?.length ? (
                             <button
@@ -434,7 +424,7 @@ export default function Dashboard({
                               className="link-button"
                               onClick={() => handleToggleDetails(entry.date)}
                             >
-                              {expandedDate === entry.date ? 'Hide' : 'View'}
+                              {expandedDate === entry.date ? 'Hide' : 'View'} ({entry.transactions.length})
                             </button>
                           ) : (
                             '—'
@@ -443,7 +433,7 @@ export default function Dashboard({
                       </tr>
                       {expandedDate === entry.date && entry.transactions?.length ? (
                         <tr className="recent-details">
-                          <td colSpan={5}>
+                          <td colSpan={2}>
                             <div className="recent-details-wrapper">
                               <table className="recent-details-table">
                                 <thead>

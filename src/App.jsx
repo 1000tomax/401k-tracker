@@ -7,6 +7,7 @@ import { parseTransactions, aggregatePortfolio } from './utils/parseTransactions
 import { migrateLegacyToMultiAccount } from './utils/schemas.js';
 import { formatDate, formatCurrency } from './utils/formatters.js';
 import { generateDemoData, getDemoSettings } from './utils/demoData.js';
+import { importM1FinanceFromFiles, validateM1FinanceData } from './utils/m1FinanceImporter.js';
 
 const STORAGE_KEY = '401k-tracker-data';
 const STORAGE_VERSION = 1;
@@ -329,8 +330,50 @@ export default function App() {
       setIsImportingFiles(true);
 
       try {
-        const contents = await Promise.all(files.map(file => file.text()));
-        const parsed = contents.flatMap(chunk => parseTransactions(chunk));
+        // Check if this might be M1 Finance files
+        const fileContents = await Promise.all(
+          files.map(async file => ({
+            name: file.name,
+            content: await file.text()
+          }))
+        );
+
+        // Detect if any files contain M1 Finance headers
+        const hasM1Headers = fileContents.some(file => {
+          const firstLine = file.content.split('\n')[0]?.toLowerCase() || '';
+          return (
+            (firstLine.includes('symbol') && firstLine.includes('transaction type')) ||
+            (firstLine.includes('symbol') && firstLine.includes('quantity') && firstLine.includes('value'))
+          );
+        });
+
+        let parsed = [];
+        let importType = 'standard';
+
+        if (hasM1Headers) {
+          // Try to process as M1 Finance files
+          try {
+            const m1Result = await importM1FinanceFromFiles(files, {
+              accountName: 'M1 Finance Account',
+              mergeWithExisting: true
+            });
+
+            if (m1Result.success && m1Result.transactions.length > 0) {
+              parsed = m1Result.transactions;
+              importType = 'm1_finance';
+              setImportStatus(`Detected M1 Finance export files. Processing ${m1Result.summary.transactionCount} transactions and ${m1Result.summary.holdingCount} holdings.`);
+            } else {
+              // Fall back to standard parsing
+              parsed = fileContents.flatMap(file => parseTransactions(file.content));
+            }
+          } catch (m1Error) {
+            console.warn('M1 Finance parsing failed, falling back to standard parsing:', m1Error);
+            parsed = fileContents.flatMap(file => parseTransactions(file.content));
+          }
+        } else {
+          // Standard transaction parsing
+          parsed = fileContents.flatMap(file => parseTransactions(file.content));
+        }
 
         if (!parsed.length) {
           setImportStatus('No transactions detected in the selected file(s).');
@@ -358,12 +401,13 @@ export default function App() {
           parsedCount,
           duplicateCount,
           additions: newAdditions,
+          importType,
         });
 
         const parts = [
           `Parsed ${parsedCount} row${parsedCount === 1 ? '' : 's'} from ${files.length} file${
             files.length === 1 ? '' : 's'
-          }.`,
+          }${importType === 'm1_finance' ? ' (M1 Finance format)' : ''}.`,
         ];
         if (newAdditions.length) {
           parts.push(
