@@ -177,11 +177,14 @@ class MarketDataService {
       (typeof process !== 'undefined' && process.env ? process.env.NEXT_PUBLIC_401K_TOKEN : undefined) ||
       'dev-only-token';
 
-    // Only fetch first 4 symbols to stay under rate limits, use demo for rest
-    const prioritySymbols = symbols.slice(0, 4);
-    const remainingSymbols = symbols.slice(4);
+    // Rotate which 4 symbols get live prices (cycles every 2 minutes)
+    const rotationIndex = Math.floor(Date.now() / (2 * 60 * 1000)) % Math.ceil(symbols.length / 4);
+    const startIndex = rotationIndex * 4;
+    const endIndex = Math.min(startIndex + 4, symbols.length);
+    const prioritySymbols = symbols.slice(startIndex, endIndex);
+    const remainingSymbols = [...symbols.slice(0, startIndex), ...symbols.slice(endIndex)];
 
-    console.log(`Fetching live prices for priority symbols:`, prioritySymbols);
+    console.log(`Rotation cycle ${rotationIndex + 1}: Fetching live prices for symbols ${startIndex + 1}-${endIndex}:`, prioritySymbols);
     console.log(`Using demo prices for remaining symbols:`, remainingSymbols);
 
     const allResults = {};
