@@ -508,6 +508,37 @@ export default function App() {
         generatedAt: new Date().toISOString(),
       };
 
+      // Validate payload structure before sending
+      if (!Array.isArray(transactions)) {
+        throw new Error('Transactions must be an array');
+      }
+
+      // Check for any transactions with invalid data types
+      for (let i = 0; i < transactions.length; i++) {
+        const tx = transactions[i];
+        if (!tx || typeof tx !== 'object') {
+          throw new Error(`Transaction ${i} is not a valid object`);
+        }
+        if (typeof tx.date !== 'string' || !tx.date) {
+          throw new Error(`Transaction ${i} has invalid date: ${tx.date}`);
+        }
+        if (typeof tx.activity !== 'string' || !tx.activity) {
+          throw new Error(`Transaction ${i} has invalid activity: ${tx.activity}`);
+        }
+        if (typeof tx.fund !== 'string' || !tx.fund) {
+          throw new Error(`Transaction ${i} has invalid fund: ${tx.fund}`);
+        }
+        if (typeof tx.units !== 'number' || isNaN(tx.units)) {
+          throw new Error(`Transaction ${i} has invalid units: ${tx.units} (type: ${typeof tx.units})`);
+        }
+        if (typeof tx.unitPrice !== 'number' || isNaN(tx.unitPrice)) {
+          throw new Error(`Transaction ${i} has invalid unitPrice: ${tx.unitPrice} (type: ${typeof tx.unitPrice})`);
+        }
+        if (typeof tx.amount !== 'number' || isNaN(tx.amount)) {
+          throw new Error(`Transaction ${i} has invalid amount: ${tx.amount} (type: ${typeof tx.amount})`);
+        }
+      }
+
       const response = await fetch('/api/push', {
         method: 'POST',
         headers: {
@@ -518,8 +549,14 @@ export default function App() {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || 'GitHub sync failed');
+        let errorText;
+        try {
+          errorText = await response.text();
+        } catch (e) {
+          errorText = `HTTP ${response.status}: ${response.statusText}`;
+        }
+        console.error('Sync failed with status:', response.status, 'Response:', errorText);
+        throw new Error(errorText || `HTTP ${response.status}: GitHub sync failed`);
       }
 
       setSyncStatus('Sync successful.');
