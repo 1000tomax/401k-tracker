@@ -7,7 +7,8 @@ const RATE_LIMIT_DELAY = 12000; // 12 seconds between calls (5 calls/minute)
 
 class MarketDataService {
   constructor() {
-    this.apiKey = (typeof window !== 'undefined' && import.meta?.env?.VITE_ALPHA_VANTAGE_API_KEY) || DEFAULT_API_KEY;
+    this.apiKey = (typeof window !== 'undefined' && (import.meta?.env?.VITE_ALPHA_VANTAGE_API_KEY || import.meta?.env?.ALPHA_VANTAGE_API_KEY)) || DEFAULT_API_KEY;
+    console.log('MarketDataService initialized with API key:', this.apiKey === 'demo' ? 'DEMO KEY' : 'REAL KEY');
     this.cache = new Map();
     this.cacheTimeout = 5 * 60 * 1000; // 5 minutes
     this.lastApiCall = 0;
@@ -124,8 +125,28 @@ class MarketDataService {
       const data = await this.makeApiCall(url);
 
       const priceData = this.parseQuoteData(data, cleanSymbol);
-      this.setCachedPrice(cleanSymbol, priceData);
 
+      // Validate price against demo data to catch obviously wrong API responses
+      const demoData = this.getDemoPrice(cleanSymbol);
+      if (demoData && !demoData.fallback) {
+        // For symbols with known demo prices, validate API response
+        const priceDiff = Math.abs(priceData.price - demoData.price);
+        const percentDiff = priceDiff / demoData.price;
+
+        // Reject API prices that differ by more than 20% from expected
+        if (percentDiff > 0.20) {
+          console.warn(`API price for ${cleanSymbol} ($${priceData.price}) differs by ${(percentDiff * 100).toFixed(1)}% from expected (~$${demoData.price}). Using demo data.`);
+          return {
+            ...demoData,
+            isStale: true,
+            source: 'demo_fallback',
+            apiPrice: priceData.price,
+            rejectedReason: `Price difference: ${(percentDiff * 100).toFixed(1)}%`
+          };
+        }
+      }
+
+      this.setCachedPrice(cleanSymbol, priceData);
       return priceData;
     } catch (error) {
       console.error(`Failed to fetch price for ${cleanSymbol}:`, error);
@@ -181,7 +202,7 @@ class MarketDataService {
     // Realistic demo prices for common ETFs (based on actual recent prices)
     const demoPrices = {
       // Common ETFs
-      'VTI': { price: 328.44, change: 1.23 },
+      'VTI': { price: 329.98, change: 1.54 },
       'VXUS': { price: 73.12, change: -0.25 },
       'BND': { price: 79.85, change: 0.12 },
       'VB': { price: 182.30, change: 1.80 },
@@ -192,7 +213,7 @@ class MarketDataService {
       'VEA': { price: 49.60, change: 0.25 },
       'VWO': { price: 53.95, change: -0.30 },
 
-      // M1 Finance ETFs (from holdings data)
+      // M1 Finance ETFs (approximate current market values)
       'QQQM': { price: 246.44, change: 0.26 },
       'AVUV': { price: 100.16, change: 0.08 },
       'DES': { price: 33.92, change: 0.00 },
@@ -213,7 +234,12 @@ class MarketDataService {
       'SCHB': { price: 25.67, change: 0.18 }
     };
 
-    const demo = demoPrices[symbol] || { price: 100.00, change: 0.00 };
+    // If symbol not found, return a more reasonable fallback
+    const demo = demoPrices[symbol] || {
+      price: 50.00, // More reasonable than $100 for most ETFs
+      change: 0.00,
+      fallback: true // Flag to indicate this is a generic fallback
+    };
     const changePercent = demo.price > 0 ? `${(demo.change / demo.price * 100).toFixed(2)}%` : '0.00%';
 
     return {
