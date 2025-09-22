@@ -199,6 +199,7 @@ class MarketDataService {
 
   // Generate demo/fallback price data
   getDemoPrice(symbol) {
+    console.log(`getDemoPrice called for ${symbol}`);
     // Realistic demo prices for common ETFs (based on actual recent prices)
     const demoPrices = {
       // Common ETFs
@@ -255,7 +256,9 @@ class MarketDataService {
 
   // Fetch prices for multiple symbols (batched with rate limiting)
   async getBatchPrices(symbols) {
+    console.log('getBatchPrices called with symbols:', symbols);
     if (!Array.isArray(symbols) || symbols.length === 0) {
+      console.log('No symbols to fetch prices for');
       return {};
     }
 
@@ -273,10 +276,14 @@ class MarketDataService {
       }
     }
 
+    console.log('Fetching uncached symbols:', uncachedSymbols);
+
     // Fetch uncached symbols with rate limiting
     for (const symbol of uncachedSymbols) {
       try {
+        console.log(`Calling getLivePrice for ${symbol}`);
         const priceData = await this.getLivePrice(symbol);
+        console.log(`Got price data for ${symbol}:`, priceData);
         results[symbol] = priceData;
       } catch (error) {
         console.error(`Failed to fetch price for ${symbol}:`, error);
