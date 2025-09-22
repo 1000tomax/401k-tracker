@@ -10,10 +10,12 @@ class MarketDataService {
     this.apiKey = (typeof window !== 'undefined' && (import.meta?.env?.VITE_ALPHA_VANTAGE_API_KEY || import.meta?.env?.ALPHA_VANTAGE_API_KEY)) || DEFAULT_API_KEY;
     console.log('MarketDataService initialized with API key:', this.apiKey === 'demo' ? 'DEMO KEY' : 'REAL KEY');
     this.cache = new Map();
-    this.cacheTimeout = 5 * 60 * 1000; // 5 minutes
+    this.cacheTimeout = 3 * 60 * 1000; // 3 minutes - longer cache for rate limiting
     this.lastApiCall = 0;
     this.requestQueue = [];
     this.isProcessingQueue = false;
+    this.lastBatchUpdate = 0;
+    this.batchUpdateInterval = 2 * 60 * 1000; // Only update all prices every 2 minutes
   }
 
   // Get cached price or return null
@@ -175,33 +177,59 @@ class MarketDataService {
       (typeof process !== 'undefined' && process.env ? process.env.NEXT_PUBLIC_401K_TOKEN : undefined) ||
       'dev-only-token';
 
-    try {
-      const response = await fetch('/api/fetch-live-prices', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-401K-Token': authToken
-        },
-        body: JSON.stringify({
-          symbols: symbols,
-          useDemo: false
-        })
-      });
+    // Only fetch first 4 symbols to stay under rate limits, use demo for rest
+    const prioritySymbols = symbols.slice(0, 4);
+    const remainingSymbols = symbols.slice(4);
 
-      if (!response.ok) {
-        throw new Error(`Server API returned ${response.status}`);
-      }
+    console.log(`Fetching live prices for priority symbols:`, prioritySymbols);
+    console.log(`Using demo prices for remaining symbols:`, remainingSymbols);
 
-      const result = await response.json();
-      if (result.ok) {
-        return result.data;
-      } else {
-        throw new Error(result.error || 'Server API failed');
+    const allResults = {};
+
+    // Fetch live prices for priority symbols
+    if (prioritySymbols.length > 0) {
+      try {
+        const response = await fetch('/api/fetch-live-prices', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-401K-Token': authToken
+          },
+          body: JSON.stringify({
+            symbols: prioritySymbols,
+            useDemo: false
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Server API returned ${response.status}`);
+        }
+
+        const result = await response.json();
+        if (result.ok) {
+          Object.assign(allResults, result.data);
+        } else {
+          console.warn(`Priority symbols failed:`, result.error);
+          // Add demo fallbacks for failed symbols
+          prioritySymbols.forEach(symbol => {
+            allResults[symbol] = this.getDemoPrice(symbol);
+          });
+        }
+      } catch (error) {
+        console.error(`Priority symbols failed:`, error);
+        // Add demo fallbacks for failed symbols
+        prioritySymbols.forEach(symbol => {
+          allResults[symbol] = this.getDemoPrice(symbol);
+        });
       }
-    } catch (error) {
-      console.error('Server API call failed:', error);
-      throw error;
     }
+
+    // Use demo prices for remaining symbols
+    remainingSymbols.forEach(symbol => {
+      allResults[symbol] = this.getDemoPrice(symbol);
+    });
+
+    return allResults;
   }
 
   // Generate demo/fallback price data
@@ -221,20 +249,21 @@ class MarketDataService {
       'VEA': { price: 49.60, change: 0.25 },
       'VWO': { price: 53.95, change: -0.30 },
 
-      // M1 Finance ETFs (approximate current market values)
-      'QQQM': { price: 246.44, change: 0.26 },
-      'AVUV': { price: 100.16, change: 0.08 },
-      'DES': { price: 33.92, change: 0.00 },
-      'SCHD': { price: 27.27, change: 0.01 },
-      'JEPI': { price: 56.82, change: 0.01 },
-      'GNOM': { price: 37.47, change: 0.03 },
-      'MJ': { price: 32.02, change: 0.01 },
-      'SMH': { price: 317.78, change: 0.16 },
-      'XT': { price: 71.54, change: 0.03 },
-      'MSOS': { price: 4.47, change: 0.03 },
-      'XBI': { price: 95.89, change: 0.16 },
-      'YOLO': { price: 3.23, change: 0.02 },
-      'IBB': { price: 142.57, change: 0.15 },
+      // M1 Finance ETFs (based on recent Alpha Vantage data)
+      'QQQM': { price: 246.79, change: 1.67 },
+      'AVUV': { price: 100.71, change: -1.41 },
+      'DES': { price: 34.03, change: -0.51 },
+      'SCHD': { price: 27.33, change: -0.12 },
+      'JEPI': { price: 56.86, change: -0.07 },
+      'GNOM': { price: 37.56, change: -0.38 },
+      'MJ': { price: 32.32, change: -0.59 },
+      'SMH': { price: 315.71, change: -1.26 },
+      'XT': { price: 71.43, change: -0.11 },
+      'MSOS': { price: 4.45, change: -0.11 },
+      'XBI': { price: 95.60, change: -1.08 },
+      'YOLO': { price: 3.21, change: -0.06 },
+      'IBB': { price: 142.72, change: -0.91 },
+      'PCY': { price: 21.64, change: 0.02 },
 
       // Schwab ETFs
       'SCHH': { price: 21.30, change: -0.05 },
@@ -273,35 +302,48 @@ class MarketDataService {
 
     const results = {};
     const uniqueSymbols = [...new Set(symbols.map(s => s.trim().toUpperCase()))];
+    const now = Date.now();
 
-    // Check cache first
+    // Check if we should skip API calls due to recent batch update
+    const timeSinceLastBatch = now - this.lastBatchUpdate;
+    const shouldSkipApiCalls = timeSinceLastBatch < this.batchUpdateInterval;
+
+    if (shouldSkipApiCalls) {
+      console.log(`Skipping API calls - last batch update was ${Math.round(timeSinceLastBatch / 1000)}s ago (min interval: ${this.batchUpdateInterval / 1000}s)`);
+    }
+
+    // Check cache first and use demo for uncached if skipping API calls
     const uncachedSymbols = [];
     for (const symbol of uniqueSymbols) {
       const cached = this.getCachedPrice(symbol);
       if (cached) {
         results[symbol] = cached;
+      } else if (shouldSkipApiCalls) {
+        // Use demo data instead of making API calls
+        results[symbol] = this.getDemoPrice(symbol);
       } else {
         uncachedSymbols.push(symbol);
       }
     }
 
-    console.log('Fetching uncached symbols:', uncachedSymbols);
+    // Only make API calls if enough time has passed
+    if (!shouldSkipApiCalls && uncachedSymbols.length > 0) {
+      console.log('Making API calls for uncached symbols:', uncachedSymbols);
+      this.lastBatchUpdate = now;
 
-    // Fetch uncached symbols with rate limiting
-    for (const symbol of uncachedSymbols) {
+      // Fetch via server-side API (limited to first 4 symbols)
       try {
-        console.log(`Calling getLivePrice for ${symbol}`);
-        const priceData = await this.getLivePrice(symbol);
-        console.log(`Got price data for ${symbol}:`, priceData);
-        results[symbol] = priceData;
+        const serverResults = await this.fetchFromServer(uncachedSymbols);
+        Object.assign(results, serverResults);
       } catch (error) {
-        console.error(`Failed to fetch price for ${symbol}:`, error);
-        results[symbol] = {
-          symbol,
-          error: error.message,
-          isStale: true
-        };
+        console.error('Server API failed, using demo data:', error);
+        // Fallback to demo data for all uncached symbols
+        uncachedSymbols.forEach(symbol => {
+          results[symbol] = this.getDemoPrice(symbol);
+        });
       }
+    } else if (uncachedSymbols.length > 0) {
+      console.log('Using demo data for uncached symbols due to rate limiting:', uncachedSymbols);
     }
 
     return results;
