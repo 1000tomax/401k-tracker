@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { formatCurrency, formatDate } from '../utils/formatters.js';
 import { usePlaidAuth } from '../contexts/PlaidAuthContext.jsx';
+import AccountManager from '../components/AccountManager.jsx';
 
 const CLIENT_SHARED_TOKEN =
   (import.meta.env && import.meta.env.VITE_401K_TOKEN) ||
@@ -124,6 +125,19 @@ export default function Settings({
           Plaid integration enables automatic transaction and balance updates from major financial institutions.
         </div>
       </section>
+
+      {/* Account Management - Only show if authenticated */}
+      {isAuthenticated && (
+        <section>
+          <AccountManager
+            connectedAccounts={[]}
+            onAccountRemoved={(account) => {
+              console.log('Account removed:', account);
+              // In a real app, you'd update your global state here
+            }}
+          />
+        </section>
+      )}
     </div>
   );
 }
