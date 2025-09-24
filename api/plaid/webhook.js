@@ -101,11 +101,9 @@ async function verifyWebhookJWT(requestBody, jwtToken) {
   }
 }
 
-// Discord notification function to demonstrate active webhook processing
+// Discord notification function for real webhook processing
 async function notifyDiscord(webhook) {
-  // Use a public webhook.site endpoint for demonstration
-  // You can replace this with an actual Discord webhook URL
-  const DISCORD_WEBHOOK_URL = 'https://webhook.site/unique-id'; // Replace with real Discord webhook
+  const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1411197542380867604/-L14Xu0h1qwSkuCa4kgdu9OFd1PZGLH7WASrPRPn0TBtiuDzGshdftx2ooagM_cFv9B9';
 
   try {
     const message = {
@@ -118,18 +116,21 @@ async function notifyDiscord(webhook) {
       username: '401K Tracker Bot'
     };
 
-    // For demo purposes, we'll just log instead of actual Discord call
-    // to avoid needing a real Discord webhook URL
-    console.log('📤 Would send to Discord:', message.content);
+    console.log('📤 Sending to Discord:', message.content);
 
-    // Uncomment below to actually send to Discord:
-    // const response = await fetch(DISCORD_WEBHOOK_URL, {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify(message)
-    // });
+    const response = await fetch(DISCORD_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(message)
+    });
 
-    return true;
+    if (response.ok) {
+      console.log('✅ Discord notification sent successfully');
+      return true;
+    } else {
+      console.error('❌ Discord API error:', response.status, response.statusText);
+      return false;
+    }
   } catch (error) {
     console.error('❌ Discord notification failed:', error.message);
     return false;
