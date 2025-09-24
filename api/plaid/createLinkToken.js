@@ -2,7 +2,7 @@
  * Create Plaid Link Token endpoint
  * Vercel serverless function
  */
-const { Configuration, PlaidApi, PlaidEnvironments } = require('plaid');
+import { Configuration, PlaidApi, PlaidEnvironments } from 'plaid';
 
 // Initialize Plaid client
 function initializePlaidClient() {
@@ -39,7 +39,7 @@ function initializePlaidClient() {
   return { plaidClient, config };
 }
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.statusCode = 405;
     res.setHeader('Content-Type', 'application/json');
@@ -55,11 +55,23 @@ module.exports = async function handler(req, res) {
     });
     const { plaidClient, config } = initializePlaidClient();
 
-    // Handle request body parsing for Vercel
+    // Handle request body parsing for both Vite dev server and Vercel
     let body = '';
-    if (req.body) {
-      body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+    if (typeof req.body === 'string') {
+      body = req.body;
+    } else if (req.body) {
+      body = JSON.stringify(req.body);
+    } else if (req.rawBody) {
+      body = req.rawBody.toString();
+    } else {
+      // Read from stream for Vite dev server
+      const chunks = [];
+      for await (const chunk of req) {
+        chunks.push(chunk);
+      }
+      body = Buffer.concat(chunks).toString();
     }
+
     const { user_id = 'default-user' } = JSON.parse(body || '{}');
 
     const linkTokenRequest = {
