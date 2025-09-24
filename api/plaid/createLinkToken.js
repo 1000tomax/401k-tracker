@@ -65,7 +65,7 @@ export default async function handler(req, res) {
       language: 'en',
       webhook: config.PLAID_ENV === 'production' ?
         'https://401k-tracker.vercel.app/api/plaid/webhook' : // Production webhook URL
-        'http://localhost:5174/api/plaid/webhook', // Local development webhook
+        'http://localhost:5175/api/plaid/webhook', // Local development webhook
     };
 
     const linkTokenResponse = await plaidClient.linkTokenCreate(linkTokenRequest);

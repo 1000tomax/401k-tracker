@@ -16,7 +16,7 @@ class PlaidService {
    */
   async createLinkToken(userId = 'default-user') {
     try {
-      const response = await fetch(`${this.baseURL}/createLinkToken`, {
+      const response = await fetch(`${this.baseURL}/create_link_token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -44,7 +44,7 @@ class PlaidService {
    */
   async exchangePublicToken(publicToken) {
     try {
-      const response = await fetch(`${this.baseURL}/exchangeToken`, {
+      const response = await fetch(`${this.baseURL}/exchange_public_token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -107,7 +107,7 @@ class PlaidService {
       const start = startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
       const end = endDate || new Date().toISOString().split('T')[0];
 
-      const response = await fetch(`${this.baseURL}/investmentTransactions`, {
+      const response = await fetch(`${this.baseURL}/investment_transactions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
