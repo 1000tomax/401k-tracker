@@ -1,5 +1,6 @@
 /**
  * Create Plaid Link Token endpoint
+ * Vercel serverless function
  */
 import { Configuration, PlaidApi, PlaidEnvironments } from 'plaid';
 
