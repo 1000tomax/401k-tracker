@@ -7,6 +7,7 @@ import exchangeTokenHandler from './api/plaid/exchangeToken.js';
 import accountsHandler from './api/plaid/accounts.js';
 import investmentTransactionsHandler from './api/plaid/investmentTransactions.js';
 import removeItemHandler from './api/plaid/removeItem.js';
+import webhookHandler from './api/plaid/webhook.js';
 
 function createDevApiPlugin() {
   const wrap = handler => async (req, res, next) => {
@@ -38,6 +39,7 @@ function createDevApiPlugin() {
       server.middlewares.use('/api/plaid/accounts', wrap(accountsHandler));
       server.middlewares.use('/api/plaid/investment_transactions', wrap(investmentTransactionsHandler));
       server.middlewares.use('/api/plaid/removeItem', wrap(removeItemHandler));
+      server.middlewares.use('/api/plaid/webhook', wrap(webhookHandler));
     },
   };
 }

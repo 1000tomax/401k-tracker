@@ -29,7 +29,9 @@ function initializePlaidClient() {
     PLAID_CLIENT_ID,
     PLAID_SECRET,
     PLAID_ENV,
-    PLAID_PRODUCTS: (process.env.PLAID_PRODUCTS || 'auth,transactions,investments').split(','),
+    PLAID_PRODUCTS: PLAID_ENV === 'production' ?
+      ['investments'] : // Only investments approved for production
+      (process.env.PLAID_PRODUCTS || 'auth,transactions,investments').split(','), // All products for sandbox
     PLAID_COUNTRY_CODES: (process.env.PLAID_COUNTRY_CODES || 'US').split(','),
   };
 
@@ -61,7 +63,9 @@ export default async function handler(req, res) {
       products: config.PLAID_PRODUCTS,
       country_codes: config.PLAID_COUNTRY_CODES,
       language: 'en',
-      // webhook: '', // Remove webhook field entirely since we're not using webhooks
+      webhook: config.PLAID_ENV === 'production' ?
+        'https://401k-tracker.vercel.app/api/plaid/webhook' : // Production webhook URL
+        'http://localhost:5174/api/plaid/webhook', // Local development webhook
     };
 
     const linkTokenResponse = await plaidClient.linkTokenCreate(linkTokenRequest);
