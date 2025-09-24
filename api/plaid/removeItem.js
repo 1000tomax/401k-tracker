@@ -4,11 +4,23 @@
  */
 import { Configuration, PlaidApi, PlaidEnvironments } from 'plaid';
 
-// Initialize Plaid client
-function initializePlaidClient() {
+// Initialize Plaid client with environment detection
+function initializePlaidClient(accessToken) {
   const PLAID_CLIENT_ID = process.env.PLAID_CLIENT_ID;
-  const PLAID_SECRET = process.env.PLAID_SECRET;
-  const PLAID_ENV = process.env.PLAID_ENV || 'sandbox';
+  let PLAID_SECRET, PLAID_ENV;
+
+  // Detect environment from access token format
+  if (accessToken && accessToken.startsWith('access-sandbox-')) {
+    PLAID_ENV = 'sandbox';
+    PLAID_SECRET = 'e1ce9270bbf8819c547aad6fb0e077'; // sandbox secret
+  } else if (accessToken && accessToken.startsWith('access-production-')) {
+    PLAID_ENV = 'production';
+    PLAID_SECRET = process.env.PLAID_SECRET; // production secret
+  } else {
+    // Fallback to environment variable
+    PLAID_ENV = process.env.PLAID_ENV || 'sandbox';
+    PLAID_SECRET = process.env.PLAID_SECRET;
+  }
 
   if (!PLAID_CLIENT_ID || !PLAID_SECRET) {
     throw new Error('Missing Plaid credentials. Please check your environment variables.');
@@ -26,7 +38,7 @@ function initializePlaidClient() {
   });
 
   const plaidClient = new PlaidApi(configuration);
-  return { plaidClient };
+  return { plaidClient, environment: PLAID_ENV };
 }
 
 export default async function handler(req, res) {
@@ -58,10 +70,11 @@ export default async function handler(req, res) {
       return res.end(JSON.stringify({ error: 'Missing access_token' }));
     }
 
-    const { plaidClient } = initializePlaidClient();
+    const { plaidClient, environment } = initializePlaidClient(access_token);
 
     console.log('🗑️ Removing Plaid item:', {
       access_token_length: access_token.length,
+      environment: environment,
       reason,
       timestamp: new Date().toISOString()
     });
