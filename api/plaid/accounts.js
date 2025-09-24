@@ -1,7 +1,7 @@
 /**
  * Get accounts information from Plaid
  */
-import { initializePlaidClient } from '../../src/lib/plaidConfig.js';
+import { initializePlaidClient } from '../../lib/plaidConfig.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
