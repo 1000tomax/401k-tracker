@@ -1,7 +1,7 @@
 /**
  * Exchange Plaid public token for access token
  */
-import { initializePlaidClient } from './config.js';
+import { initializePlaidClient } from '../../src/lib/plaidConfig.js';
 
 // In-memory storage for development (replace with database in production)
 const tokenStore = new Map();

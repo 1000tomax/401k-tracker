@@ -1,7 +1,7 @@
 /**
  * Create Plaid Link Token endpoint
  */
-import { initializePlaidClient } from './config.js';
+import { initializePlaidClient } from '../../src/lib/plaidConfig.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
