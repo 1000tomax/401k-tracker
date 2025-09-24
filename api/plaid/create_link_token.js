@@ -41,9 +41,7 @@ function initializePlaidClient() {
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    res.statusCode = 405;
-    res.setHeader('Content-Type', 'application/json');
-    return res.end(JSON.stringify({ error: 'Method not allowed' }));
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
@@ -53,26 +51,16 @@ export default async function handler(req, res) {
       env: process.env.PLAID_ENV,
       clientIdLength: process.env.PLAID_CLIENT_ID?.length || 0
     });
+
     const { plaidClient, config } = initializePlaidClient();
 
-    // Handle request body parsing for both Vite dev server and Vercel
-    let body = '';
-    if (typeof req.body === 'string') {
-      body = req.body;
-    } else if (req.body) {
-      body = JSON.stringify(req.body);
-    } else if (req.rawBody) {
-      body = req.rawBody.toString();
-    } else {
-      // Read from stream for Vite dev server
-      const chunks = [];
-      for await (const chunk of req) {
-        chunks.push(chunk);
-      }
-      body = Buffer.concat(chunks).toString();
+    // Handle request body parsing for Vercel
+    let body = req.body;
+    if (typeof body === 'string') {
+      body = JSON.parse(body);
     }
 
-    const { user_id = 'default-user' } = JSON.parse(body || '{}');
+    const { user_id = 'default-user' } = body || {};
 
     const linkTokenRequest = {
       user: {
@@ -90,31 +78,25 @@ export default async function handler(req, res) {
     const linkTokenResponse = await plaidClient.linkTokenCreate(linkTokenRequest);
     const linkToken = linkTokenResponse.data.link_token;
 
-    res.statusCode = 200;
-    res.setHeader('Content-Type', 'application/json');
-    res.end(JSON.stringify({ 
+    return res.status(200).json({
       link_token: linkToken,
       expiration: linkTokenResponse.data.expiration,
-    }));
+    });
 
   } catch (error) {
     console.error('Error creating link token:', error);
-    
+
     if (error.response) {
       // Plaid API error
-      res.statusCode = error.response.status || 400;
-      res.setHeader('Content-Type', 'application/json');
-      res.end(JSON.stringify({
+      return res.status(error.response.status || 400).json({
         error: error.response.data || 'Plaid API error',
-      }));
+      });
     } else {
       // Other error
-      res.statusCode = 500;
-      res.setHeader('Content-Type', 'application/json');
-      res.end(JSON.stringify({
+      return res.status(500).json({
         error: 'Internal server error',
         message: error.message,
-      }));
+      });
     }
   }
 }
