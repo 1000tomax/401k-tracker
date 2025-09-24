@@ -4,6 +4,14 @@ node_modules/
 .DS_Store
 .env.local
 .env
+.env.production
+.env.development
+
+# Sensitive files
+VERCEL_ENV_VARIABLES.txt
+**/secrets.*
+**/*.pem
+**/*.key
 
 # Vercel build output
 .vercel/
