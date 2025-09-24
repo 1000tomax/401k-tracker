@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 import snapshotHandler from './api/snapshot.js';
 import pushHandler from './api/push.js';
 import createLinkTokenHandler from './api/plaid/create_link_token.js';
-import exchangeTokenHandler from './api/plaid/exchangeToken.js';
+import exchangeTokenHandler from './api/plaid/exchange_public_token.js';
 import accountsHandler from './api/plaid/accounts.js';
 import investmentTransactionsHandler from './api/plaid/investmentTransactions.js';
 import removeItemHandler from './api/plaid/removeItem.js';
