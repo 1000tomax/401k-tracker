@@ -1,7 +1,40 @@
 /**
  * Create Plaid Link Token endpoint
  */
-import { initializePlaidClient } from '../../lib/plaidConfig.js';
+import { Configuration, PlaidApi, PlaidEnvironments } from 'plaid';
+
+// Initialize Plaid client
+function initializePlaidClient() {
+  const PLAID_CLIENT_ID = process.env.PLAID_CLIENT_ID;
+  const PLAID_SECRET = process.env.PLAID_SECRET;
+  const PLAID_ENV = process.env.PLAID_ENV || 'sandbox';
+
+  if (!PLAID_CLIENT_ID || !PLAID_SECRET) {
+    throw new Error('Missing Plaid credentials. Please check your environment variables.');
+  }
+
+  const configuration = new Configuration({
+    basePath: PlaidEnvironments[PLAID_ENV],
+    baseOptions: {
+      headers: {
+        'PLAID-CLIENT-ID': PLAID_CLIENT_ID,
+        'PLAID-SECRET': PLAID_SECRET,
+        'Plaid-Version': '2020-09-14',
+      },
+    },
+  });
+
+  const plaidClient = new PlaidApi(configuration);
+  const config = {
+    PLAID_CLIENT_ID,
+    PLAID_SECRET,
+    PLAID_ENV,
+    PLAID_PRODUCTS: (process.env.PLAID_PRODUCTS || 'auth,transactions,investments').split(','),
+    PLAID_COUNTRY_CODES: (process.env.PLAID_COUNTRY_CODES || 'US').split(','),
+  };
+
+  return { plaidClient, config };
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -11,6 +44,12 @@ export default async function handler(req, res) {
   }
 
   try {
+    console.log('🔍 Environment variables check:', {
+      hasClientId: !!process.env.PLAID_CLIENT_ID,
+      hasSecret: !!process.env.PLAID_SECRET,
+      env: process.env.PLAID_ENV,
+      clientIdLength: process.env.PLAID_CLIENT_ID?.length || 0
+    });
     const { plaidClient, config } = initializePlaidClient();
     const { user_id = 'default-user' } = JSON.parse(req.body || '{}');
 
