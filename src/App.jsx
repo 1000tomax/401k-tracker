@@ -6,8 +6,8 @@ import Settings from './pages/Settings.jsx';
 import { parseTransactions, aggregatePortfolio } from './utils/parseTransactions.js';
 import { migrateLegacyToMultiAccount } from './utils/schemas.js';
 import { formatDate, formatCurrency } from './utils/formatters.js';
-import { generateDemoData, getDemoSettings } from './utils/demoData.js';
 import { importM1FinanceFromFiles, validateM1FinanceData } from './utils/m1FinanceImporter.js';
+import { PlaidAuthProvider } from './contexts/PlaidAuthContext.jsx';
 
 const STORAGE_KEY = '401k-tracker-data';
 const STORAGE_VERSION = 1;
@@ -117,6 +117,22 @@ function saveData({ transactions, lastSyncAt }) {
   }
 }
 
+function clearAllData() {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    // Clear transaction data
+    window.localStorage.removeItem(STORAGE_KEY);
+    // Reset settings to defaults (but keep them for personal use)
+    window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(DEFAULT_PORTFOLIO_SETTINGS));
+    console.log('Cleared all demo/manual data for Plaid-only setup');
+  } catch (error) {
+    console.error('Failed to clear stored data', error);
+  }
+}
+
 export default function App() {
   const [transactions, setTransactions] = useState([]);
   const [rawInput, setRawInput] = useState('');
@@ -155,13 +171,13 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const stored = loadData();
-    if (stored.transactions?.length) {
-      setTransactions(sortTransactions(stored.transactions));
-    }
-    if (stored.lastSyncAt) {
-      setLastSyncAt(stored.lastSyncAt);
-    }
+    // Clear all existing demo/manual data for fresh Plaid-only setup
+    clearAllData();
+    
+    // Start with empty state - data will come from Plaid connections
+    setTransactions([]);
+    setLastSyncAt(null);
+    setImportStatus('Ready for Plaid account connections');
   }, []);
 
   const summary = useMemo(() => aggregatePortfolio(transactions), [transactions]);
@@ -263,7 +279,8 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    fetchFromGitHub();
+    // TEMPORARILY DISABLED FOR PLAID TESTING
+    // fetchFromGitHub();
   }, [fetchFromGitHub]);
 
   const handleRefreshMarket = useCallback(() => {
@@ -478,19 +495,6 @@ export default function App() {
     setLastSyncAt(null);
   }, []);
 
-  const handleLoadDemo = useCallback(() => {
-    const demoData = generateDemoData();
-    const demoSettings = getDemoSettings();
-
-    setTransactions(sortTransactions(demoData.transactions));
-    setPortfolioSettings(prev => ({
-      ...prev,
-      ...demoSettings
-    }));
-    setLastSyncAt(demoData.lastSyncAt);
-    setImportStatus('Demo data loaded! This shows a realistic 401k portfolio with multiple accounts and 2 years of transaction history.');
-    setSyncStatus('');
-  }, []);
 
   const handleSync = useCallback(async () => {
     setIsSyncing(true);
@@ -571,14 +575,15 @@ export default function App() {
   }, [summary, transactions]);
 
   return (
-    <BrowserRouter>
+    <PlaidAuthProvider>
+      <BrowserRouter>
       <div className="app">
         <header className="top-bar">
           <div className="brand">
             <div className="brand-heading">
               <h1>401k Tracker</h1>
               <p>
-                Monitor your retirement portfolio, sync snapshots to GitHub, and import Voya logs when needed.
+                Monitor your retirement portfolio with automatic account synchronization and GitHub backup.
                 {summary.lastUpdated && (
                   <span className="last-update">
                     {' '}• Last updated {formatDate(summary.lastUpdated)}
@@ -586,7 +591,7 @@ export default function App() {
                 )}
                 {!transactions.length && (
                   <span className="getting-started">
-                    {' '}• Get started by importing your first Voya transaction log
+                    {' '}• Get started by connecting your first investment account
                   </span>
                 )}
               </p>
@@ -617,7 +622,7 @@ export default function App() {
               Dashboard
             </NavLink>
             <NavLink to="/import" className={({ isActive }) => (isActive ? 'active' : '')}>
-              Add Transactions
+              Accounts
             </NavLink>
             {/* Temporarily hidden for demo - Settings controls APIs not yet implemented
             <NavLink to="/settings" className={({ isActive }) => (isActive ? 'active' : '')}>
@@ -641,7 +646,6 @@ export default function App() {
                   remoteStatus={remoteStatus}
                   onRefresh={fetchFromGitHub}
                   isRefreshing={isFetchingRemote}
-                  onLoadDemo={handleLoadDemo}
                 />
               }
             />
@@ -680,6 +684,7 @@ export default function App() {
           </Routes>
         </main>
       </div>
-    </BrowserRouter>
+      </BrowserRouter>
+    </PlaidAuthProvider>
   );
 }

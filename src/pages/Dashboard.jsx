@@ -31,7 +31,6 @@ export default function Dashboard({
   remoteStatus,
   onRefresh,
   isRefreshing,
-  onLoadDemo,
 }) {
   const [livePrices, setLivePrices] = useState({});
   const [isLoadingPrices, setIsLoadingPrices] = useState(false);
@@ -174,15 +173,15 @@ export default function Dashboard({
   useEffect(() => {
     fetchLivePrices();
 
-    // Auto-refresh during market hours
-    const interval = setInterval(() => {
-      const status = MarketDataService.getMarketStatus();
-      if (status.isOpen) {
-        fetchLivePrices();
-      }
-    }, 5 * 60 * 1000); // 5 minutes
+    // Auto-refresh during market hours (TEMPORARILY DISABLED FOR PLAID TESTING)
+    // const interval = setInterval(() => {
+    //   const status = MarketDataService.getMarketStatus();
+    //   if (status.isOpen) {
+    //     fetchLivePrices();
+    //   }
+    // }, 5 * 60 * 1000); // 5 minutes
 
-    return () => clearInterval(interval);
+    // return () => clearInterval(interval);
   }, [fetchLivePrices]);
 
   const renderTooltip = ({ active, payload, label }) => {
@@ -265,20 +264,12 @@ export default function Dashboard({
 
         {!transactions.length && (
           <div className="empty-state">
-            <p className="meta">No transactions stored yet.</p>
+            <p className="meta">No transactions loaded yet.</p>
             <div className="empty-state-actions">
-              <button
-                className="demo-button"
-                onClick={onLoadDemo}
-                title="Load sample portfolio data to explore features"
-              >
-                🎯 Load Demo Data
-              </button>
-              <span className="empty-state-divider">or</span>
-              <a href="/import" className="import-link">Import your transactions</a>
+              <a href="/import" className="import-link">🔗 Connect Your Accounts</a>
             </div>
             <p className="demo-description">
-              👆 Try the demo to see charts, analytics, and multi-account tracking with realistic 401k data
+              Connect your 401k and investment accounts via Plaid for automatic transaction import and real-time portfolio tracking.
             </p>
           </div>
         )}

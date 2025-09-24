@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
+import ImportMethodSelector from '../components/ImportMethodSelector';
+import PlaidService from '../services/PlaidService';
 import {
   formatCurrency,
   formatShares,
@@ -26,6 +28,10 @@ export default function ImportPage({
   onImportFiles,
   isImportingFiles = false,
 }) {
+  const [selectedImportMethod, setSelectedImportMethod] = useState(null);
+  const [plaidConnectionData, setPlaidConnectionData] = useState(null);
+  const [isLoadingPlaidTransactions, setIsLoadingPlaidTransactions] = useState(false);
+
   const handleFileChange = event => {
     if (!onImportFiles) {
       return;
@@ -38,50 +44,78 @@ export default function ImportPage({
     event.target.value = '';
   };
 
+  const handlePlaidSuccess = async (plaidData) => {
+    console.log('Plaid connection established:', plaidData);
+    setPlaidConnectionData(plaidData);
+
+    // Automatically fetch recent transactions
+    try {
+      setIsLoadingPlaidTransactions(true);
+      const investmentTxns = await PlaidService.getInvestmentTransactions(plaidData.accessToken);
+
+      if (investmentTxns.investment_transactions && investmentTxns.investment_transactions.length > 0) {
+        // Convert Plaid transactions to your app's format
+        const convertedTransactions = PlaidService.convertPlaidToTrackerFormat(
+          investmentTxns.investment_transactions
+        );
+
+        console.log(`Fetched ${convertedTransactions.length} investment transactions from Plaid`);
+
+        // Convert the transactions to the format expected by the app's import system
+        const transactionText = convertedTransactions.map(tx =>
+          `${tx.date}\t${tx.fund}\t${tx.moneySource}\t${tx.activity}\t${tx.units}\t${tx.unitPrice}\t${tx.amount}`
+        ).join('\n');
+
+        // Add header row
+        const csvText = 'Date\tFund\tSource\tActivity\tShares\tPrice\tAmount\n' + transactionText;
+
+        // Update the raw input with the Plaid data
+        setRawInput(csvText);
+
+        // Trigger the parsing process to show preview
+        if (onParse) {
+          onParse(csvText);
+        }
+
+        console.log(`Successfully imported ${convertedTransactions.length} transactions from ${plaidData.institution.name}`);
+      } else {
+        alert(`Connected to ${plaidData.institution.name} successfully, but no investment transactions found in the last 90 days.`);
+      }
+
+    } catch (error) {
+      console.error('Error fetching Plaid transactions:', error);
+      alert('Connected successfully, but failed to fetch transactions. Please try again.');
+    } finally {
+      setIsLoadingPlaidTransactions(false);
+    }
+  };
+
   return (
     <div className="import-page">
       <section className="input-section">
-        <h2>Add Transactions</h2>
+        <h2>Account Connections</h2>
         <p className="meta">
-          Import from various sources: paste Voya logs, upload M1 Finance CSV exports, or enter data manually. We'll parse the data, dedupe against existing entries, and let you preview before saving.
+          Connect your 401k and investment accounts for automatic transaction imports and real-time portfolio tracking.
         </p>
-        <div className="callout" role="note">
-          <span className="callout-title">Import tips</span>
-          <p>
-            Copy rows directly from Voya or upload M1 Finance activity/holdings CSV files. Share counts and unit prices keep their full precision. You can preview the first 10 entries before saving and skip duplicates automatically.
-          </p>
-        </div>
-        <div className="file-import">
-          <label htmlFor="transactions-file">Upload CSV Export</label>
-          <input
-            id="transactions-file"
-            type="file"
-            accept=".csv,text/csv"
-            multiple
-            onChange={handleFileChange}
-            disabled={isImportingFiles}
-          />
-          <p className="meta">
-            Select Voya downloads or M1 Finance exports (Activity + Holdings CSV files)—new rows are merged and deduped automatically.
-          </p>
-        </div>
-        <label htmlFor="transactions-input">Transaction Log</label>
-        <textarea
-          id="transactions-input"
-          value={rawInput}
-          onChange={event => setRawInput(event.target.value)}
-          placeholder="Paste tab-separated transaction data here"
-          rows={12}
+        
+        <ImportMethodSelector 
+          onMethodSelect={setSelectedImportMethod}
+          onPlaidSuccess={handlePlaidSuccess}
         />
-        <div className="actions">
-          <button type="button" onClick={onParse} disabled={!rawInput.trim() || isImportingFiles}>
-            Preview Additions
-          </button>
-          <button type="button" className="secondary" onClick={onClearAll} disabled={!transactionsCount}>
-            Clear All Stored Data
-          </button>
-        </div>
-        {isImportingFiles && <p className="status">Reading file(s)…</p>}
+
+        {isLoadingPlaidTransactions && (
+          <div className="plaid-loading">
+            <p>Fetching your investment transactions...</p>
+          </div>
+        )}
+
+        {plaidConnectionData && (
+          <div className="plaid-connection-status">
+            <h3>✅ Connected to {plaidConnectionData.institution.name}</h3>
+            <p>Your account is now connected and transactions will be imported automatically.</p>
+          </div>
+        )}
+
         {importStatus && <p className="status">{importStatus}</p>}
       </section>
 

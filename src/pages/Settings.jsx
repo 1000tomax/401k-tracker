@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { formatCurrency, formatDate } from '../utils/formatters.js';
+import { usePlaidAuth } from '../contexts/PlaidAuthContext.jsx';
 
 const CLIENT_SHARED_TOKEN =
   (import.meta.env && import.meta.env.VITE_401K_TOKEN) ||
@@ -12,6 +13,7 @@ export default function Settings({
   transactions
 }) {
   const [localSettings, setLocalSettings] = useState(portfolioSettings);
+  const { isAuthenticated, logout } = usePlaidAuth();
 
   useEffect(() => {
     setLocalSettings(portfolioSettings);
@@ -94,10 +96,32 @@ export default function Settings({
 
       {/* Plaid Integration Status */}
       <section>
-        <h3>API Integration</h3>
+        <h3>Plaid Integration</h3>
+        {isAuthenticated ? (
+          <div className="status-banner status-banner--success">
+            <div className="status-content">
+              <div className="status-text">
+                ✅ Authenticated for account connection. You can now securely link financial accounts.
+              </div>
+              <button 
+                type="button" 
+                className="status-action-btn"
+                onClick={logout}
+              >
+                End Session
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="status-banner status-banner--info">
+            <div className="status-text">
+              🔒 Protected account connection is available. Authentication required to access personal financial features while keeping this portfolio demonstration public.
+            </div>
+          </div>
+        )}
+        
         <div className="status-banner status-banner--neutral">
-          Plaid integration available but not yet configured.
-          This will enable automatic transaction and balance updates.
+          Plaid integration enables automatic transaction and balance updates from major financial institutions.
         </div>
       </section>
     </div>
