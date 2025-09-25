@@ -3,7 +3,7 @@
     {
       "date": "2025-09-22",
       "fund": "AVUV",
-      "moneySource": "She Roth on that thing til i IRA",
+      "moneySource": "Roth IRA",
       "activity": "Buy",
       "units": 0.51435,
       "unitPrice": 100.1081,
@@ -19,13 +19,13 @@
         "fuzzy": "2025-09-22|51.49|avuv",
         "enhanced": "2025-09-22|51.49|avuv|0.5143|100.1081"
       },
-      "importedAt": "2025-09-25T03:14:27.114Z",
-      "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+      "importedAt": "2025-09-25T03:16:00.022Z",
+      "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
     },
     {
       "date": "2025-09-22",
       "fund": "DES",
-      "moneySource": "She Roth on that thing til i IRA",
+      "moneySource": "Roth IRA",
       "activity": "Buy",
       "units": 0.59057,
       "unitPrice": 33.9169,
@@ -41,13 +41,13 @@
         "fuzzy": "2025-09-22|20.03|des",
         "enhanced": "2025-09-22|20.03|des|0.5906|33.9169"
       },
-      "importedAt": "2025-09-25T03:14:27.114Z",
-      "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+      "importedAt": "2025-09-25T03:16:00.022Z",
+      "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
     },
     {
       "date": "2025-09-22",
       "fund": "GNOM",
-      "moneySource": "She Roth on that thing til i IRA",
+      "moneySource": "Roth IRA",
       "activity": "Buy",
       "units": 0.05128,
       "unitPrice": 37.4359,
@@ -63,13 +63,13 @@
         "fuzzy": "2025-09-22|1.92|gnom",
         "enhanced": "2025-09-22|1.92|gnom|0.0513|37.4359"
       },
-      "importedAt": "2025-09-25T03:14:27.114Z",
-      "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+      "importedAt": "2025-09-25T03:16:00.022Z",
+      "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
     },
     {
       "date": "2025-09-22",
       "fund": "IBB",
-      "moneySource": "She Roth on that thing til i IRA",
+      "moneySource": "Roth IRA",
       "activity": "Buy",
       "units": 0.01306,
       "unitPrice": 142.4488,
@@ -85,13 +85,13 @@
         "fuzzy": "2025-09-22|1.86|ibb",
         "enhanced": "2025-09-22|1.86|ibb|0.0131|142.4488"
       },
-      "importedAt": "2025-09-25T03:14:27.114Z",
-      "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+      "importedAt": "2025-09-25T03:16:00.022Z",
+      "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
     },
     {
       "date": "2025-09-22",
       "fund": "JEPI",
-      "moneySource": "She Roth on that thing til i IRA",
+      "moneySource": "Roth IRA",
       "activity": "Buy",
       "units": 0.141,
       "unitPrice": 56.8097,
@@ -107,13 +107,13 @@
         "fuzzy": "2025-09-22|8.01|jepi",
         "enhanced": "2025-09-22|8.01|jepi|0.1410|56.8097"
       },
-      "importedAt": "2025-09-25T03:14:27.114Z",
-      "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+      "importedAt": "2025-09-25T03:16:00.022Z",
+      "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
     },
     {
       "date": "2025-09-22",
       "fund": "MJ",
-      "moneySource": "She Roth on that thing til i IRA",
+      "moneySource": "Roth IRA",
       "activity": "Buy",
       "units": 0.05999,
       "unitPrice": 32.0007,
@@ -129,13 +129,13 @@
         "fuzzy": "2025-09-22|1.92|mj",
         "enhanced": "2025-09-22|1.92|mj|0.0600|32.0007"
       },
-      "importedAt": "2025-09-25T03:14:27.114Z",
-      "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+      "importedAt": "2025-09-25T03:16:00.022Z",
+      "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
     },
     {
       "date": "2025-09-22",
       "fund": "MSOS",
-      "moneySource": "She Roth on that thing til i IRA",
+      "moneySource": "Roth IRA",
       "activity": "Buy",
       "units": 0.41915,
       "unitPrice": 4.4376,
@@ -151,13 +151,13 @@
         "fuzzy": "2025-09-22|1.86|msos",
         "enhanced": "2025-09-22|1.86|msos|0.4192|4.4376"
       },
-      "importedAt": "2025-09-25T03:14:27.114Z",
-      "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+      "importedAt": "2025-09-25T03:16:00.022Z",
+      "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
     },
     {
       "date": "2025-09-22",
       "fund": "QQQM",
-      "moneySource": "She Roth on that thing til i IRA",
+      "moneySource": "Roth IRA",
       "activity": "Buy",
       "units": 0.21698,
       "unitPrice": 246.435,
@@ -173,13 +173,13 @@
         "fuzzy": "2025-09-22|53.47|qqqm",
         "enhanced": "2025-09-22|53.47|qqqm|0.2170|246.4350"
       },
-      "importedAt": "2025-09-25T03:14:27.114Z",
-      "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+      "importedAt": "2025-09-25T03:16:00.022Z",
+      "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
     },
     {
       "date": "2025-09-22",
       "fund": "SCHD",
-      "moneySource": "She Roth on that thing til i IRA",
+      "moneySource": "Roth IRA",
       "activity": "Buy",
       "units": 0.44058,
       "unitPrice": 27.2596,
@@ -195,13 +195,13 @@
         "fuzzy": "2025-09-22|12.01|schd",
         "enhanced": "2025-09-22|12.01|schd|0.4406|27.2596"
       },
-      "importedAt": "2025-09-25T03:14:27.114Z",
-      "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+      "importedAt": "2025-09-25T03:16:00.022Z",
+      "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
     },
     {
       "date": "2025-09-22",
       "fund": "SMH",
-      "moneySource": "She Roth on that thing til i IRA",
+      "moneySource": "Roth IRA",
       "activity": "Buy",
       "units": 0.00605,
       "unitPrice": 317.6174,
@@ -217,13 +217,13 @@
         "fuzzy": "2025-09-22|1.92|smh",
         "enhanced": "2025-09-22|1.92|smh|0.0060|317.6174"
       },
-      "importedAt": "2025-09-25T03:14:27.114Z",
-      "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+      "importedAt": "2025-09-25T03:16:00.022Z",
+      "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
     },
     {
       "date": "2025-09-22",
       "fund": "VTI",
-      "moneySource": "She Roth on that thing til i IRA",
+      "moneySource": "Roth IRA",
       "activity": "Buy",
       "units": 1.09977,
       "unitPrice": 327.78059,
@@ -239,13 +239,13 @@
         "fuzzy": "2025-09-22|360.48|vti",
         "enhanced": "2025-09-22|360.48|vti|1.0998|327.7806"
       },
-      "importedAt": "2025-09-25T03:14:27.114Z",
-      "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+      "importedAt": "2025-09-25T03:16:00.022Z",
+      "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
     },
     {
       "date": "2025-09-22",
       "fund": "VXUS",
-      "moneySource": "She Roth on that thing til i IRA",
+      "moneySource": "Roth IRA",
       "activity": "Buy",
       "units": 0.7044,
       "unitPrice": 73.0986,
@@ -261,13 +261,13 @@
         "fuzzy": "2025-09-22|51.49|vxus",
         "enhanced": "2025-09-22|51.49|vxus|0.7044|73.0986"
       },
-      "importedAt": "2025-09-25T03:14:27.114Z",
-      "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+      "importedAt": "2025-09-25T03:16:00.022Z",
+      "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
     },
     {
       "date": "2025-09-22",
       "fund": "XBI",
-      "moneySource": "She Roth on that thing til i IRA",
+      "moneySource": "Roth IRA",
       "activity": "Buy",
       "units": 0.01943,
       "unitPrice": 95.77,
@@ -283,13 +283,13 @@
         "fuzzy": "2025-09-22|1.86|xbi",
         "enhanced": "2025-09-22|1.86|xbi|0.0194|95.7700"
       },
-      "importedAt": "2025-09-25T03:14:27.114Z",
-      "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+      "importedAt": "2025-09-25T03:16:00.022Z",
+      "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
     },
     {
       "date": "2025-09-22",
       "fund": "XT",
-      "moneySource": "She Roth on that thing til i IRA",
+      "moneySource": "Roth IRA",
       "activity": "Buy",
       "units": 0.02685,
       "unitPrice": 71.4976,
@@ -305,13 +305,13 @@
         "fuzzy": "2025-09-22|1.92|xt",
         "enhanced": "2025-09-22|1.92|xt|0.0268|71.4976"
       },
-      "importedAt": "2025-09-25T03:14:27.114Z",
-      "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+      "importedAt": "2025-09-25T03:16:00.022Z",
+      "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
     },
     {
       "date": "2025-09-22",
       "fund": "YOLO",
-      "moneySource": "She Roth on that thing til i IRA",
+      "moneySource": "Roth IRA",
       "activity": "Buy",
       "units": 0.57952,
       "unitPrice": 3.2095,
@@ -327,13 +327,13 @@
         "fuzzy": "2025-09-22|1.86|yolo",
         "enhanced": "2025-09-22|1.86|yolo|0.5795|3.2095"
       },
-      "importedAt": "2025-09-25T03:14:27.114Z",
-      "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+      "importedAt": "2025-09-25T03:16:00.022Z",
+      "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
     },
     {
       "date": "2025-09-22",
       "fund": "PCY",
-      "moneySource": "She Roth on that thing til i IRA",
+      "moneySource": "Roth IRA",
       "activity": "Sell",
       "units": 2,
       "unitPrice": 21.4504,
@@ -349,13 +349,13 @@
         "fuzzy": "2025-09-22|42.89|pcy",
         "enhanced": "2025-09-22|42.89|pcy|2.0000|21.4504"
       },
-      "importedAt": "2025-09-25T03:14:27.114Z",
-      "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+      "importedAt": "2025-09-25T03:16:00.022Z",
+      "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
     },
     {
       "date": "2025-09-22",
       "fund": "SCHB",
-      "moneySource": "She Roth on that thing til i IRA",
+      "moneySource": "Roth IRA",
       "activity": "Sell",
       "units": 9,
       "unitPrice": 25.6701,
@@ -371,13 +371,13 @@
         "fuzzy": "2025-09-22|231.02|schb",
         "enhanced": "2025-09-22|231.02|schb|9.0000|25.6701"
       },
-      "importedAt": "2025-09-25T03:14:27.114Z",
-      "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+      "importedAt": "2025-09-25T03:16:00.022Z",
+      "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
     },
     {
       "date": "2025-09-22",
       "fund": "SCHF",
-      "moneySource": "She Roth on that thing til i IRA",
+      "moneySource": "Roth IRA",
       "activity": "Sell",
       "units": 4,
       "unitPrice": 23.2102,
@@ -393,13 +393,13 @@
         "fuzzy": "2025-09-22|92.83|schf",
         "enhanced": "2025-09-22|92.83|schf|4.0000|23.2102"
       },
-      "importedAt": "2025-09-25T03:14:27.114Z",
-      "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+      "importedAt": "2025-09-25T03:16:00.022Z",
+      "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
     },
     {
       "date": "2025-09-22",
       "fund": "SCHH",
-      "moneySource": "She Roth on that thing til i IRA",
+      "moneySource": "Roth IRA",
       "activity": "Sell",
       "units": 3,
       "unitPrice": 21.3002,
@@ -415,13 +415,13 @@
         "fuzzy": "2025-09-22|63.89|schh",
         "enhanced": "2025-09-22|63.89|schh|3.0000|21.3002"
       },
-      "importedAt": "2025-09-25T03:14:27.114Z",
-      "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+      "importedAt": "2025-09-25T03:16:00.022Z",
+      "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
     },
     {
       "date": "2025-09-22",
       "fund": "VWO",
-      "moneySource": "She Roth on that thing til i IRA",
+      "moneySource": "Roth IRA",
       "activity": "Sell",
       "units": 2,
       "unitPrice": 53.9511,
@@ -437,13 +437,13 @@
         "fuzzy": "2025-09-22|107.89|vwo",
         "enhanced": "2025-09-22|107.89|vwo|2.0000|53.9511"
       },
-      "importedAt": "2025-09-25T03:14:27.114Z",
-      "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+      "importedAt": "2025-09-25T03:16:00.022Z",
+      "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
     },
     {
       "date": "2025-09-23",
       "fund": "VTI",
-      "moneySource": "She Roth on that thing til i IRA",
+      "moneySource": "Roth IRA",
       "activity": "Buy",
       "units": 0.01824,
       "unitPrice": 330.03,
@@ -459,13 +459,13 @@
         "fuzzy": "2025-09-23|6.02|vti",
         "enhanced": "2025-09-23|6.02|vti|0.0182|330.0300"
       },
-      "importedAt": "2025-09-25T03:14:27.114Z",
-      "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+      "importedAt": "2025-09-25T03:16:00.022Z",
+      "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
     },
     {
       "date": "2025-09-24",
       "fund": "DES",
-      "moneySource": "She Roth on that thing til i IRA",
+      "moneySource": "Roth IRA",
       "activity": "Buy",
       "units": 0.11237,
       "unitPrice": 34.1755,
@@ -481,13 +481,13 @@
         "fuzzy": "2025-09-24|3.84|des",
         "enhanced": "2025-09-24|3.84|des|0.1124|34.1755"
       },
-      "importedAt": "2025-09-25T03:14:27.114Z",
-      "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+      "importedAt": "2025-09-25T03:16:00.022Z",
+      "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
     },
     {
       "date": "2025-09-24",
       "fund": "SCHD",
-      "moneySource": "She Roth on that thing til i IRA",
+      "moneySource": "Roth IRA",
       "activity": "Buy",
       "units": 0.59355,
       "unitPrice": 27.26,
@@ -503,13 +503,13 @@
         "fuzzy": "2025-09-24|16.18|schd",
         "enhanced": "2025-09-24|16.18|schd|0.5936|27.2600"
       },
-      "importedAt": "2025-09-25T03:14:27.114Z",
-      "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+      "importedAt": "2025-09-25T03:16:00.022Z",
+      "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
     },
     {
       "date": "2025-09-24",
       "fund": "VTI",
-      "moneySource": "She Roth on that thing til i IRA",
+      "moneySource": "Roth IRA",
       "activity": "Buy",
       "units": 0.32593,
       "unitPrice": 328.4771,
@@ -525,13 +525,13 @@
         "fuzzy": "2025-09-24|107.06|vti",
         "enhanced": "2025-09-24|107.06|vti|0.3259|328.4771"
       },
-      "importedAt": "2025-09-25T03:14:27.114Z",
-      "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+      "importedAt": "2025-09-25T03:16:00.022Z",
+      "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
     },
     {
       "date": "2025-09-24",
       "fund": "AVUV",
-      "moneySource": "She Roth on that thing til i IRA",
+      "moneySource": "Roth IRA",
       "activity": "Sell",
       "units": 0.51435,
       "unitPrice": 100.7816,
@@ -547,13 +547,13 @@
         "fuzzy": "2025-09-24|51.83|avuv",
         "enhanced": "2025-09-24|51.83|avuv|0.5143|100.7816"
       },
-      "importedAt": "2025-09-25T03:14:27.114Z",
-      "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+      "importedAt": "2025-09-25T03:16:00.022Z",
+      "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
     },
     {
       "date": "2025-09-24",
       "fund": "GNOM",
-      "moneySource": "She Roth on that thing til i IRA",
+      "moneySource": "Roth IRA",
       "activity": "Sell",
       "units": 0.05128,
       "unitPrice": 38.176,
@@ -569,13 +569,13 @@
         "fuzzy": "2025-09-24|1.95|gnom",
         "enhanced": "2025-09-24|1.95|gnom|0.0513|38.1760"
       },
-      "importedAt": "2025-09-25T03:14:27.114Z",
-      "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+      "importedAt": "2025-09-25T03:16:00.022Z",
+      "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
     },
     {
       "date": "2025-09-24",
       "fund": "IBB",
-      "moneySource": "She Roth on that thing til i IRA",
+      "moneySource": "Roth IRA",
       "activity": "Sell",
       "units": 0.01306,
       "unitPrice": 142.8467,
@@ -591,13 +591,13 @@
         "fuzzy": "2025-09-24|1.86|ibb",
         "enhanced": "2025-09-24|1.86|ibb|0.0131|142.8467"
       },
-      "importedAt": "2025-09-25T03:14:27.114Z",
-      "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+      "importedAt": "2025-09-25T03:16:00.022Z",
+      "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
     },
     {
       "date": "2025-09-24",
       "fund": "JEPI",
-      "moneySource": "She Roth on that thing til i IRA",
+      "moneySource": "Roth IRA",
       "activity": "Sell",
       "units": 0.141,
       "unitPrice": 56.9,
@@ -613,13 +613,13 @@
         "fuzzy": "2025-09-24|8.01|jepi",
         "enhanced": "2025-09-24|8.01|jepi|0.1410|56.9000"
       },
-      "importedAt": "2025-09-25T03:14:27.114Z",
-      "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+      "importedAt": "2025-09-25T03:16:00.022Z",
+      "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
     },
     {
       "date": "2025-09-24",
       "fund": "MJ",
-      "moneySource": "She Roth on that thing til i IRA",
+      "moneySource": "Roth IRA",
       "activity": "Sell",
       "units": 0.05999,
       "unitPrice": 32.5236,
@@ -635,13 +635,13 @@
         "fuzzy": "2025-09-24|1.94|mj",
         "enhanced": "2025-09-24|1.94|mj|0.0600|32.5236"
       },
-      "importedAt": "2025-09-25T03:14:27.114Z",
-      "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+      "importedAt": "2025-09-25T03:16:00.022Z",
+      "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
     },
     {
       "date": "2025-09-24",
       "fund": "MSOS",
-      "moneySource": "She Roth on that thing til i IRA",
+      "moneySource": "Roth IRA",
       "activity": "Sell",
       "units": 0.41915,
       "unitPrice": 4.4213,
@@ -657,13 +657,13 @@
         "fuzzy": "2025-09-24|1.84|msos",
         "enhanced": "2025-09-24|1.84|msos|0.4192|4.4213"
       },
-      "importedAt": "2025-09-25T03:14:27.114Z",
-      "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+      "importedAt": "2025-09-25T03:16:00.022Z",
+      "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
     },
     {
       "date": "2025-09-24",
       "fund": "QQQM",
-      "moneySource": "She Roth on that thing til i IRA",
+      "moneySource": "Roth IRA",
       "activity": "Sell",
       "units": 0.00336,
       "unitPrice": 246.33,
@@ -679,13 +679,13 @@
         "fuzzy": "2025-09-24|0.82|qqqm",
         "enhanced": "2025-09-24|0.82|qqqm|0.0034|246.3300"
       },
-      "importedAt": "2025-09-25T03:14:27.114Z",
-      "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+      "importedAt": "2025-09-25T03:16:00.022Z",
+      "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
     },
     {
       "date": "2025-09-24",
       "fund": "SMH",
-      "moneySource": "She Roth on that thing til i IRA",
+      "moneySource": "Roth IRA",
       "activity": "Sell",
       "units": 0.00605,
       "unitPrice": 320.4616,
@@ -701,13 +701,13 @@
         "fuzzy": "2025-09-24|1.93|smh",
         "enhanced": "2025-09-24|1.93|smh|0.0060|320.4616"
       },
-      "importedAt": "2025-09-25T03:14:27.114Z",
-      "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+      "importedAt": "2025-09-25T03:16:00.022Z",
+      "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
     },
     {
       "date": "2025-09-24",
       "fund": "VXUS",
-      "moneySource": "She Roth on that thing til i IRA",
+      "moneySource": "Roth IRA",
       "activity": "Sell",
       "units": 0.7044,
       "unitPrice": 73.1408,
@@ -723,13 +723,13 @@
         "fuzzy": "2025-09-24|51.51|vxus",
         "enhanced": "2025-09-24|51.51|vxus|0.7044|73.1408"
       },
-      "importedAt": "2025-09-25T03:14:27.114Z",
-      "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+      "importedAt": "2025-09-25T03:16:00.022Z",
+      "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
     },
     {
       "date": "2025-09-24",
       "fund": "XBI",
-      "moneySource": "She Roth on that thing til i IRA",
+      "moneySource": "Roth IRA",
       "activity": "Sell",
       "units": 0.01943,
       "unitPrice": 97.8408,
@@ -745,13 +745,13 @@
         "fuzzy": "2025-09-24|1.89|xbi",
         "enhanced": "2025-09-24|1.89|xbi|0.0194|97.8408"
       },
-      "importedAt": "2025-09-25T03:14:27.114Z",
-      "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+      "importedAt": "2025-09-25T03:16:00.022Z",
+      "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
     },
     {
       "date": "2025-09-24",
       "fund": "XT",
-      "moneySource": "She Roth on that thing til i IRA",
+      "moneySource": "Roth IRA",
       "activity": "Sell",
       "units": 0.02685,
       "unitPrice": 71.4849,
@@ -767,13 +767,13 @@
         "fuzzy": "2025-09-24|1.91|xt",
         "enhanced": "2025-09-24|1.91|xt|0.0268|71.4849"
       },
-      "importedAt": "2025-09-25T03:14:27.114Z",
-      "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+      "importedAt": "2025-09-25T03:16:00.022Z",
+      "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
     },
     {
       "date": "2025-09-24",
       "fund": "YOLO",
-      "moneySource": "She Roth on that thing til i IRA",
+      "moneySource": "Roth IRA",
       "activity": "Sell",
       "units": 0.57952,
       "unitPrice": 3.18,
@@ -789,13 +789,13 @@
         "fuzzy": "2025-09-24|1.83|yolo",
         "enhanced": "2025-09-24|1.83|yolo|0.5795|3.1800"
       },
-      "importedAt": "2025-09-25T03:14:27.114Z",
-      "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+      "importedAt": "2025-09-25T03:16:00.022Z",
+      "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
     }
   ],
   "portfolio": {
     "AVUV": {
-      "She Roth on that thing til i IRA": {
+      "Roth IRA": {
         "shares": 1.0287,
         "costBasis": 103.32,
         "avgCost": 100.43744531933508,
@@ -811,7 +811,7 @@
       }
     },
     "DES": {
-      "She Roth on that thing til i IRA": {
+      "Roth IRA": {
         "shares": 0.70294,
         "costBasis": 23.87,
         "avgCost": 33.9573790081657,
@@ -827,7 +827,7 @@
       }
     },
     "GNOM": {
-      "She Roth on that thing til i IRA": {
+      "Roth IRA": {
         "shares": 0.10256,
         "costBasis": 3.87,
         "avgCost": 37.734009360374415,
@@ -843,7 +843,7 @@
       }
     },
     "IBB": {
-      "She Roth on that thing til i IRA": {
+      "Roth IRA": {
         "shares": 0.02612,
         "costBasis": 3.72,
         "avgCost": 142.41960183767227,
@@ -859,7 +859,7 @@
       }
     },
     "JEPI": {
-      "She Roth on that thing til i IRA": {
+      "Roth IRA": {
         "shares": 0.282,
         "costBasis": 16.02,
         "avgCost": 56.808510638297875,
@@ -875,7 +875,7 @@
       }
     },
     "MJ": {
-      "She Roth on that thing til i IRA": {
+      "Roth IRA": {
         "shares": 0.11998,
         "costBasis": 3.86,
         "avgCost": 32.17202867144524,
@@ -891,7 +891,7 @@
       }
     },
     "MSOS": {
-      "She Roth on that thing til i IRA": {
+      "Roth IRA": {
         "shares": 0.8383,
         "costBasis": 3.7,
         "avgCost": 4.413694381486342,
@@ -907,7 +907,7 @@
       }
     },
     "QQQM": {
-      "She Roth on that thing til i IRA": {
+      "Roth IRA": {
         "shares": 0.22034,
         "costBasis": 54.29,
         "avgCost": 246.39193972950892,
@@ -923,7 +923,7 @@
       }
     },
     "SCHD": {
-      "She Roth on that thing til i IRA": {
+      "Roth IRA": {
         "shares": 1.03413,
         "costBasis": 28.189999999999998,
         "avgCost": 27.259628866776904,
@@ -939,7 +939,7 @@
       }
     },
     "SMH": {
-      "She Roth on that thing til i IRA": {
+      "Roth IRA": {
         "shares": 0.0121,
         "costBasis": 3.8499999999999996,
         "avgCost": 318.1818181818182,
@@ -955,7 +955,7 @@
       }
     },
     "VTI": {
-      "She Roth on that thing til i IRA": {
+      "Roth IRA": {
         "shares": 1.44394,
         "costBasis": 473.56,
         "avgCost": 327.9637658074435,
@@ -971,7 +971,7 @@
       }
     },
     "VXUS": {
-      "She Roth on that thing til i IRA": {
+      "Roth IRA": {
         "shares": 1.4088,
         "costBasis": 103,
         "avgCost": 73.11186825667234,
@@ -987,7 +987,7 @@
       }
     },
     "XBI": {
-      "She Roth on that thing til i IRA": {
+      "Roth IRA": {
         "shares": 0.03886,
         "costBasis": 3.75,
         "avgCost": 96.50025733401957,
@@ -1003,7 +1003,7 @@
       }
     },
     "XT": {
-      "She Roth on that thing til i IRA": {
+      "Roth IRA": {
         "shares": 0.0537,
         "costBasis": 3.83,
         "avgCost": 71.3221601489758,
@@ -1019,7 +1019,7 @@
       }
     },
     "YOLO": {
-      "She Roth on that thing til i IRA": {
+      "Roth IRA": {
         "shares": 1.15904,
         "costBasis": 3.6900000000000004,
         "avgCost": 3.183669243511872,
@@ -1035,7 +1035,7 @@
       }
     },
     "PCY": {
-      "She Roth on that thing til i IRA": {
+      "Roth IRA": {
         "shares": 2,
         "costBasis": 42.89,
         "avgCost": 21.445,
@@ -1051,7 +1051,7 @@
       }
     },
     "SCHB": {
-      "She Roth on that thing til i IRA": {
+      "Roth IRA": {
         "shares": 9,
         "costBasis": 231.02,
         "avgCost": 25.66888888888889,
@@ -1067,7 +1067,7 @@
       }
     },
     "SCHF": {
-      "She Roth on that thing til i IRA": {
+      "Roth IRA": {
         "shares": 4,
         "costBasis": 92.83,
         "avgCost": 23.2075,
@@ -1083,7 +1083,7 @@
       }
     },
     "SCHH": {
-      "She Roth on that thing til i IRA": {
+      "Roth IRA": {
         "shares": 3,
         "costBasis": 63.89,
         "avgCost": 21.296666666666667,
@@ -1099,7 +1099,7 @@
       }
     },
     "VWO": {
-      "She Roth on that thing til i IRA": {
+      "Roth IRA": {
         "shares": 2,
         "costBasis": 107.89,
         "avgCost": 53.945,
@@ -1270,7 +1270,7 @@
     }
   },
   "sourceTotals": {
-    "She Roth on that thing til i IRA": {
+    "Roth IRA": {
       "shares": 28.471510000000002,
       "costBasis": 1371.0400000000002,
       "marketValue": 1372.586385564,
@@ -1294,7 +1294,7 @@
         {
           "date": "2025-09-22",
           "fund": "AVUV",
-          "moneySource": "She Roth on that thing til i IRA",
+          "moneySource": "Roth IRA",
           "activity": "Buy",
           "units": 0.51435,
           "unitPrice": 100.1081,
@@ -1310,13 +1310,13 @@
             "fuzzy": "2025-09-22|51.49|avuv",
             "enhanced": "2025-09-22|51.49|avuv|0.5143|100.1081"
           },
-          "importedAt": "2025-09-25T03:14:27.114Z",
-          "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+          "importedAt": "2025-09-25T03:16:00.022Z",
+          "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
         },
         {
           "date": "2025-09-22",
           "fund": "DES",
-          "moneySource": "She Roth on that thing til i IRA",
+          "moneySource": "Roth IRA",
           "activity": "Buy",
           "units": 0.59057,
           "unitPrice": 33.9169,
@@ -1332,13 +1332,13 @@
             "fuzzy": "2025-09-22|20.03|des",
             "enhanced": "2025-09-22|20.03|des|0.5906|33.9169"
           },
-          "importedAt": "2025-09-25T03:14:27.114Z",
-          "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+          "importedAt": "2025-09-25T03:16:00.022Z",
+          "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
         },
         {
           "date": "2025-09-22",
           "fund": "GNOM",
-          "moneySource": "She Roth on that thing til i IRA",
+          "moneySource": "Roth IRA",
           "activity": "Buy",
           "units": 0.05128,
           "unitPrice": 37.4359,
@@ -1354,13 +1354,13 @@
             "fuzzy": "2025-09-22|1.92|gnom",
             "enhanced": "2025-09-22|1.92|gnom|0.0513|37.4359"
           },
-          "importedAt": "2025-09-25T03:14:27.114Z",
-          "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+          "importedAt": "2025-09-25T03:16:00.022Z",
+          "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
         },
         {
           "date": "2025-09-22",
           "fund": "IBB",
-          "moneySource": "She Roth on that thing til i IRA",
+          "moneySource": "Roth IRA",
           "activity": "Buy",
           "units": 0.01306,
           "unitPrice": 142.4488,
@@ -1376,13 +1376,13 @@
             "fuzzy": "2025-09-22|1.86|ibb",
             "enhanced": "2025-09-22|1.86|ibb|0.0131|142.4488"
           },
-          "importedAt": "2025-09-25T03:14:27.114Z",
-          "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+          "importedAt": "2025-09-25T03:16:00.022Z",
+          "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
         },
         {
           "date": "2025-09-22",
           "fund": "JEPI",
-          "moneySource": "She Roth on that thing til i IRA",
+          "moneySource": "Roth IRA",
           "activity": "Buy",
           "units": 0.141,
           "unitPrice": 56.8097,
@@ -1398,13 +1398,13 @@
             "fuzzy": "2025-09-22|8.01|jepi",
             "enhanced": "2025-09-22|8.01|jepi|0.1410|56.8097"
           },
-          "importedAt": "2025-09-25T03:14:27.114Z",
-          "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+          "importedAt": "2025-09-25T03:16:00.022Z",
+          "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
         },
         {
           "date": "2025-09-22",
           "fund": "MJ",
-          "moneySource": "She Roth on that thing til i IRA",
+          "moneySource": "Roth IRA",
           "activity": "Buy",
           "units": 0.05999,
           "unitPrice": 32.0007,
@@ -1420,13 +1420,13 @@
             "fuzzy": "2025-09-22|1.92|mj",
             "enhanced": "2025-09-22|1.92|mj|0.0600|32.0007"
           },
-          "importedAt": "2025-09-25T03:14:27.114Z",
-          "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+          "importedAt": "2025-09-25T03:16:00.022Z",
+          "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
         },
         {
           "date": "2025-09-22",
           "fund": "MSOS",
-          "moneySource": "She Roth on that thing til i IRA",
+          "moneySource": "Roth IRA",
           "activity": "Buy",
           "units": 0.41915,
           "unitPrice": 4.4376,
@@ -1442,13 +1442,13 @@
             "fuzzy": "2025-09-22|1.86|msos",
             "enhanced": "2025-09-22|1.86|msos|0.4192|4.4376"
           },
-          "importedAt": "2025-09-25T03:14:27.114Z",
-          "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+          "importedAt": "2025-09-25T03:16:00.022Z",
+          "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
         },
         {
           "date": "2025-09-22",
           "fund": "QQQM",
-          "moneySource": "She Roth on that thing til i IRA",
+          "moneySource": "Roth IRA",
           "activity": "Buy",
           "units": 0.21698,
           "unitPrice": 246.435,
@@ -1464,13 +1464,13 @@
             "fuzzy": "2025-09-22|53.47|qqqm",
             "enhanced": "2025-09-22|53.47|qqqm|0.2170|246.4350"
           },
-          "importedAt": "2025-09-25T03:14:27.114Z",
-          "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+          "importedAt": "2025-09-25T03:16:00.022Z",
+          "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
         },
         {
           "date": "2025-09-22",
           "fund": "SCHD",
-          "moneySource": "She Roth on that thing til i IRA",
+          "moneySource": "Roth IRA",
           "activity": "Buy",
           "units": 0.44058,
           "unitPrice": 27.2596,
@@ -1486,13 +1486,13 @@
             "fuzzy": "2025-09-22|12.01|schd",
             "enhanced": "2025-09-22|12.01|schd|0.4406|27.2596"
           },
-          "importedAt": "2025-09-25T03:14:27.114Z",
-          "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+          "importedAt": "2025-09-25T03:16:00.022Z",
+          "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
         },
         {
           "date": "2025-09-22",
           "fund": "SMH",
-          "moneySource": "She Roth on that thing til i IRA",
+          "moneySource": "Roth IRA",
           "activity": "Buy",
           "units": 0.00605,
           "unitPrice": 317.6174,
@@ -1508,13 +1508,13 @@
             "fuzzy": "2025-09-22|1.92|smh",
             "enhanced": "2025-09-22|1.92|smh|0.0060|317.6174"
           },
-          "importedAt": "2025-09-25T03:14:27.114Z",
-          "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+          "importedAt": "2025-09-25T03:16:00.022Z",
+          "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
         },
         {
           "date": "2025-09-22",
           "fund": "VTI",
-          "moneySource": "She Roth on that thing til i IRA",
+          "moneySource": "Roth IRA",
           "activity": "Buy",
           "units": 1.09977,
           "unitPrice": 327.78059,
@@ -1530,13 +1530,13 @@
             "fuzzy": "2025-09-22|360.48|vti",
             "enhanced": "2025-09-22|360.48|vti|1.0998|327.7806"
           },
-          "importedAt": "2025-09-25T03:14:27.114Z",
-          "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+          "importedAt": "2025-09-25T03:16:00.022Z",
+          "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
         },
         {
           "date": "2025-09-22",
           "fund": "VXUS",
-          "moneySource": "She Roth on that thing til i IRA",
+          "moneySource": "Roth IRA",
           "activity": "Buy",
           "units": 0.7044,
           "unitPrice": 73.0986,
@@ -1552,13 +1552,13 @@
             "fuzzy": "2025-09-22|51.49|vxus",
             "enhanced": "2025-09-22|51.49|vxus|0.7044|73.0986"
           },
-          "importedAt": "2025-09-25T03:14:27.114Z",
-          "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+          "importedAt": "2025-09-25T03:16:00.022Z",
+          "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
         },
         {
           "date": "2025-09-22",
           "fund": "XBI",
-          "moneySource": "She Roth on that thing til i IRA",
+          "moneySource": "Roth IRA",
           "activity": "Buy",
           "units": 0.01943,
           "unitPrice": 95.77,
@@ -1574,13 +1574,13 @@
             "fuzzy": "2025-09-22|1.86|xbi",
             "enhanced": "2025-09-22|1.86|xbi|0.0194|95.7700"
           },
-          "importedAt": "2025-09-25T03:14:27.114Z",
-          "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+          "importedAt": "2025-09-25T03:16:00.022Z",
+          "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
         },
         {
           "date": "2025-09-22",
           "fund": "XT",
-          "moneySource": "She Roth on that thing til i IRA",
+          "moneySource": "Roth IRA",
           "activity": "Buy",
           "units": 0.02685,
           "unitPrice": 71.4976,
@@ -1596,13 +1596,13 @@
             "fuzzy": "2025-09-22|1.92|xt",
             "enhanced": "2025-09-22|1.92|xt|0.0268|71.4976"
           },
-          "importedAt": "2025-09-25T03:14:27.114Z",
-          "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+          "importedAt": "2025-09-25T03:16:00.022Z",
+          "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
         },
         {
           "date": "2025-09-22",
           "fund": "YOLO",
-          "moneySource": "She Roth on that thing til i IRA",
+          "moneySource": "Roth IRA",
           "activity": "Buy",
           "units": 0.57952,
           "unitPrice": 3.2095,
@@ -1618,13 +1618,13 @@
             "fuzzy": "2025-09-22|1.86|yolo",
             "enhanced": "2025-09-22|1.86|yolo|0.5795|3.2095"
           },
-          "importedAt": "2025-09-25T03:14:27.114Z",
-          "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+          "importedAt": "2025-09-25T03:16:00.022Z",
+          "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
         },
         {
           "date": "2025-09-22",
           "fund": "PCY",
-          "moneySource": "She Roth on that thing til i IRA",
+          "moneySource": "Roth IRA",
           "activity": "Sell",
           "units": 2,
           "unitPrice": 21.4504,
@@ -1640,13 +1640,13 @@
             "fuzzy": "2025-09-22|42.89|pcy",
             "enhanced": "2025-09-22|42.89|pcy|2.0000|21.4504"
           },
-          "importedAt": "2025-09-25T03:14:27.114Z",
-          "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+          "importedAt": "2025-09-25T03:16:00.022Z",
+          "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
         },
         {
           "date": "2025-09-22",
           "fund": "SCHB",
-          "moneySource": "She Roth on that thing til i IRA",
+          "moneySource": "Roth IRA",
           "activity": "Sell",
           "units": 9,
           "unitPrice": 25.6701,
@@ -1662,13 +1662,13 @@
             "fuzzy": "2025-09-22|231.02|schb",
             "enhanced": "2025-09-22|231.02|schb|9.0000|25.6701"
           },
-          "importedAt": "2025-09-25T03:14:27.114Z",
-          "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+          "importedAt": "2025-09-25T03:16:00.022Z",
+          "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
         },
         {
           "date": "2025-09-22",
           "fund": "SCHF",
-          "moneySource": "She Roth on that thing til i IRA",
+          "moneySource": "Roth IRA",
           "activity": "Sell",
           "units": 4,
           "unitPrice": 23.2102,
@@ -1684,13 +1684,13 @@
             "fuzzy": "2025-09-22|92.83|schf",
             "enhanced": "2025-09-22|92.83|schf|4.0000|23.2102"
           },
-          "importedAt": "2025-09-25T03:14:27.114Z",
-          "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+          "importedAt": "2025-09-25T03:16:00.022Z",
+          "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
         },
         {
           "date": "2025-09-22",
           "fund": "SCHH",
-          "moneySource": "She Roth on that thing til i IRA",
+          "moneySource": "Roth IRA",
           "activity": "Sell",
           "units": 3,
           "unitPrice": 21.3002,
@@ -1706,13 +1706,13 @@
             "fuzzy": "2025-09-22|63.89|schh",
             "enhanced": "2025-09-22|63.89|schh|3.0000|21.3002"
           },
-          "importedAt": "2025-09-25T03:14:27.114Z",
-          "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+          "importedAt": "2025-09-25T03:16:00.022Z",
+          "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
         },
         {
           "date": "2025-09-22",
           "fund": "VWO",
-          "moneySource": "She Roth on that thing til i IRA",
+          "moneySource": "Roth IRA",
           "activity": "Sell",
           "units": 2,
           "unitPrice": 53.9511,
@@ -1728,8 +1728,8 @@
             "fuzzy": "2025-09-22|107.89|vwo",
             "enhanced": "2025-09-22|107.89|vwo|2.0000|53.9511"
           },
-          "importedAt": "2025-09-25T03:14:27.114Z",
-          "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+          "importedAt": "2025-09-25T03:16:00.022Z",
+          "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
         }
       ]
     },
@@ -1745,7 +1745,7 @@
         {
           "date": "2025-09-23",
           "fund": "VTI",
-          "moneySource": "She Roth on that thing til i IRA",
+          "moneySource": "Roth IRA",
           "activity": "Buy",
           "units": 0.01824,
           "unitPrice": 330.03,
@@ -1761,8 +1761,8 @@
             "fuzzy": "2025-09-23|6.02|vti",
             "enhanced": "2025-09-23|6.02|vti|0.0182|330.0300"
           },
-          "importedAt": "2025-09-25T03:14:27.114Z",
-          "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+          "importedAt": "2025-09-25T03:16:00.022Z",
+          "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
         }
       ]
     },
@@ -1778,7 +1778,7 @@
         {
           "date": "2025-09-24",
           "fund": "DES",
-          "moneySource": "She Roth on that thing til i IRA",
+          "moneySource": "Roth IRA",
           "activity": "Buy",
           "units": 0.11237,
           "unitPrice": 34.1755,
@@ -1794,13 +1794,13 @@
             "fuzzy": "2025-09-24|3.84|des",
             "enhanced": "2025-09-24|3.84|des|0.1124|34.1755"
           },
-          "importedAt": "2025-09-25T03:14:27.114Z",
-          "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+          "importedAt": "2025-09-25T03:16:00.022Z",
+          "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
         },
         {
           "date": "2025-09-24",
           "fund": "SCHD",
-          "moneySource": "She Roth on that thing til i IRA",
+          "moneySource": "Roth IRA",
           "activity": "Buy",
           "units": 0.59355,
           "unitPrice": 27.26,
@@ -1816,13 +1816,13 @@
             "fuzzy": "2025-09-24|16.18|schd",
             "enhanced": "2025-09-24|16.18|schd|0.5936|27.2600"
           },
-          "importedAt": "2025-09-25T03:14:27.114Z",
-          "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+          "importedAt": "2025-09-25T03:16:00.022Z",
+          "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
         },
         {
           "date": "2025-09-24",
           "fund": "VTI",
-          "moneySource": "She Roth on that thing til i IRA",
+          "moneySource": "Roth IRA",
           "activity": "Buy",
           "units": 0.32593,
           "unitPrice": 328.4771,
@@ -1838,13 +1838,13 @@
             "fuzzy": "2025-09-24|107.06|vti",
             "enhanced": "2025-09-24|107.06|vti|0.3259|328.4771"
           },
-          "importedAt": "2025-09-25T03:14:27.114Z",
-          "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+          "importedAt": "2025-09-25T03:16:00.022Z",
+          "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
         },
         {
           "date": "2025-09-24",
           "fund": "AVUV",
-          "moneySource": "She Roth on that thing til i IRA",
+          "moneySource": "Roth IRA",
           "activity": "Sell",
           "units": 0.51435,
           "unitPrice": 100.7816,
@@ -1860,13 +1860,13 @@
             "fuzzy": "2025-09-24|51.83|avuv",
             "enhanced": "2025-09-24|51.83|avuv|0.5143|100.7816"
           },
-          "importedAt": "2025-09-25T03:14:27.114Z",
-          "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+          "importedAt": "2025-09-25T03:16:00.022Z",
+          "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
         },
         {
           "date": "2025-09-24",
           "fund": "GNOM",
-          "moneySource": "She Roth on that thing til i IRA",
+          "moneySource": "Roth IRA",
           "activity": "Sell",
           "units": 0.05128,
           "unitPrice": 38.176,
@@ -1882,13 +1882,13 @@
             "fuzzy": "2025-09-24|1.95|gnom",
             "enhanced": "2025-09-24|1.95|gnom|0.0513|38.1760"
           },
-          "importedAt": "2025-09-25T03:14:27.114Z",
-          "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+          "importedAt": "2025-09-25T03:16:00.022Z",
+          "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
         },
         {
           "date": "2025-09-24",
           "fund": "IBB",
-          "moneySource": "She Roth on that thing til i IRA",
+          "moneySource": "Roth IRA",
           "activity": "Sell",
           "units": 0.01306,
           "unitPrice": 142.8467,
@@ -1904,13 +1904,13 @@
             "fuzzy": "2025-09-24|1.86|ibb",
             "enhanced": "2025-09-24|1.86|ibb|0.0131|142.8467"
           },
-          "importedAt": "2025-09-25T03:14:27.114Z",
-          "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+          "importedAt": "2025-09-25T03:16:00.022Z",
+          "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
         },
         {
           "date": "2025-09-24",
           "fund": "JEPI",
-          "moneySource": "She Roth on that thing til i IRA",
+          "moneySource": "Roth IRA",
           "activity": "Sell",
           "units": 0.141,
           "unitPrice": 56.9,
@@ -1926,13 +1926,13 @@
             "fuzzy": "2025-09-24|8.01|jepi",
             "enhanced": "2025-09-24|8.01|jepi|0.1410|56.9000"
           },
-          "importedAt": "2025-09-25T03:14:27.114Z",
-          "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+          "importedAt": "2025-09-25T03:16:00.022Z",
+          "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
         },
         {
           "date": "2025-09-24",
           "fund": "MJ",
-          "moneySource": "She Roth on that thing til i IRA",
+          "moneySource": "Roth IRA",
           "activity": "Sell",
           "units": 0.05999,
           "unitPrice": 32.5236,
@@ -1948,13 +1948,13 @@
             "fuzzy": "2025-09-24|1.94|mj",
             "enhanced": "2025-09-24|1.94|mj|0.0600|32.5236"
           },
-          "importedAt": "2025-09-25T03:14:27.114Z",
-          "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+          "importedAt": "2025-09-25T03:16:00.022Z",
+          "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
         },
         {
           "date": "2025-09-24",
           "fund": "MSOS",
-          "moneySource": "She Roth on that thing til i IRA",
+          "moneySource": "Roth IRA",
           "activity": "Sell",
           "units": 0.41915,
           "unitPrice": 4.4213,
@@ -1970,13 +1970,13 @@
             "fuzzy": "2025-09-24|1.84|msos",
             "enhanced": "2025-09-24|1.84|msos|0.4192|4.4213"
           },
-          "importedAt": "2025-09-25T03:14:27.114Z",
-          "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+          "importedAt": "2025-09-25T03:16:00.022Z",
+          "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
         },
         {
           "date": "2025-09-24",
           "fund": "QQQM",
-          "moneySource": "She Roth on that thing til i IRA",
+          "moneySource": "Roth IRA",
           "activity": "Sell",
           "units": 0.00336,
           "unitPrice": 246.33,
@@ -1992,13 +1992,13 @@
             "fuzzy": "2025-09-24|0.82|qqqm",
             "enhanced": "2025-09-24|0.82|qqqm|0.0034|246.3300"
           },
-          "importedAt": "2025-09-25T03:14:27.114Z",
-          "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+          "importedAt": "2025-09-25T03:16:00.022Z",
+          "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
         },
         {
           "date": "2025-09-24",
           "fund": "SMH",
-          "moneySource": "She Roth on that thing til i IRA",
+          "moneySource": "Roth IRA",
           "activity": "Sell",
           "units": 0.00605,
           "unitPrice": 320.4616,
@@ -2014,13 +2014,13 @@
             "fuzzy": "2025-09-24|1.93|smh",
             "enhanced": "2025-09-24|1.93|smh|0.0060|320.4616"
           },
-          "importedAt": "2025-09-25T03:14:27.114Z",
-          "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+          "importedAt": "2025-09-25T03:16:00.022Z",
+          "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
         },
         {
           "date": "2025-09-24",
           "fund": "VXUS",
-          "moneySource": "She Roth on that thing til i IRA",
+          "moneySource": "Roth IRA",
           "activity": "Sell",
           "units": 0.7044,
           "unitPrice": 73.1408,
@@ -2036,13 +2036,13 @@
             "fuzzy": "2025-09-24|51.51|vxus",
             "enhanced": "2025-09-24|51.51|vxus|0.7044|73.1408"
           },
-          "importedAt": "2025-09-25T03:14:27.114Z",
-          "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+          "importedAt": "2025-09-25T03:16:00.022Z",
+          "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
         },
         {
           "date": "2025-09-24",
           "fund": "XBI",
-          "moneySource": "She Roth on that thing til i IRA",
+          "moneySource": "Roth IRA",
           "activity": "Sell",
           "units": 0.01943,
           "unitPrice": 97.8408,
@@ -2058,13 +2058,13 @@
             "fuzzy": "2025-09-24|1.89|xbi",
             "enhanced": "2025-09-24|1.89|xbi|0.0194|97.8408"
           },
-          "importedAt": "2025-09-25T03:14:27.114Z",
-          "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+          "importedAt": "2025-09-25T03:16:00.022Z",
+          "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
         },
         {
           "date": "2025-09-24",
           "fund": "XT",
-          "moneySource": "She Roth on that thing til i IRA",
+          "moneySource": "Roth IRA",
           "activity": "Sell",
           "units": 0.02685,
           "unitPrice": 71.4849,
@@ -2080,13 +2080,13 @@
             "fuzzy": "2025-09-24|1.91|xt",
             "enhanced": "2025-09-24|1.91|xt|0.0268|71.4849"
           },
-          "importedAt": "2025-09-25T03:14:27.114Z",
-          "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+          "importedAt": "2025-09-25T03:16:00.022Z",
+          "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
         },
         {
           "date": "2025-09-24",
           "fund": "YOLO",
-          "moneySource": "She Roth on that thing til i IRA",
+          "moneySource": "Roth IRA",
           "activity": "Sell",
           "units": 0.57952,
           "unitPrice": 3.18,
@@ -2102,13 +2102,13 @@
             "fuzzy": "2025-09-24|1.83|yolo",
             "enhanced": "2025-09-24|1.83|yolo|0.5795|3.1800"
           },
-          "importedAt": "2025-09-25T03:14:27.114Z",
-          "lastUpdatedAt": "2025-09-25T03:14:27.114Z"
+          "importedAt": "2025-09-25T03:16:00.022Z",
+          "lastUpdatedAt": "2025-09-25T03:16:00.022Z"
         }
       ]
     }
   ],
   "lastUpdated": "2025-09-24",
-  "generatedAt": "2025-09-25T03:16:00.023Z",
-  "syncedAt": "2025-09-25T03:16:00.028Z"
+  "generatedAt": "2025-09-25T03:19:24.967Z",
+  "syncedAt": "2025-09-25T03:19:24.971Z"
 }
