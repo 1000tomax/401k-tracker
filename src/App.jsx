@@ -7,7 +7,8 @@ import { parseTransactions, aggregatePortfolio } from './utils/parseTransactions
 import { migrateLegacyToMultiAccount } from './utils/schemas.js';
 import { formatDate, formatCurrency } from './utils/formatters.js';
 import { importM1FinanceFromFiles, validateM1FinanceData } from './utils/m1FinanceImporter.js';
-import { PlaidAuthProvider } from './contexts/PlaidAuthContext.jsx';
+import { PlaidAuthProvider, usePlaidAuth } from './contexts/PlaidAuthContext.jsx';
+import PlaidTransactionManager from './services/PlaidTransactionManager.js';
 
 const STORAGE_KEY = '401k-tracker-data';
 const STORAGE_VERSION = 1;
@@ -144,6 +145,15 @@ export default function App() {
   const [remoteStatus, setRemoteStatus] = useState('Loading latest data from GitHub…');
   const [isFetchingRemote, setIsFetchingRemote] = useState(true);
   const [isImportingFiles, setIsImportingFiles] = useState(false);
+
+  // New state for auto-import functionality
+  const [lastPlaidSync, setLastPlaidSync] = useState(null);
+  const [isAutoRefreshing, setIsAutoRefreshing] = useState(false);
+  const [autoImportStats, setAutoImportStats] = useState({
+    imported: 0,
+    duplicates: 0,
+    lastUpdate: null
+  });
 
   const [portfolioSettings, setPortfolioSettings] = useState(() => readStoredSettings());
 
@@ -493,8 +503,57 @@ export default function App() {
     setImportStatus('Cleared all transactions.');
     setSyncStatus('');
     setLastSyncAt(null);
+    setLastPlaidSync(null);
+    setAutoImportStats({ imported: 0, duplicates: 0, lastUpdate: null });
   }, []);
 
+  // Direct import for Plaid auto-import (bypass manual approval)
+  const handleDirectImport = useCallback(async (newTransactions) => {
+    console.log('📥 Direct import:', { count: newTransactions.length });
+
+    // Enhance transactions with hash metadata if not already present
+    const enhancedTransactions = newTransactions.map(tx => {
+      // If transaction doesn't have hash metadata, it needs enhancement
+      if (!tx.transactionHash) {
+        console.warn('Transaction missing hash metadata:', tx);
+        return tx; // Use as-is, hashing should have been done in PlaidTransactionManager
+      }
+      return tx;
+    });
+
+    // Add to existing transactions
+    const merged = sortTransactions([...transactions, ...enhancedTransactions]);
+    setTransactions(merged);
+
+    // Update status
+    const statusMessage = `Auto-imported ${enhancedTransactions.length} new transaction${enhancedTransactions.length === 1 ? '' : 's'}`;
+    setImportStatus(statusMessage);
+
+    // Update sync time
+    setLastPlaidSync(new Date().toISOString());
+
+    // Update auto-import stats
+    setAutoImportStats(prev => ({
+      imported: prev.imported + enhancedTransactions.length,
+      duplicates: prev.duplicates, // This will be updated from import results
+      lastUpdate: new Date().toISOString()
+    }));
+
+    console.log('✅ Direct import completed');
+    return merged;
+  }, [transactions]);
+
+  // Auto-sync to GitHub after Plaid imports
+  const handleAutoSync = useCallback(async () => {
+    console.log('🔄 Starting auto-sync to GitHub...');
+    try {
+      await handleSync(); // Use existing sync function
+      console.log('✅ Auto-sync completed');
+    } catch (error) {
+      console.error('❌ Auto-sync failed:', error);
+      // Don't throw - we don't want to break the import flow
+    }
+  }, []);
 
   const handleSync = useCallback(async () => {
     setIsSyncing(true);
@@ -665,6 +724,8 @@ export default function App() {
                   transactions={transactions}
                   onImportFiles={handleImportFiles}
                   isImportingFiles={isImportingFiles}
+                  onDirectImport={handleDirectImport}
+                  onAutoSync={handleAutoSync}
                 />
               )}
             />

@@ -1,54 +1,64 @@
-# 401k Tracker
+# 401K Tracker 🚀
 
-A modern, secure web application for tracking your 401k portfolio performance with automatic data synchronization to GitHub for backup and historical analysis.
+A modern, secure web application for tracking your 401k and investment portfolio performance with **automatic Plaid integration** for real-time data synchronization and comprehensive debugging tools.
 
 ## 🔗 Live Demo
 
 **[Try it now: https://401k.mreedon.com](https://401k.mreedon.com)**
 
-### Demo Instructions
-1. Visit the live demo link above
-2. Click the **"🎯 Load Demo Data"** button on the dashboard
-3. Explore the features:
-   - View portfolio analytics with $20k+ market value and realistic gains
-   - Check the interactive growth charts showing 2+ years of investment performance
-   - Browse transaction history across multiple fund types
-   - Test the CSV import functionality on the "Add Transactions" page
+### Demo Features
+- **Plaid Integration**: Connect real 401k/investment accounts securely
+- **Mock Data Mode**: Test with realistic sample data in development
+- **Live Portfolio Tracking**: Real-time updates from connected accounts
+- **Advanced Debugging**: 5-tab debugging interface for data inspection
+- **Encrypted Storage**: Secure browser persistence for connected accounts
 
-*Demo includes realistic 401k data with $13k+ contributions and 50%+ ROI over 2 years.*
+## ✨ Key Features
 
-## Features
+### 🏦 Plaid Integration
+- **Real-time Account Connection**: Securely connect 401k and investment accounts
+- **Automatic Transaction Import**: Import investment transactions, holdings, and account data
+- **Persistent Connections**: Encrypted browser storage with 30-day expiration
+- **Dual Environment Support**: Mock data for development, live Plaid for production
+- **Comprehensive Debugging**: 5-tab interface for inspecting all imported data
 
-### 📊 Portfolio Tracking
-- **Real-time portfolio overview** with market value, contributions, and performance metrics
-- **Interactive growth charts** comparing market value vs. contributions over time
-- **Detailed fund breakdown** with individual performance analytics
-- **Transaction history** with expandable details for each pay period
+### 📊 Portfolio Analytics
+- **Real-time Portfolio Overview** with market value, contributions, and performance
+- **Interactive Growth Charts** comparing market value vs. contributions over time
+- **Investment Transaction History** with detailed fund breakdown
+- **ROI Calculation** and comprehensive gain/loss tracking
+- **Securities Analysis** with real-time pricing and performance metrics
 
-### 📈 Analytics & Insights
-- **ROI calculation** and gain/loss tracking
-- **Pay period analysis** with contribution patterns
-- **Fund performance comparison** across different investment sources
-- **Timeline visualization** of your investment journey
+### 🔒 Security & Privacy
+- **Bank-Level Security**: Plaid's institutional-grade encryption and security
+- **Password-Protected Access**: Multi-layer authentication system
+- **Encrypted Local Storage**: AES-GCM encryption with PBKDF2 key derivation
+- **No Data Sharing**: Your financial data stays private and secure
+- **Session Management**: 8-hour secure sessions with automatic logout
 
-### 🔒 Secure Data Management
-- **GitHub integration** for secure, versioned data storage
-- **Local storage** with automatic cloud backup
-- **Privacy-first** - your data stays in your control
-- **Token-based authentication** for API security
+### 🛠️ Developer Tools
+- **Advanced Debugging Interface**: 5 comprehensive tabs for data inspection
+  - Overview: Key metrics and connection status
+  - Raw Transactions: Direct API response data
+  - Converted Data: Processed transaction format
+  - Securities: Holdings and investment details
+  - Accounts: Connected account information
+- **Enhanced Logging**: Emoji-coded console logs throughout data flow
+- **Mock Data Service**: Realistic test data for development
+- **Environment Detection**: Automatic dev/production mode switching
 
 ### 📱 Modern Interface
-- **Responsive design** that works on desktop, tablet, and mobile
-- **Clean, professional UI** optimized for financial data
-- **Dark theme** for comfortable viewing
-- **Intuitive navigation** between dashboard and import functions
+- **Responsive Design** optimized for desktop, tablet, and mobile
+- **Professional Financial UI** with dark theme for comfortable viewing
+- **Real-time Updates** with live data synchronization
+- **Intuitive Navigation** between portfolio, import, and debugging tools
 
-## Quick Start
+## 🚀 Quick Start
 
 ### Prerequisites
 - Node.js 18+
-- GitHub account (for data storage)
-- GitHub Personal Access Token
+- Plaid account (for production use)
+- Modern web browser with localStorage support
 
 ### Installation
 
@@ -67,19 +77,22 @@ A modern, secure web application for tracking your 401k portfolio performance wi
 
    Create a `.env.local` file in the root directory:
    ```bash
-   # API Security
-   API_SHARED_TOKEN=your-secure-random-token
-   VITE_401K_TOKEN=your-secure-random-token  # Must match API_SHARED_TOKEN
+   # Plaid Configuration (Production)
+   VITE_PLAID_CLIENT_ID=your-plaid-client-id
+   VITE_PLAID_SECRET=your-plaid-secret
+   VITE_PLAID_ENV=production  # or 'sandbox' for testing
+   VITE_PLAID_ACCESS_PASSWORD=secure-access-password
 
-   # GitHub Integration
+   # Legacy GitHub Integration (Optional)
    GITHUB_PAT=your-github-personal-access-token
    GITHUB_USERNAME=your-github-username
-   GITHUB_REPO=401k-tracker  # Repository name for data storage
+   GITHUB_REPO=401k-tracker
    GITHUB_BRANCH=main
    GITHUB_DATA_PATH=data/401k-data.json
 
-   # CORS (optional, defaults to localhost:3000 in development)
-   CORS_ORIGIN=http://localhost:5173
+   # API Security
+   API_SHARED_TOKEN=your-secure-random-token
+   VITE_401K_TOKEN=your-secure-random-token
    ```
 
 4. **Start the development server**
@@ -89,98 +102,143 @@ A modern, secure web application for tracking your 401k portfolio performance wi
 
 5. **Open your browser** to `http://localhost:5173`
 
-## Usage
+## 💡 Usage Guide
 
-### Importing Transaction Data
+### Connecting Your Accounts
 
-The application supports two ways to import your 401k transaction data:
+#### Development Mode
+1. **Mock Data**: Click "Connect with Mock Data" for instant testing
+2. **Real Plaid**: Enter access password and connect actual accounts
 
-#### Option 1: CSV Upload (Recommended)
-1. Export your transaction history from Voya (or your 401k provider) as CSV
-2. Navigate to the "Add Transactions" page
-3. Use the file upload feature to select your CSV file
-4. Review the parsed transactions and confirm the import
+#### Production Mode
+1. Enter your secure access password
+2. Click "Connect Your 401k Account"
+3. Select your financial institution through Plaid Link
+4. Authenticate with your bank credentials
+5. Choose accounts to connect
 
-#### Option 2: Text Paste
-1. Copy transaction data from your 401k provider's website
-2. Navigate to the "Add Transactions" page
-3. Paste the data into the text area
-4. Review and confirm the import
+### Using the Debugging Interface
 
-### Viewing Your Portfolio
+The 5-tab debugging interface provides comprehensive data inspection:
 
-The dashboard provides several views of your data:
+1. **Overview Tab**: Connection status, account summary, key metrics
+2. **Raw Transactions Tab**: Direct API responses from Plaid
+3. **Converted Tab**: Processed data in application format
+4. **Securities Tab**: Investment holdings and fund details
+5. **Accounts Tab**: Connected account information
 
-- **Account Overview**: Summary cards showing key metrics
-- **Growth Chart**: Visual timeline of your portfolio vs. contributions
-- **Portfolio Breakdown**: Detailed table of fund performance
-- **Recent Activity**: Transaction history with expandable details
+### Data Persistence
 
-### Data Synchronization
+Your connected accounts automatically persist:
+- **Encrypted Storage**: Data encrypted in browser localStorage
+- **30-Day Expiration**: Automatic cleanup of old connections
+- **Session Management**: 8-hour authenticated sessions
+- **Clear Data**: Development tools for testing and cleanup
 
-Your data is automatically:
-- Saved locally in your browser
-- Backed up to GitHub when you click "Sync to GitHub"
-- Retrieved from GitHub when you refresh or reload the app
+## 🏗️ Architecture
 
-## Technology Stack
+### Technology Stack
 
-- **Frontend**: React 18 with Vite
-- **Routing**: React Router 6
-- **Charts**: Recharts for data visualization
-- **Validation**: Zod for data schema validation
-- **Styling**: Modern CSS with custom design system
-- **Storage**: Local storage + GitHub for persistence
-- **API**: GitHub REST API via Octokit
+**Frontend:**
+- React 18 with modern hooks and context
+- Vite for fast development and building
+- React Router 6 for navigation
+- Recharts for data visualization
 
-## 🚀 Technical Highlights
+**Integration:**
+- Plaid API for financial data
+- react-plaid-link for secure authentication
+- Web Crypto API for encryption
+- localStorage for persistence
 
-**Advanced Features Implemented:**
-- **Custom CSV Parser**: Robust transaction parsing with error handling and duplicate detection
-- **Real-time Calculations**: Dynamic portfolio valuation, ROI tracking, and gain/loss analytics
-- **Data Visualization**: Interactive charts with responsive design and custom tooltips
-- **Schema Validation**: Type-safe data handling with Zod validation schemas
-- **Multi-account Architecture**: Extensible design supporting multiple investment account types
-- **GitHub Integration**: Automated data backup and versioning using GitHub as secure storage
-- **Responsive Design**: Mobile-first approach with professional financial UI/UX
-- **Error Boundaries**: Graceful error handling and user feedback systems
-
-## Security Features
-
-- **Token authentication** for all API endpoints
-- **CORS protection** with configurable origins
-- **No sensitive data logging** in production
-- **Client-side encryption** of authentication tokens
-- **GitHub as secure storage** - no third-party data services
-
-## Development
-
-### Available Scripts
-
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build locally
+**Development:**
+- Comprehensive debugging interface
+- Mock data services
+- Environment-based configuration
+- Hot module replacement
 
 ### Project Structure
 
 ```
 src/
-├── components/          # Reusable UI components
-│   ├── SummaryOverview.jsx
-│   └── PortfolioTable.jsx
-├── pages/              # Main application pages
-│   ├── Dashboard.jsx
-│   └── Import.jsx
-├── utils/              # Utility functions
-│   ├── parseTransactions.js
-│   ├── formatters.js
-│   └── schemas.js
-├── App.jsx             # Main application component
-├── main.jsx            # Application entry point
-└── index.css           # Global styles and design system
+├── components/
+│   ├── PlaidDebugger.jsx      # 5-tab debugging interface
+│   ├── PlaidLink.jsx          # Secure account connection
+│   ├── MockPlaidLink.jsx      # Development mock service
+│   ├── ImportMethodSelector.jsx # Dual environment selector
+│   └── PlaidAuth.jsx          # Authentication component
+├── contexts/
+│   └── PlaidAuthContext.jsx   # Authentication & session state
+├── services/
+│   ├── PlaidService.js        # Main Plaid API service
+│   ├── MockPlaidService.js    # Development mock data
+│   └── PlaidStorageService.js # Encrypted browser storage
+├── pages/
+│   ├── Dashboard.jsx          # Portfolio overview
+│   └── Import.jsx             # Data import & debugging
+├── utils/
+│   ├── parseTransactions.js   # Legacy CSV parsing
+│   └── formatters.js          # Data formatting utilities
+└── App.jsx                    # Main application
 ```
 
-## Deployment
+### Security Features
+
+- **Plaid Security**: Bank-level encryption and compliance
+- **Local Encryption**: AES-GCM with 100,000 PBKDF2 iterations
+- **Password Protection**: Multi-layer authentication system
+- **Session Security**: Automatic timeout and secure storage
+- **No External Services**: Data stays between you, Plaid, and your browser
+
+## 🚀 Advanced Features
+
+### Plaid Integration Highlights
+
+- **Real-time Data**: Live investment transactions and holdings
+- **Multi-Account Support**: Connect multiple 401k/investment accounts
+- **Comprehensive Coverage**: Transactions, securities, account details
+- **Error Handling**: Robust error recovery and user feedback
+- **Rate Limit Protection**: Built-in safeguards against API abuse
+
+### Debugging System
+
+- **Development Tools**: Comprehensive data inspection interface
+- **Live Data Monitoring**: Real-time API response viewing
+- **Mock Data Testing**: Realistic sample data for development
+- **Error Diagnostics**: Detailed logging and error tracking
+- **Performance Monitoring**: API call tracking and optimization
+
+### Data Processing
+
+- **Smart Conversion**: Plaid data → application format transformation
+- **Transaction Mapping**: Investment transaction type normalization
+- **Duplicate Detection**: Automatic duplicate transaction filtering
+- **Data Validation**: Comprehensive schema validation with Zod
+- **Performance Optimization**: Efficient data processing and caching
+
+## 🔧 Development
+
+### Available Scripts
+
+- `npm run dev` - Start development server with hot reload
+- `npm run build` - Build optimized production bundle
+- `npm run preview` - Preview production build locally
+
+### Environment Modes
+
+**Development Mode:**
+- Mock data integration for testing
+- Real Plaid connections available
+- Enhanced debugging and logging
+- Hot module replacement
+
+**Production Mode:**
+- Secure Plaid-only connections
+- Optimized performance
+- Enhanced security measures
+- Error boundary protection
+
+## 🚀 Deployment
 
 ### Vercel (Recommended)
 
@@ -190,38 +248,60 @@ src/
 
 ### Environment Variables for Production
 
-Ensure these are set in your production environment:
-
 ```bash
-API_SHARED_TOKEN=strong-production-token
-VITE_401K_TOKEN=strong-production-token
-GITHUB_PAT=github-pat-with-repo-access
+# Plaid Production Configuration
+VITE_PLAID_CLIENT_ID=your-production-client-id
+VITE_PLAID_SECRET=your-production-secret
+VITE_PLAID_ENV=production
+VITE_PLAID_ACCESS_PASSWORD=secure-production-password
+
+# Optional Legacy Features
+GITHUB_PAT=github-token-if-needed
 GITHUB_USERNAME=your-username
 GITHUB_REPO=your-repo-name
-GITHUB_BRANCH=main
-GITHUB_DATA_PATH=data/401k-data.json
-CORS_ORIGIN=https://your-domain.com
+API_SHARED_TOKEN=secure-api-token
 ```
 
-## Contributing
+## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+3. Follow the existing code patterns and security practices
+4. Test thoroughly in both development and production modes
+5. Submit a pull request with detailed description
 
-## License
+## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Support
+## 🆘 Support & Troubleshooting
 
-If you encounter issues:
+### Common Issues
 
-1. Check that all environment variables are correctly set
-2. Ensure your GitHub token has appropriate repository permissions
-3. Verify that your 401k provider's export format is supported
-4. Review the browser console for any error messages
+**Connection Problems:**
+- Verify Plaid credentials are correct
+- Check network connectivity
+- Ensure institution supports Plaid integration
+- Review browser console for detailed error messages
 
-For questions or feature requests, please open an issue in the repository.
+**Development Issues:**
+- Use mock data mode for testing without API calls
+- Check environment variable configuration
+- Clear browser localStorage if needed
+- Monitor debugging interface for data flow issues
+
+**Authentication Problems:**
+- Verify access password is correct
+- Check session hasn't expired (8-hour limit)
+- Clear authentication data and re-login
+- Ensure browser supports localStorage and Web Crypto API
+
+### Getting Help
+
+For questions, bug reports, or feature requests:
+1. Check existing issues in the repository
+2. Review the debugging interface for data insights
+3. Include browser console logs when reporting issues
+4. Provide steps to reproduce any problems
+
+**Security Note**: Never share your Plaid credentials, access passwords, or sensitive financial data when seeking support.

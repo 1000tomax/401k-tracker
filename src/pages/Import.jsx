@@ -1,6 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ImportMethodSelector from '../components/ImportMethodSelector';
+import PlaidDebugger from '../components/PlaidDebugger';
 import PlaidService from '../services/PlaidService';
+import MockPlaidService from '../services/MockPlaidService';
+import PlaidTransactionManager from '../services/PlaidTransactionManager';
+import { usePlaidAuth } from '../contexts/PlaidAuthContext';
 import {
   formatCurrency,
   formatShares,
@@ -27,10 +31,77 @@ export default function ImportPage({
   transactions = [],
   onImportFiles,
   isImportingFiles = false,
+  onDirectImport, // New: for direct transaction import
+  onAutoSync, // New: for automatic GitHub sync
 }) {
   const [selectedImportMethod, setSelectedImportMethod] = useState(null);
   const [plaidConnectionData, setPlaidConnectionData] = useState(null);
   const [isLoadingPlaidTransactions, setIsLoadingPlaidTransactions] = useState(false);
+  const [plaidDebugData, setPlaidDebugData] = useState(null);
+  const [convertedDebugData, setConvertedDebugData] = useState(null);
+  const [showDebugPanel, setShowDebugPanel] = useState(false);
+  const [savedConnectionData, setSavedConnectionData] = useState(null);
+  const [isLoadingSavedConnection, setIsLoadingSavedConnection] = useState(false);
+
+  const { saveConnection, hasSavedConnections, loadSavedConnections, clearAllData } = usePlaidAuth();
+
+  const isDevelopment = import.meta.env.DEV;
+
+  // Load saved connections on component mount
+  useEffect(() => {
+    const loadSavedConnectionsOnMount = async () => {
+      if (hasSavedConnections && !savedConnectionData) {
+        console.log('🔍 Checking for saved connections...');
+        try {
+          const savedConnection = await loadSavedConnections();
+          if (savedConnection) {
+            console.log('✅ Found saved connection:', savedConnection.institution?.name);
+            setSavedConnectionData(savedConnection);
+          }
+        } catch (error) {
+          console.error('❌ Failed to load saved connections:', error);
+        }
+      }
+    };
+
+    loadSavedConnectionsOnMount();
+  }, [hasSavedConnections]);
+
+  // Keyboard shortcut for clearing data in development
+  useEffect(() => {
+    if (!isDevelopment) return;
+
+    const handleKeyDown = (event) => {
+      // Ctrl+Shift+Delete or Cmd+Shift+Delete to clear all data
+      if (event.ctrlKey && event.shiftKey && event.key === 'Delete') {
+        event.preventDefault();
+        if (confirm('🗑️ Clear all local data? This will reset the app to a clean state.')) {
+          clearAllData();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isDevelopment, clearAllData]);
+
+  // Function to load saved connection and fetch fresh transaction data
+  const handleLoadSavedConnection = async () => {
+    if (!savedConnectionData) return;
+
+    console.log('🔄 Loading saved connection and fetching fresh transactions...');
+    setIsLoadingSavedConnection(true);
+
+    try {
+      // Use the saved connection data to fetch fresh transactions
+      await handlePlaidSuccess(savedConnectionData);
+    } catch (error) {
+      console.error('❌ Failed to load saved connection:', error);
+      alert('Failed to load saved connection. Please try reconnecting.');
+    } finally {
+      setIsLoadingSavedConnection(false);
+    }
+  };
 
   const handleFileChange = event => {
     if (!onImportFiles) {
@@ -45,45 +116,81 @@ export default function ImportPage({
   };
 
   const handlePlaidSuccess = async (plaidData) => {
-    console.log('Plaid connection established:', plaidData);
+    console.log('🔗 Plaid connection established:', plaidData);
     setPlaidConnectionData(plaidData);
 
-    // Automatically fetch recent transactions
+    // Use PlaidTransactionManager for direct auto-import
     try {
       setIsLoadingPlaidTransactions(true);
-      const investmentTxns = await PlaidService.getInvestmentTransactions(plaidData.accessToken);
+      console.log('🚀 Starting auto-import from Plaid...');
 
-      if (investmentTxns.investment_transactions && investmentTxns.investment_transactions.length > 0) {
-        // Convert Plaid transactions to your app's format
-        const convertedTransactions = PlaidService.convertPlaidToTrackerFormat(
-          investmentTxns.investment_transactions
-        );
+      // Auto-import with smart deduplication
+      const importResults = await PlaidTransactionManager.autoImportFromPlaid(
+        plaidData,
+        transactions,
+        {
+          dateRange: 90,
+          skipDuplicateCheck: false,
+          autoSaveConnection: true
+        }
+      );
 
-        console.log(`Fetched ${convertedTransactions.length} investment transactions from Plaid`);
+      // Store debug data
+      setPlaidDebugData(importResults.rawPlaidData);
+      setConvertedDebugData(importResults.imported);
+      setShowDebugPanel(true);
 
-        // Convert the transactions to the format expected by the app's import system
-        const transactionText = convertedTransactions.map(tx =>
-          `${tx.date}\t${tx.fund}\t${tx.moneySource}\t${tx.activity}\t${tx.units}\t${tx.unitPrice}\t${tx.amount}`
-        ).join('\n');
-
-        // Add header row
-        const csvText = 'Date\tFund\tSource\tActivity\tShares\tPrice\tAmount\n' + transactionText;
-
-        // Update the raw input with the Plaid data
-        setRawInput(csvText);
-
-        // Trigger the parsing process to show preview
-        if (onParse) {
-          onParse(csvText);
+      if (importResults.success && importResults.imported.length > 0) {
+        console.log('✅ Auto-import successful:', {
+          imported: importResults.stats.imported,
+          duplicates: importResults.stats.skipped,
+          conflicts: importResults.stats.conflicts
+        });
+        // Direct import - no manual approval needed
+        if (onDirectImport) {
+          console.log('📥 Directly importing transactions to app...');
+          await onDirectImport(importResults.imported);
         }
 
-        console.log(`Successfully imported ${convertedTransactions.length} transactions from ${plaidData.institution.name}`);
+        // Auto-sync to GitHub
+        if (onAutoSync) {
+          console.log('🔄 Auto-syncing to GitHub...');
+          await onAutoSync();
+        }
+
+        // Generate summary
+        const summary = PlaidTransactionManager.generateImportSummary(importResults);
+        console.log('📊 Import Summary:', summary);
+
+        // Update UI with success message
+        const successMessage = `Auto-imported ${importResults.stats.imported} transactions from ${plaidData.institution.name}`;
+        console.log(`🎉 ${successMessage}`);
+
+        // Save the connection for future use (only for real Plaid connections)
+        const isMockData = importResults.isMockData;
+        if (!isMockData) {
+          console.log('💾 Saving Plaid connection for future use...');
+          const saved = await saveConnection(plaidData);
+          if (saved) {
+            console.log('✅ Connection saved successfully');
+          } else {
+            console.log('⚠️ Failed to save connection');
+          }
+        }
+      } else if (importResults.success) {
+        console.log('ℹ️ No new transactions to import');
+        const message = importResults.stats.total === 0
+          ? `Connected to ${plaidData.institution.name} successfully, but no transactions found in the last 90 days`
+          : `Connected successfully - all ${importResults.stats.total} transactions were duplicates and skipped`;
+        alert(message);
       } else {
-        alert(`Connected to ${plaidData.institution.name} successfully, but no investment transactions found in the last 90 days.`);
+        // Import failed
+        console.error('❌ Auto-import failed:', importResults.error);
+        alert(`Failed to import transactions: ${importResults.error}`);
       }
 
     } catch (error) {
-      console.error('Error fetching Plaid transactions:', error);
+      console.error('❌ Error fetching transactions:', error);
       alert('Connected successfully, but failed to fetch transactions. Please try again.');
     } finally {
       setIsLoadingPlaidTransactions(false);
@@ -97,7 +204,41 @@ export default function ImportPage({
         <p className="meta">
           Connect your 401k and investment accounts for automatic transaction imports and real-time portfolio tracking.
         </p>
-        
+
+        {/* Saved Connections Section */}
+        {savedConnectionData && (
+          <div className="saved-connections-section">
+            <h3>💾 Saved Connection</h3>
+            <div className="saved-connection-card">
+              <div className="connection-info">
+                <div className="institution-name">
+                  {savedConnectionData.institution?.name || 'Unknown Institution'}
+                </div>
+                <div className="connection-details">
+                  <span className="connection-date">
+                    Saved: {new Date(savedConnectionData.savedAt).toLocaleDateString()}
+                  </span>
+                  <span className="connection-expires">
+                    Expires: {new Date(savedConnectionData.expiresAt).toLocaleDateString()}
+                  </span>
+                </div>
+                <div className="account-count">
+                  {savedConnectionData.accounts?.length || 0} account(s) connected
+                </div>
+              </div>
+              <div className="connection-actions">
+                <button
+                  className="load-connection-btn primary"
+                  onClick={handleLoadSavedConnection}
+                  disabled={isLoadingSavedConnection || isLoadingPlaidTransactions}
+                >
+                  {isLoadingSavedConnection ? 'Loading...' : '🔄 Load & Sync'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <ImportMethodSelector 
           onMethodSelect={setSelectedImportMethod}
           onPlaidSuccess={handlePlaidSuccess}
@@ -116,7 +257,37 @@ export default function ImportPage({
           </div>
         )}
 
+        {/* Debug Panel for Plaid Data */}
+        <PlaidDebugger
+          plaidData={plaidDebugData}
+          convertedTransactions={convertedDebugData}
+          onToggle={() => setShowDebugPanel(!showDebugPanel)}
+          isVisible={showDebugPanel}
+        />
+
         {importStatus && <p className="status">{importStatus}</p>}
+
+        {/* Development Tools */}
+        {isDevelopment && (
+          <div className="dev-tools-section">
+            <h3>🛠️ Development Tools</h3>
+            <div className="dev-tools">
+              <button
+                className="dev-tool-button clear-data"
+                onClick={clearAllData}
+                title="Clear all local storage, session storage, and saved connections"
+              >
+                🗑️ Clear All Local Data
+              </button>
+              <p className="dev-tool-description">
+                Clears all stored connections, session data, and local storage for testing.
+                Use this to reset the app to a clean state.
+                <br />
+                <strong>Shortcut:</strong> Ctrl+Shift+Delete (Cmd+Shift+Delete on Mac)
+              </p>
+            </div>
+          </div>
+        )}
       </section>
 
       {pendingImport && (
@@ -202,6 +373,167 @@ export default function ImportPage({
           {!transactions.length && <p>No transactions stored yet.</p>}
         </div>
       </section>
+
+      <style jsx>{`
+        .saved-connections-section {
+          margin-bottom: 1.5rem;
+          padding: 1rem;
+          background: #f8f9fa;
+          border: 1px solid #e9ecef;
+          border-radius: 8px;
+        }
+
+        .saved-connections-section h3 {
+          margin: 0 0 1rem 0;
+          color: #495057;
+          font-size: 1.1rem;
+          font-weight: 600;
+        }
+
+        .saved-connection-card {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 1rem;
+          background: white;
+          border: 1px solid #dee2e6;
+          border-radius: 6px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .connection-info {
+          flex-grow: 1;
+        }
+
+        .institution-name {
+          font-weight: 600;
+          font-size: 1.1rem;
+          color: #212529;
+          margin-bottom: 0.5rem;
+        }
+
+        .connection-details {
+          display: flex;
+          gap: 1rem;
+          margin-bottom: 0.25rem;
+        }
+
+        .connection-date,
+        .connection-expires {
+          font-size: 0.85rem;
+          color: #6c757d;
+        }
+
+        .account-count {
+          font-size: 0.9rem;
+          color: #495057;
+        }
+
+        .connection-actions {
+          margin-left: 1rem;
+        }
+
+        .load-connection-btn {
+          background: #007bff;
+          color: white;
+          border: 2px solid #0056b3;
+          border-radius: 6px;
+          padding: 0.5rem 1rem;
+          cursor: pointer;
+          font-weight: 500;
+          font-size: 0.9rem;
+          transition: all 0.2s;
+        }
+
+        .load-connection-btn:hover:not(:disabled) {
+          background: #0056b3;
+          border-color: #004085;
+          transform: translateY(-1px);
+        }
+
+        .load-connection-btn:disabled {
+          background: #6c757d;
+          border-color: #5a6268;
+          cursor: not-allowed;
+        }
+
+        @media (max-width: 768px) {
+          .saved-connection-card {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+          }
+
+          .connection-actions {
+            margin-left: 0;
+          }
+
+          .load-connection-btn {
+            width: 100%;
+          }
+
+          .connection-details {
+            flex-direction: column;
+            gap: 0.25rem;
+          }
+        }
+
+        /* Development Tools */
+        .dev-tools-section {
+          margin-top: 2rem;
+          padding: 1rem;
+          background: #1a1a2e;
+          border: 2px solid #ff6b6b;
+          border-radius: 8px;
+          box-shadow: 0 2px 8px rgba(255, 107, 107, 0.2);
+        }
+
+        .dev-tools-section h3 {
+          margin: 0 0 1rem 0;
+          color: #ff6b6b;
+          font-size: 1.1rem;
+          font-weight: 600;
+        }
+
+        .dev-tools {
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+        }
+
+        .dev-tool-button {
+          background: #ff4757;
+          color: white;
+          border: 2px solid #ff3742;
+          border-radius: 6px;
+          padding: 0.75rem 1rem;
+          cursor: pointer;
+          font-weight: 600;
+          font-size: 0.9rem;
+          transition: all 0.2s;
+          align-self: flex-start;
+        }
+
+        .dev-tool-button:hover {
+          background: #ff3742;
+          border-color: #ff2936;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(255, 71, 87, 0.3);
+        }
+
+        .dev-tool-description {
+          color: #ffa726;
+          font-size: 0.85rem;
+          margin: 0;
+          font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+          .dev-tool-button {
+            align-self: stretch;
+          }
+        }
+      `}</style>
     </div>
   );
 }

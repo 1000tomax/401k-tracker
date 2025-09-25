@@ -1,40 +1,120 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { usePlaidLink } from 'react-plaid-link';
 import PlaidService from '../services/PlaidService';
+
+// Global singleton pattern to prevent multiple instances from creating tokens
+let globalLinkToken = null;
+let globalInitializationInProgress = false;
+let globalInitializationPromise = null;
 
 const PlaidLink = ({ onSuccess, onError, disabled = false }) => {
   const [linkToken, setLinkToken] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const initializingRef = useRef(false); // Prevent multiple simultaneous calls
+  const initializedRef = useRef(false); // Track if we've ever initialized
 
-  // Create link token on component mount
   useEffect(() => {
     const initializePlaidLink = async () => {
+      // Use global token if already available
+      if (globalLinkToken) {
+        console.log('🔄 Using existing global link token');
+        setLinkToken(globalLinkToken);
+        return;
+      }
+
+      // If another instance is already initializing, wait for it
+      if (globalInitializationInProgress && globalInitializationPromise) {
+        console.log('⏳ Waiting for existing initialization to complete');
+        try {
+          const token = await globalInitializationPromise;
+          setLinkToken(token);
+          return;
+        } catch (err) {
+          console.error('Global initialization failed:', err);
+        }
+      }
+
+      // Multiple guards to prevent infinite loops
+      if (linkToken || initializingRef.current || initializedRef.current || globalInitializationInProgress) {
+        console.log('🛑 Skipping Link token creation:', {
+          hasToken: !!linkToken,
+          isInitializing: initializingRef.current,
+          wasInitialized: initializedRef.current,
+          globalInProgress: globalInitializationInProgress
+        });
+        return;
+      }
+
       try {
+        initializingRef.current = true;
+        globalInitializationInProgress = true;
         setLoading(true);
         setError(null);
-        const token = await PlaidService.createLinkToken();
+        console.log('🔗 Creating Plaid Link token (global singleton)...');
+
+        // Create the promise for other instances to wait for
+        globalInitializationPromise = PlaidService.createLinkToken();
+        const token = await globalInitializationPromise;
+
+        // Store globally and locally
+        globalLinkToken = token;
         setLinkToken(token);
+        initializedRef.current = true;
+        console.log('✅ Plaid Link token created successfully (global singleton)');
       } catch (err) {
         console.error('Failed to initialize Plaid Link:', err);
+        globalLinkToken = null; // Clear on error
+        globalInitializationPromise = null;
         setError('Failed to initialize account connection. Please try again.');
         if (onError) onError(err);
       } finally {
         setLoading(false);
+        initializingRef.current = false;
+        globalInitializationInProgress = false;
       }
     };
 
     initializePlaidLink();
-  }, [onError]);
+  }, []); // Empty dependencies to run only once
 
   const handleOnSuccess = useCallback(
-    async (publicToken, metadata) => {
+    async (public_token, metadata) => {
       try {
         setLoading(true);
-        console.log('Plaid Link success:', { publicToken, metadata });
+
+        // Debug the callback structure
+        console.log('Plaid Link success - Raw callback args:', { public_token, metadata });
+        console.log('Plaid Link success - First arg:', public_token);
+        console.log('Plaid Link success - Second arg:', metadata);
+
+        // Handle both possible callback formats
+        let actualPublicToken;
+        let actualMetadata;
+
+        if (typeof public_token === 'object' && public_token.public_token) {
+          // New SDK format: single object with properties
+          actualPublicToken = public_token.public_token;
+          actualMetadata = public_token.metadata || public_token;
+        } else {
+          // Old SDK format: separate parameters
+          actualPublicToken = public_token;
+          actualMetadata = metadata;
+        }
+
+        console.log('Plaid Link success - Processed:', {
+          actualPublicToken: actualPublicToken?.substring(0, 20) + '...' || 'undefined',
+          hasPublicToken: !!actualPublicToken,
+          publicTokenType: typeof actualPublicToken,
+          actualMetadata
+        });
+
+        if (!actualPublicToken) {
+          throw new Error('No public token received from Plaid Link');
+        }
 
         // Exchange public token for access token
-        const tokenData = await PlaidService.exchangePublicToken(publicToken);
+        const tokenData = await PlaidService.exchangePublicToken(actualPublicToken);
         
         // Get account information
         const accountsData = await PlaidService.getAccounts(tokenData.access_token);
@@ -45,8 +125,8 @@ const PlaidLink = ({ onSuccess, onError, disabled = false }) => {
             accessToken: tokenData.access_token,
             itemId: tokenData.item_id,
             accounts: accountsData.accounts,
-            institution: metadata.institution,
-            linkSessionId: metadata.link_session_id,
+            institution: actualMetadata.institution,
+            linkSessionId: actualMetadata.link_session_id,
           });
         }
       } catch (err) {

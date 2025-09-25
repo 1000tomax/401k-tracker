@@ -44,6 +44,12 @@ class PlaidService {
    */
   async exchangePublicToken(publicToken) {
     try {
+      console.log('🔄 Exchanging public token:', {
+        publicToken: publicToken?.substring(0, 20) + '...' || 'undefined',
+        hasToken: !!publicToken,
+        tokenType: typeof publicToken
+      });
+
       const response = await fetch(`${this.baseURL}/exchange_public_token`, {
         method: 'POST',
         headers: {
@@ -103,9 +109,15 @@ class PlaidService {
    */
   async getInvestmentTransactions(accessToken = this.accessToken, startDate = null, endDate = null) {
     try {
-      // Default to last 30 days if no dates provided
-      const start = startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      // Default to last 90 days if no dates provided for more comprehensive debugging
+      const start = startDate || new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
       const end = endDate || new Date().toISOString().split('T')[0];
+
+      console.log('🔍 PlaidService: Fetching investment transactions', {
+        accessToken: accessToken ? `${accessToken.substring(0, 10)}...` : 'none',
+        dateRange: `${start} to ${end}`,
+        url: `${this.baseURL}/investment_transactions`
+      });
 
       const response = await fetch(`${this.baseURL}/investment_transactions`, {
         method: 'POST',
@@ -120,12 +132,28 @@ class PlaidService {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to get investment transactions: ${response.status}`);
+        const errorText = await response.text();
+        console.error('❌ PlaidService: API Error', {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText
+        });
+        throw new Error(`Failed to get investment transactions: ${response.status} - ${errorText}`);
       }
 
-      return await response.json();
+      const data = await response.json();
+
+      console.log('✅ PlaidService: Investment transactions response', {
+        transactionCount: data.investment_transactions?.length || 0,
+        securitiesCount: data.securities?.length || 0,
+        accountsCount: data.accounts?.length || 0,
+        totalTransactions: data.total_investment_transactions,
+        dateRange: data.date_range
+      });
+
+      return data;
     } catch (error) {
-      console.error('Error getting investment transactions:', error);
+      console.error('❌ PlaidService: Error getting investment transactions:', error);
       throw error;
     }
   }
@@ -165,7 +193,12 @@ class PlaidService {
    * Convert Plaid investment transactions to 401k-tracker format
    */
   convertPlaidToTrackerFormat(plaidTransactions) {
-    return plaidTransactions.map(transaction => {
+    console.log('🔄 PlaidService: Converting transactions to tracker format', {
+      inputCount: plaidTransactions.length,
+      sampleTransaction: plaidTransactions[0] || null
+    });
+
+    const converted = plaidTransactions.map(transaction => {
       const {
         investment_transaction_id,
         account_id,
@@ -214,6 +247,17 @@ class PlaidService {
         securityType: security_type,
       };
     });
+
+    console.log('✅ PlaidService: Conversion complete', {
+      outputCount: converted.length,
+      activityTypes: [...new Set(converted.map(t => t.activity))],
+      dateRange: {
+        earliest: Math.min(...converted.map(t => new Date(t.date).getTime())),
+        latest: Math.max(...converted.map(t => new Date(t.date).getTime()))
+      }
+    });
+
+    return converted;
   }
 
   /**
