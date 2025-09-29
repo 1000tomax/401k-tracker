@@ -205,31 +205,6 @@ export default function ImportPage({
             const dbResult = await PlaidDatabaseService.importTransactions(importResults.imported);
             console.log('✅ Transactions saved to database:', dbResult);
 
-            // Record sync history if we have a connection_id
-            if (savedConnection?.id) {
-              const duration = Date.now() - startTime;
-              console.log('📝 Recording sync history...');
-
-              // Record sync history by inserting directly
-              await fetch('/api/db/transactions/sync-history', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'X-401K-Token': import.meta.env.VITE_401K_TOKEN,
-                },
-                body: JSON.stringify({
-                  connection_id: savedConnection.id,
-                  sync_type: 'manual',
-                  status: 'success',
-                  transactions_fetched: importResults.stats.total,
-                  transactions_new: dbResult.results?.imported || 0,
-                  transactions_duplicate: dbResult.results?.duplicates || 0,
-                  transactions_updated: dbResult.results?.updated || 0,
-                  duration_ms: duration,
-                }),
-              }).catch(err => console.error('Failed to record sync history:', err));
-            }
-
             // Reload connection data to show updated last_synced_at timestamp
             console.log('🔄 Reloading connection data...');
             const updatedConnections = await loadSavedConnections();
@@ -239,24 +214,6 @@ export default function ImportPage({
             }
           } catch (error) {
             console.error('❌ Failed to save transactions to database:', error);
-
-            // Record failed sync history
-            if (savedConnection?.id) {
-              await fetch('/api/db/transactions/sync-history', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'X-401K-Token': import.meta.env.VITE_401K_TOKEN,
-                },
-                body: JSON.stringify({
-                  connection_id: savedConnection.id,
-                  sync_type: 'manual',
-                  status: 'error',
-                  error_message: error.message,
-                  duration_ms: Date.now() - startTime,
-                }),
-              }).catch(err => console.error('Failed to record sync history:', err));
-            }
           }
         }
 

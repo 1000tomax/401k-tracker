@@ -31,7 +31,7 @@ class PlaidDatabaseService {
         accountCount: accounts?.length || 0,
       });
 
-      const response = await fetch(`${this.baseURL}/db/plaid/save-connection`, {
+      const response = await fetch(`${this.baseURL}/db/plaid`, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({
@@ -64,7 +64,7 @@ class PlaidDatabaseService {
     try {
       console.log('📥 Fetching Plaid connections from database');
 
-      const response = await fetch(`${this.baseURL}/db/plaid/get-connections`, {
+      const response = await fetch(`${this.baseURL}/db/plaid`, {
         method: 'GET',
         headers: this.getHeaders(),
       });
@@ -139,7 +139,7 @@ class PlaidDatabaseService {
 
       console.log('📥 Fetching transactions from database', filters);
 
-      const response = await fetch(`${this.baseURL}/db/transactions/list?${params}`, {
+      const response = await fetch(`${this.baseURL}/db/transactions?${params}`, {
         method: 'GET',
         headers: this.getHeaders(),
       });
@@ -170,7 +170,7 @@ class PlaidDatabaseService {
         count: transactions.length,
       });
 
-      const response = await fetch(`${this.baseURL}/db/transactions/import`, {
+      const response = await fetch(`${this.baseURL}/db/transactions`, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({ transactions }),

@@ -7,15 +7,9 @@ import investmentTransactionsHandler from './api/plaid/investment_transactions.j
 import removeItemHandler from './api/plaid/removeItem.js';
 import webhookHandler from './api/plaid/webhook.js';
 
-// Database API endpoints
-import migrateHandler from './api/db/migrate.js';
-import migrateDataHandler from './api/db/migrate-data.js';
-import saveConnectionHandler from './api/db/plaid/save-connection.js';
-import getConnectionsHandler from './api/db/plaid/get-connections.js';
-import listTransactionsHandler from './api/db/transactions/list.js';
-import importTransactionsHandler from './api/db/transactions/import.js';
-import syncTransactionsHandler from './api/db/transactions/sync.js';
-import syncHistoryHandler from './api/db/transactions/sync-history.js';
+// Consolidated database API endpoints
+import plaidHandler from './api/db/plaid.js';
+import transactionsHandler from './api/db/transactions.js';
 
 function createDevApiPlugin() {
   const wrap = handler => async (req, res, next) => {
@@ -109,15 +103,9 @@ function createDevApiPlugin() {
       server.middlewares.use('/api/plaid/removeItem', wrap(removeItemHandler));
       server.middlewares.use('/api/plaid/webhook', wrap(webhookHandler));
 
-      // Database API endpoints
-      server.middlewares.use('/api/db/migrate', wrap(migrateHandler));
-      server.middlewares.use('/api/db/migrate-data', wrap(migrateDataHandler));
-      server.middlewares.use('/api/db/plaid/save-connection', wrap(saveConnectionHandler));
-      server.middlewares.use('/api/db/plaid/get-connections', wrap(getConnectionsHandler));
-      server.middlewares.use('/api/db/transactions/list', wrap(listTransactionsHandler));
-      server.middlewares.use('/api/db/transactions/import', wrap(importTransactionsHandler));
-      server.middlewares.use('/api/db/transactions/sync', wrap(syncTransactionsHandler));
-      server.middlewares.use('/api/db/transactions/sync-history', wrap(syncHistoryHandler));
+      // Consolidated database API endpoints
+      server.middlewares.use('/api/db/plaid', wrap(plaidHandler));
+      server.middlewares.use('/api/db/transactions', wrap(transactionsHandler));
     },
   };
 }
