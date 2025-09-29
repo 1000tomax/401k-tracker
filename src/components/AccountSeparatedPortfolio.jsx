@@ -10,68 +10,6 @@ import {
 
 const EPSILON = 1e-6;
 
-function LivePriceDisplay({ symbol, livePrices, showLivePrices }) {
-  // Always try to show price data if we have a symbol, fall back to demo prices
-  let priceData = livePrices?.[symbol];
-
-  // If no live price data, generate demo price
-  if (!priceData && symbol) {
-    // Simple demo prices for M1 Finance ETFs
-    const demoPrices = {
-      'VTI': { price: 328.44, change: 1.23 },
-      'VXUS': { price: 73.12, change: -0.25 },
-      'QQQM': { price: 246.44, change: 0.26 },
-      'AVUV': { price: 100.16, change: 0.08 },
-      'DES': { price: 33.92, change: 0.00 },
-      'SCHD': { price: 27.27, change: 0.01 },
-      'JEPI': { price: 56.82, change: 0.01 },
-      'GNOM': { price: 37.47, change: 0.03 },
-      'MJ': { price: 32.02, change: 0.01 },
-      'SMH': { price: 317.78, change: 0.16 },
-      'XT': { price: 71.54, change: 0.03 },
-      'MSOS': { price: 4.47, change: 0.03 },
-      'XBI': { price: 95.89, change: 0.16 },
-      'YOLO': { price: 3.23, change: 0.02 },
-      'IBB': { price: 142.57, change: 0.15 },
-      'SCHH': { price: 21.30, change: -0.05 },
-      'SCHF': { price: 23.21, change: -0.12 },
-      'SCHB': { price: 25.67, change: 0.18 },
-      'PCY': { price: 21.45, change: -0.01 }
-    };
-
-    const demo = demoPrices[symbol] || { price: 100.00, change: 0.00 };
-    const changePercent = demo.price > 0 ? (demo.change / demo.price * 100).toFixed(2) + '%' : '0.00%';
-
-    priceData = {
-      symbol,
-      price: demo.price,
-      change: demo.change,
-      changePercent: demo.change >= 0 ? `+${changePercent}` : changePercent,
-      isStale: true,
-      source: 'demo'
-    };
-  }
-
-  if (!priceData) {
-    return '—';
-  }
-
-  const changeColor = priceData.change >= 0 ? 'positive' : 'negative';
-
-  return (
-    <div className="live-price-display">
-      <div className="live-price-main">
-        {formatUnitPrice(priceData.price)}
-        {priceData.isStale && <span className="price-stale">*</span>}
-      </div>
-      <div className={`live-price-change ${changeColor}`}>
-        {priceData.change >= 0 ? '+' : ''}{formatCurrency(priceData.change)}
-        ({priceData.changePercent})
-      </div>
-    </div>
-  );
-}
-
 // Helper function to classify account type based on source name
 function classifyAccountType(source) {
   const lowerSource = source.toLowerCase();
@@ -279,13 +217,7 @@ function AccountHoldingsTable({
                     <td className="numeric">{formatUnitPrice(row.latestNAV)}</td>
                   )}
                   {showLivePrice && (
-                    <td className="numeric">
-                      <LivePriceDisplay
-                        symbol={symbol}
-                        livePrices={livePrices}
-                        showLivePrices={showLivePrices}
-                      />
-                    </td>
+                    <td className="numeric">—</td>
                   )}
                   <td className="numeric">{formatCurrency(currentMarketValue)}</td>
                   <td className={`numeric ${currentGainLoss >= 0 ? 'positive' : 'negative'}`}>
@@ -365,10 +297,11 @@ export default function AccountSeparatedPortfolio({
   portfolio,
   openPositions,
   closedPositions,
-  totals,
-  livePrices = {},
-  showLivePrices = false
+  totals
 }) {
+  // Live prices removed - using transaction-based calculations only
+  const livePrices = {};
+  const showLivePrices = false;
   const accountGroups = useMemo(() => {
     const groups = {
       '401k': [],

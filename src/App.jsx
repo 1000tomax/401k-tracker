@@ -10,14 +10,6 @@ import { importM1FinanceFromFiles, validateM1FinanceData } from './utils/m1Finan
 import { PlaidAuthProvider, usePlaidAuth } from './contexts/PlaidAuthContext.jsx';
 import PlaidTransactionManager from './services/PlaidTransactionManager.js';
 
-const STORAGE_KEY = '401k-tracker-data';
-const STORAGE_VERSION = 1;
-const SNAPSHOT_ENDPOINT = '/api/snapshot';
-const CLIENT_SHARED_TOKEN =
-  (import.meta.env && import.meta.env.VITE_401K_TOKEN) ||
-  (typeof process !== 'undefined' && process.env ? process.env.NEXT_PUBLIC_401K_TOKEN : undefined) ||
-  '';
-const REQUEST_AUTH_HEADER = CLIENT_SHARED_TOKEN || 'dev-only-token';
 const SETTINGS_STORAGE_KEY = 'portfolio-settings';
 const DEFAULT_PORTFOLIO_SETTINGS = {
   multiAccountMode: false,
@@ -68,92 +60,14 @@ function sortTransactions(list) {
   });
 }
 
-function loadData() {
-  if (typeof window === 'undefined') {
-    return { version: STORAGE_VERSION, transactions: [], lastSyncAt: null };
-  }
-
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      return { version: STORAGE_VERSION, transactions: [], lastSyncAt: null };
-    }
-
-    const parsed = JSON.parse(raw);
-    if (parsed.version !== STORAGE_VERSION) {
-      return {
-        version: STORAGE_VERSION,
-        transactions: Array.isArray(parsed.transactions) ? parsed.transactions : [],
-        lastSyncAt: parsed.lastSyncAt || null,
-      };
-    }
-
-    return {
-      version: STORAGE_VERSION,
-      transactions: Array.isArray(parsed.transactions) ? parsed.transactions : [],
-      lastSyncAt: parsed.lastSyncAt || null,
-    };
-  } catch (error) {
-    console.error('Failed to load stored data', error);
-    return { version: STORAGE_VERSION, transactions: [], lastSyncAt: null };
-  }
-}
-
-function saveData({ transactions, lastSyncAt }) {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  try {
-    window.localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({
-        version: STORAGE_VERSION,
-        transactions,
-        lastSyncAt: lastSyncAt || null,
-      }),
-    );
-  } catch (error) {
-    console.error('Failed to persist tracker data', error);
-  }
-}
-
-function clearAllData() {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  try {
-    // Clear transaction data
-    window.localStorage.removeItem(STORAGE_KEY);
-    // Reset settings to defaults (but keep them for personal use)
-    window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(DEFAULT_PORTFOLIO_SETTINGS));
-    console.log('Cleared all demo/manual data for Plaid-only setup');
-  } catch (error) {
-    console.error('Failed to clear stored data', error);
-  }
-}
+// Transaction data is now stored in Supabase database, not localStorage
 
 export default function App() {
   const [transactions, setTransactions] = useState([]);
   const [rawInput, setRawInput] = useState('');
   const [pendingImport, setPendingImport] = useState(null);
   const [importStatus, setImportStatus] = useState('');
-  const [syncStatus, setSyncStatus] = useState('');
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [lastSyncAt, setLastSyncAt] = useState(null);
-  const [remoteStatus, setRemoteStatus] = useState('Loading latest data from GitHub…');
-  const [isFetchingRemote, setIsFetchingRemote] = useState(true);
   const [isImportingFiles, setIsImportingFiles] = useState(false);
-
-  // New state for auto-import functionality
-  const [lastPlaidSync, setLastPlaidSync] = useState(null);
-  const [isAutoRefreshing, setIsAutoRefreshing] = useState(false);
-  const [autoImportStats, setAutoImportStats] = useState({
-    imported: 0,
-    duplicates: 0,
-    lastUpdate: null
-  });
 
   const [portfolioSettings, setPortfolioSettings] = useState(() => readStoredSettings());
 
@@ -180,14 +94,31 @@ export default function App() {
     setPortfolioSettings(DEFAULT_PORTFOLIO_SETTINGS);
   }, []);
 
+  // Load transactions from database on mount
   useEffect(() => {
-    // Clear all existing demo/manual data for fresh Plaid-only setup
-    clearAllData();
-    
-    // Start with empty state - data will come from Plaid connections
-    setTransactions([]);
-    setLastSyncAt(null);
-    setImportStatus('Ready for Plaid account connections');
+    const loadTransactionsFromDatabase = async () => {
+      try {
+        console.log('🔄 Loading transactions from database...');
+        const PlaidDatabaseService = (await import('./services/PlaidDatabaseService')).default;
+
+        const data = await PlaidDatabaseService.getTransactions({ limit: 10000 });
+
+        if (data.transactions && data.transactions.length > 0) {
+          console.log('✅ Loaded transactions from database:', data.transactions.length);
+          setTransactions(data.transactions);
+          setImportStatus(`Loaded ${data.transactions.length} transactions from database`);
+        } else {
+          console.log('ℹ️ No transactions in database yet');
+          setImportStatus('Ready for Plaid account connections');
+        }
+      } catch (error) {
+        console.error('❌ Failed to load transactions from database:', error);
+        setImportStatus('Ready for Plaid account connections');
+      }
+    };
+
+    // Load transactions from database
+    loadTransactionsFromDatabase();
   }, []);
 
   const summary = useMemo(() => aggregatePortfolio(transactions), [transactions]);
@@ -218,7 +149,6 @@ export default function App() {
         transactions,
         totals: summary.totals,
         portfolio: summary.portfolio,
-        lastSyncAt,
         lastUpdated: summary.lastUpdated,
       };
 
@@ -243,60 +173,9 @@ export default function App() {
     }
 
     return aggregated;
-  }, [portfolioSettings.multiAccountMode, transactions, summary, lastSyncAt, userSettingsForPortfolio]);
+  }, [portfolioSettings.multiAccountMode, transactions, summary, userSettingsForPortfolio]);
 
-  useEffect(() => {
-    saveData({ transactions, lastSyncAt });
-  }, [transactions, lastSyncAt]);
-
-  const fetchFromGitHub = useCallback(async () => {
-    setIsFetchingRemote(true);
-    setRemoteStatus('Loading latest data from GitHub…');
-
-    try {
-      const response = await fetch(`${SNAPSHOT_ENDPOINT}?t=${Date.now()}`, {
-        cache: 'no-store',
-        headers: {
-          Accept: 'application/json',
-          'X-401K-Token': REQUEST_AUTH_HEADER,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      const payload = await response.json();
-      if (payload?.snapshot && Array.isArray(payload.snapshot.transactions)) {
-        setTransactions(sortTransactions(payload.snapshot.transactions));
-      } else {
-        throw new Error('Snapshot response missing transactions array.');
-      }
-
-      const syncTimestamp =
-        payload.snapshot.syncedAt || payload.snapshot.lastUpdated || payload.fetchedAt || null;
-      if (syncTimestamp) {
-        setLastSyncAt(syncTimestamp);
-      }
-
-      setRemoteStatus('Loaded latest data from GitHub.');
-    } catch (error) {
-      console.error('Failed to load snapshot from GitHub', error);
-      setRemoteStatus(`Failed to load data from GitHub: ${error.message}`);
-    } finally {
-      setIsFetchingRemote(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    // TEMPORARILY DISABLED FOR PLAID TESTING
-    // fetchFromGitHub();
-  }, [fetchFromGitHub]);
-
-  const handleRefreshMarket = useCallback(() => {
-    // Placeholder until live market data pipeline is wired for multi-account dashboard
-    console.info('Market refresh requested (stub)');
-  }, []);
+  // Transaction persistence removed - now using Supabase database instead of localStorage
 
   const handleParse = useCallback(() => {
     const parsed = parseTransactions(rawInput);
@@ -501,8 +380,6 @@ export default function App() {
     setPendingImport(null);
     setRawInput('');
     setImportStatus('Cleared all transactions.');
-    setSyncStatus('');
-    setLastSyncAt(null);
     setLastPlaidSync(null);
     setAutoImportStats({ imported: 0, duplicates: 0, lastUpdate: null });
   }, []);
@@ -543,95 +420,7 @@ export default function App() {
     return merged;
   }, [transactions]);
 
-  // Auto-sync to GitHub after Plaid imports
-  const handleAutoSync = useCallback(async () => {
-    console.log('🔄 Starting auto-sync to GitHub...');
-    try {
-      await handleSync(); // Use existing sync function
-      console.log('✅ Auto-sync completed');
-    } catch (error) {
-      console.error('❌ Auto-sync failed:', error);
-      // Don't throw - we don't want to break the import flow
-    }
-  }, []);
-
-  const handleSync = useCallback(async () => {
-    setIsSyncing(true);
-    setSyncStatus('Syncing to GitHub…');
-
-    try {
-      const payload = {
-        transactions,
-        portfolio: summary.portfolio,
-        totals: summary.totals,
-        fundTotals: summary.fundTotals,
-        sourceTotals: summary.sourceTotals,
-        timeline: summary.timeline,
-        lastUpdated: summary.lastUpdated,
-        generatedAt: new Date().toISOString(),
-      };
-
-      // Validate payload structure before sending
-      if (!Array.isArray(transactions)) {
-        throw new Error('Transactions must be an array');
-      }
-
-      // Check for any transactions with invalid data types
-      for (let i = 0; i < transactions.length; i++) {
-        const tx = transactions[i];
-        if (!tx || typeof tx !== 'object') {
-          throw new Error(`Transaction ${i} is not a valid object`);
-        }
-        if (typeof tx.date !== 'string' || !tx.date) {
-          throw new Error(`Transaction ${i} has invalid date: ${tx.date}`);
-        }
-        if (typeof tx.activity !== 'string' || !tx.activity) {
-          throw new Error(`Transaction ${i} has invalid activity: ${tx.activity}`);
-        }
-        if (typeof tx.fund !== 'string' || !tx.fund) {
-          throw new Error(`Transaction ${i} has invalid fund: ${tx.fund}`);
-        }
-        if (typeof tx.units !== 'number' || isNaN(tx.units)) {
-          throw new Error(`Transaction ${i} has invalid units: ${tx.units} (type: ${typeof tx.units})`);
-        }
-        if (typeof tx.unitPrice !== 'number' || isNaN(tx.unitPrice)) {
-          throw new Error(`Transaction ${i} has invalid unitPrice: ${tx.unitPrice} (type: ${typeof tx.unitPrice})`);
-        }
-        if (typeof tx.amount !== 'number' || isNaN(tx.amount)) {
-          throw new Error(`Transaction ${i} has invalid amount: ${tx.amount} (type: ${typeof tx.amount})`);
-        }
-      }
-
-      const response = await fetch('/api/push', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-401K-Token': REQUEST_AUTH_HEADER,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        let errorText;
-        try {
-          errorText = await response.text();
-        } catch (e) {
-          errorText = `HTTP ${response.status}: ${response.statusText}`;
-        }
-        console.error('Sync failed with status:', response.status, 'Response:', errorText);
-        throw new Error(errorText || `HTTP ${response.status}: GitHub sync failed`);
-      }
-
-      setSyncStatus('Sync successful.');
-      const now = new Date().toISOString();
-      setLastSyncAt(now);
-    } catch (error) {
-      console.error('Sync failed', error);
-      setSyncStatus(`Sync failed: ${error.message}`);
-    } finally {
-      setIsSyncing(false);
-    }
-  }, [summary, transactions]);
+  // GitHub sync removed - using Supabase database instead
 
   return (
     <PlaidAuthProvider>
@@ -642,7 +431,7 @@ export default function App() {
             <div className="brand-heading">
               <h1>401k Tracker</h1>
               <p>
-                Monitor your retirement portfolio with automatic account synchronization and GitHub backup.
+                Monitor your retirement portfolio with automatic Plaid account synchronization and secure database storage.
                 {summary.lastUpdated && (
                   <span className="last-update">
                     {' '}• Last updated {formatDate(summary.lastUpdated)}
@@ -696,15 +485,9 @@ export default function App() {
             <Route
               path="/"
               element={
-<Dashboard
+                <Dashboard
                   summary={summary}
                   transactions={transactions}
-                  onSync={handleSync}
-                  isSyncing={isSyncing}
-                  syncStatus={syncStatus}
-                  remoteStatus={remoteStatus}
-                  onRefresh={fetchFromGitHub}
-                  isRefreshing={isFetchingRemote}
                 />
               }
             />
@@ -725,7 +508,6 @@ export default function App() {
                   onImportFiles={handleImportFiles}
                   isImportingFiles={isImportingFiles}
                   onDirectImport={handleDirectImport}
-                  onAutoSync={handleAutoSync}
                 />
               )}
             />

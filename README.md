@@ -15,10 +15,11 @@ A modern, secure web application for tracking your 401k and investment portfolio
 
 ## ✨ Key Features
 
-### 🏦 Plaid Integration
+### 🏦 Plaid Integration & Database
 - **Real-time Account Connection**: Securely connect 401k and investment accounts
 - **Automatic Transaction Import**: Import investment transactions, holdings, and account data
-- **Persistent Connections**: Encrypted browser storage with 30-day expiration
+- **Supabase Database**: Persistent cloud storage for all financial data
+- **Smart Deduplication**: Three-level hash system prevents duplicate transactions
 - **Dual Environment Support**: Mock data for development, live Plaid for production
 - **Comprehensive Debugging**: 5-tab interface for inspecting all imported data
 
@@ -32,9 +33,10 @@ A modern, secure web application for tracking your 401k and investment portfolio
 ### 🔒 Security & Privacy
 - **Bank-Level Security**: Plaid's institutional-grade encryption and security
 - **Password-Protected Access**: Multi-layer authentication system
-- **Encrypted Local Storage**: AES-GCM encryption with PBKDF2 key derivation
+- **Secure Database**: Supabase PostgreSQL with Row Level Security (RLS)
+- **API Authentication**: Token-based authentication for all endpoints
 - **No Data Sharing**: Your financial data stays private and secure
-- **Session Management**: 8-hour secure sessions with automatic logout
+- **Session Management**: Secure access token handling and validation
 
 ### 🛠️ Developer Tools
 - **Advanced Debugging Interface**: 5 comprehensive tabs for data inspection
@@ -57,8 +59,9 @@ A modern, secure web application for tracking your 401k and investment portfolio
 
 ### Prerequisites
 - Node.js 18+
-- Plaid account (for production use)
-- Modern web browser with localStorage support
+- Plaid account (get free credentials at https://dashboard.plaid.com)
+- Supabase account (free tier available at https://supabase.com)
+- Modern web browser
 
 ### Installation
 
@@ -75,25 +78,34 @@ A modern, secure web application for tracking your 401k and investment portfolio
 
 3. **Set up environment variables**
 
-   Create a `.env.local` file in the root directory:
+   Copy `.env.example` to `.env.local` and fill in your credentials:
    ```bash
-   # Plaid Configuration (Production)
-   VITE_PLAID_CLIENT_ID=your-plaid-client-id
-   VITE_PLAID_SECRET=your-plaid-secret
-   VITE_PLAID_ENV=production  # or 'sandbox' for testing
-   VITE_PLAID_ACCESS_PASSWORD=secure-access-password
+   cp .env.example .env.local
+   ```
 
-   # Legacy GitHub Integration (Optional)
-   GITHUB_PAT=your-github-personal-access-token
-   GITHUB_USERNAME=your-github-username
-   GITHUB_REPO=401k-tracker
-   GITHUB_BRANCH=main
-   GITHUB_DATA_PATH=data/401k-data.json
-
+   Required variables:
+   ```bash
    # API Security
    API_SHARED_TOKEN=your-secure-random-token
    VITE_401K_TOKEN=your-secure-random-token
+
+   # Plaid Configuration
+   PLAID_CLIENT_ID=your-plaid-client-id
+   PLAID_SECRET=your-plaid-secret
+   PLAID_ENV=production  # or 'sandbox' for testing
+   VITE_PLAID_ENV=production
+   VITE_PLAID_ACCESS_PASSWORD=secure-access-password
+
+   # Supabase Database
+   SUPABASE_URL=your-supabase-project-url
+   SUPABASE_ANON_KEY=your-supabase-anon-key
+   SUPABASE_SERVICE_KEY=your-supabase-service-role-key
+   VITE_SUPABASE_URL=your-supabase-project-url
+   VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
    ```
+
+   Get your Plaid credentials from: https://dashboard.plaid.com/team/keys
+   Get your Supabase credentials from: https://app.supabase.com/project/_/settings/api
 
 4. **Start the development server**
    ```bash

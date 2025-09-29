@@ -1,13 +1,21 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
-import snapshotHandler from './api/snapshot.js';
-import pushHandler from './api/push.js';
 import createLinkTokenHandler from './api/plaid/create_link_token.js';
 import exchangeTokenHandler from './api/plaid/exchange_public_token.js';
 import accountsHandler from './api/plaid/accounts.js';
 import investmentTransactionsHandler from './api/plaid/investment_transactions.js';
 import removeItemHandler from './api/plaid/removeItem.js';
 import webhookHandler from './api/plaid/webhook.js';
+
+// Database API endpoints
+import migrateHandler from './api/db/migrate.js';
+import migrateDataHandler from './api/db/migrate-data.js';
+import saveConnectionHandler from './api/db/plaid/save-connection.js';
+import getConnectionsHandler from './api/db/plaid/get-connections.js';
+import listTransactionsHandler from './api/db/transactions/list.js';
+import importTransactionsHandler from './api/db/transactions/import.js';
+import syncTransactionsHandler from './api/db/transactions/sync.js';
+import syncHistoryHandler from './api/db/transactions/sync-history.js';
 
 function createDevApiPlugin() {
   const wrap = handler => async (req, res, next) => {
@@ -93,9 +101,6 @@ function createDevApiPlugin() {
     name: 'dev-api-endpoints',
     apply: 'serve',
     configureServer(server) {
-      server.middlewares.use('/api/snapshot', wrap(snapshotHandler));
-      server.middlewares.use('/api/push', wrap(pushHandler));
-
       // Plaid API endpoints
       server.middlewares.use('/api/plaid/create_link_token', wrap(createLinkTokenHandler));
       server.middlewares.use('/api/plaid/exchange_public_token', wrap(exchangeTokenHandler));
@@ -103,6 +108,16 @@ function createDevApiPlugin() {
       server.middlewares.use('/api/plaid/investment_transactions', wrap(investmentTransactionsHandler));
       server.middlewares.use('/api/plaid/removeItem', wrap(removeItemHandler));
       server.middlewares.use('/api/plaid/webhook', wrap(webhookHandler));
+
+      // Database API endpoints
+      server.middlewares.use('/api/db/migrate', wrap(migrateHandler));
+      server.middlewares.use('/api/db/migrate-data', wrap(migrateDataHandler));
+      server.middlewares.use('/api/db/plaid/save-connection', wrap(saveConnectionHandler));
+      server.middlewares.use('/api/db/plaid/get-connections', wrap(getConnectionsHandler));
+      server.middlewares.use('/api/db/transactions/list', wrap(listTransactionsHandler));
+      server.middlewares.use('/api/db/transactions/import', wrap(importTransactionsHandler));
+      server.middlewares.use('/api/db/transactions/sync', wrap(syncTransactionsHandler));
+      server.middlewares.use('/api/db/transactions/sync-history', wrap(syncHistoryHandler));
     },
   };
 }

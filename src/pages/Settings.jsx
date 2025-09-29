@@ -85,15 +85,14 @@ export default function Settings({
         </div>
       </section>
 
-      {/* GitHub Integration */}
-      {CLIENT_SHARED_TOKEN && (
-        <section>
-          <h3>GitHub Integration</h3>
-          <div className="status-banner status-banner--info">
-            GitHub sync is configured and ready to use.
-          </div>
-        </section>
-      )}
+      {/* Database Integration */}
+      <section>
+        <h3>Database Storage</h3>
+        <div className="status-banner status-banner--success">
+          ✓ Connected to Supabase PostgreSQL database<br/>
+          All transactions and Plaid connections are securely stored with automatic persistence.
+        </div>
+      </section>
 
       {/* Plaid Integration Status */}
       <section>

@@ -20,24 +20,11 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
-import MarketDataService from '../services/MarketDataService.js';
 
 export default function Dashboard({
   summary,
   transactions,
-  onSync,
-  isSyncing,
-  syncStatus,
-  remoteStatus,
-  onRefresh,
-  isRefreshing,
 }) {
-  const [livePrices, setLivePrices] = useState({});
-  const [isLoadingPrices, setIsLoadingPrices] = useState(false);
-  const [marketStatus, setMarketStatus] = useState(null);
-  const [showLivePrices, setShowLivePrices] = useState(false);
-  const remoteTone = remoteStatus?.toLowerCase().includes('failed') ? 'error' : 'info';
-  const syncTone = syncStatus?.toLowerCase().includes('failed') ? 'error' : 'success';
   const baseTrend = (summary.timeline || []).map(entry => ({
     date: entry.date,
     marketValue: entry.marketValue ?? 0,
@@ -87,103 +74,6 @@ export default function Dashboard({
     setExpandedDate(prev => (prev === date ? null : date));
   };
 
-  // Extract ETF symbols from brokerage holdings only
-  const etfSymbols = useMemo(() => {
-    const symbols = new Set();
-
-    // Helper function to classify account type
-    const isBrokerageAccount = (source) => {
-      const lowerSource = source.toLowerCase();
-      return lowerSource.includes('m1') ||
-             lowerSource.includes('brokerage') ||
-             lowerSource.includes('taxable') ||
-             (!lowerSource.includes('401') &&
-              !lowerSource.includes('voya') &&
-              !lowerSource.includes('pretax') &&
-              !lowerSource.includes('pre tax') &&
-              !lowerSource.includes('posttax') &&
-              !lowerSource.includes('post tax') &&
-              !lowerSource.includes('safe harbor') &&
-              !lowerSource.includes('employee') &&
-              !lowerSource.includes('match'));
-    };
-
-    // Only extract symbols from brokerage accounts
-    Object.entries(summary.portfolio || {}).forEach(([fund, sources]) => {
-      const sourceKeys = Object.keys(sources);
-      const hasBrokerageSources = sourceKeys.some(source => isBrokerageAccount(source));
-
-      if (hasBrokerageSources) {
-        const cleanName = fund.toUpperCase();
-
-        // For ETF symbols (most M1 Finance funds are already symbols)
-        if (/^[A-Z]{2,5}$/.test(cleanName) && cleanName !== 'CASH') {
-          symbols.add(cleanName);
-        } else {
-          // For longer fund names, try to extract symbols
-          const etfPatterns = [
-            /\b(VTI|VXUS|VEA|VWO|BND|VB|VTEB|VYM|VGT|VUG|VTV|SPY|QQQ|IWM|EFA|QQQM|AVUV|DES|SCHD|JEPI|GNOM|MJ|SMH|XT|MSOS|XBI|YOLO|IBB|SCHH|SCHF|SCHB)\b/,
-            /\(([A-Z]{2,5})\)/,  // Symbol in parentheses
-            /ETF[:\s]*([A-Z]{2,5})/  // "ETF: SYMBOL" format
-          ];
-
-          etfPatterns.forEach(pattern => {
-            const matches = cleanName.match(pattern);
-            if (matches) {
-              matches.forEach(match => {
-                if (match.includes('(') || match.includes('ETF')) {
-                  const symbolMatch = match.match(/([A-Z]{2,5})/);
-                  if (symbolMatch) {
-                    symbols.add(symbolMatch[1]);
-                  }
-                } else {
-                  symbols.add(match);
-                }
-              });
-            }
-          });
-        }
-      }
-    });
-
-    return Array.from(symbols);
-  }, [summary.portfolio]);
-
-  // Fetch live prices for detected ETF symbols
-  const fetchLivePrices = useCallback(async () => {
-    if (etfSymbols.length === 0) return;
-
-    setIsLoadingPrices(true);
-    try {
-      const prices = await MarketDataService.getBatchPrices(etfSymbols);
-      setLivePrices(prices);
-      setShowLivePrices(Object.keys(prices).length > 0);
-
-      // Update market status
-      const status = MarketDataService.getMarketStatus();
-      setMarketStatus(status);
-    } catch (error) {
-      console.error('Failed to fetch live prices:', error);
-    } finally {
-      setIsLoadingPrices(false);
-    }
-  }, [etfSymbols]);
-
-  // Initial price fetch and periodic updates
-  useEffect(() => {
-    fetchLivePrices();
-
-    // Auto-refresh during market hours (TEMPORARILY DISABLED FOR PLAID TESTING)
-    // const interval = setInterval(() => {
-    //   const status = MarketDataService.getMarketStatus();
-    //   if (status.isOpen) {
-    //     fetchLivePrices();
-    //   }
-    // }, 5 * 60 * 1000); // 5 minutes
-
-    // return () => clearInterval(interval);
-  }, [fetchLivePrices]);
-
   const renderTooltip = ({ active, payload, label }) => {
     if (!active || !payload || !payload.length) {
       return null;
@@ -216,51 +106,7 @@ export default function Dashboard({
       <section>
         <div className="section-header">
           <h2>Account Overview</h2>
-          <div className="section-actions">
-            {etfSymbols.length > 0 && (
-              <button
-                type="button"
-                className="secondary"
-                onClick={fetchLivePrices}
-                disabled={isLoadingPrices}
-              >
-                {isLoadingPrices ? 'Updating…' : 'Update Prices'}
-              </button>
-            )}
-            {onRefresh && (
-              <button type="button" className="secondary" onClick={onRefresh} disabled={isRefreshing}>
-                {isRefreshing ? 'Refreshing…' : 'Refresh from GitHub'}
-              </button>
-            )}
-            <button type="button" className="primary" onClick={onSync} disabled={isSyncing || !transactions.length}>
-              {isSyncing ? 'Syncing…' : 'Sync to GitHub'}
-            </button>
-          </div>
         </div>
-
-        {remoteStatus && <div className={`status-banner status-banner--${remoteTone}`}>{remoteStatus}</div>}
-        {syncStatus && <div className={`status-banner status-banner--${syncTone}`}>{syncStatus}</div>}
-
-        {/* Market Status Banner */}
-        {marketStatus && showLivePrices && (
-          <div className={`status-banner status-banner--${marketStatus.isOpen ? 'success' : 'info'}`}>
-            <div className="market-status-content">
-              <span className="market-status-indicator">
-                {marketStatus.isOpen ? '🟢' : '🔴'} {marketStatus.isOpen ? 'Market Open' : 'Market Closed'}
-              </span>
-              <span className="market-status-time">
-                {marketStatus.isOpen
-                  ? `Closes at ${marketStatus.localCloseTime} ${marketStatus.timezone}`
-                  : `Opens at ${marketStatus.localOpenTime} ${marketStatus.timezone}`}
-              </span>
-              {Object.keys(livePrices).length > 0 && (
-                <span className="price-count">
-                  Live prices for {Object.keys(livePrices).length} ETF{Object.keys(livePrices).length === 1 ? '' : 's'}
-                </span>
-              )}
-            </div>
-          </div>
-        )}
 
         {!transactions.length && (
           <div className="empty-state">
@@ -380,8 +226,6 @@ export default function Dashboard({
           openPositions={summary.openPositions}
           closedPositions={summary.closedPositions}
           totals={summary.totals}
-          livePrices={livePrices}
-          showLivePrices={showLivePrices}
         />
       </section>
 

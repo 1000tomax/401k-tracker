@@ -4,6 +4,7 @@ import PlaidDebugger from '../components/PlaidDebugger';
 import PlaidService from '../services/PlaidService';
 import MockPlaidService from '../services/MockPlaidService';
 import PlaidTransactionManager from '../services/PlaidTransactionManager';
+import PlaidDatabaseService from '../services/PlaidDatabaseService';
 import { usePlaidAuth } from '../contexts/PlaidAuthContext';
 import {
   formatCurrency,
@@ -32,7 +33,6 @@ export default function ImportPage({
   onImportFiles,
   isImportingFiles = false,
   onDirectImport, // New: for direct transaction import
-  onAutoSync, // New: for automatic GitHub sync
 }) {
   const [selectedImportMethod, setSelectedImportMethod] = useState(null);
   const [plaidConnectionData, setPlaidConnectionData] = useState(null);
@@ -53,10 +53,12 @@ export default function ImportPage({
       if (hasSavedConnections && !savedConnectionData) {
         console.log('🔍 Checking for saved connections...');
         try {
-          const savedConnection = await loadSavedConnections();
-          if (savedConnection) {
-            console.log('✅ Found saved connection:', savedConnection.institution?.name);
-            setSavedConnectionData(savedConnection);
+          const savedConnections = await loadSavedConnections();
+          if (savedConnections && savedConnections.length > 0) {
+            // Get first connection (or handle multiple later)
+            const connection = savedConnections[0];
+            console.log('✅ Found saved connection:', connection.institution_name);
+            setSavedConnectionData(savedConnections);
           }
         } catch (error) {
           console.error('❌ Failed to load saved connections:', error);
@@ -89,15 +91,44 @@ export default function ImportPage({
   const handleLoadSavedConnection = async () => {
     if (!savedConnectionData) return;
 
-    console.log('🔄 Loading saved connection and fetching fresh transactions...');
+    console.log('🔄 Loading saved connection and fetching fresh transactions...', { savedConnectionData });
     setIsLoadingSavedConnection(true);
 
     try {
-      // Use the saved connection data to fetch fresh transactions
-      await handlePlaidSuccess(savedConnectionData);
+      // Transform database format to Plaid format
+      // Database returns array with snake_case, need single object with camelCase
+      const connections = Array.isArray(savedConnectionData) ? savedConnectionData : [savedConnectionData];
+      const connection = connections[0];
+
+      if (!connection) {
+        throw new Error('No connection data found');
+      }
+
+      if (!connection.access_token) {
+        throw new Error('Missing access_token in saved connection');
+      }
+
+      const transformedData = {
+        accessToken: connection.access_token,
+        itemId: connection.item_id,
+        institution: {
+          id: connection.institution_id,
+          name: connection.institution_name,
+        },
+        accounts: connection.accounts || [],
+      };
+
+      console.log('🔄 Transformed connection data:', {
+        hasAccessToken: !!transformedData.accessToken,
+        accessTokenPrefix: transformedData.accessToken?.substring(0, 10),
+        institution: transformedData.institution.name,
+        accountCount: transformedData.accounts.length
+      });
+
+      await handlePlaidSuccess(transformedData);
     } catch (error) {
       console.error('❌ Failed to load saved connection:', error);
-      alert('Failed to load saved connection. Please try reconnecting.');
+      alert(`Failed to load saved connection: ${error.message}`);
     } finally {
       setIsLoadingSavedConnection(false);
     }
@@ -146,16 +177,87 @@ export default function ImportPage({
           duplicates: importResults.stats.skipped,
           conflicts: importResults.stats.conflicts
         });
+
         // Direct import - no manual approval needed
         if (onDirectImport) {
           console.log('📥 Directly importing transactions to app...');
           await onDirectImport(importResults.imported);
         }
 
-        // Auto-sync to GitHub
-        if (onAutoSync) {
-          console.log('🔄 Auto-syncing to GitHub...');
-          await onAutoSync();
+        // Save transactions to database (only for real Plaid connections)
+        const isMockData = importResults.isMockData;
+        if (!isMockData) {
+          const startTime = Date.now();
+          let savedConnection = null;
+
+          // Save the connection for future use (do this first to get connection_id)
+          console.log('💾 Saving Plaid connection for future use...');
+          savedConnection = await saveConnection(plaidData);
+          if (savedConnection) {
+            console.log('✅ Connection saved successfully');
+          } else {
+            console.warn('⚠️ Failed to save connection');
+          }
+
+          // Save transactions to database
+          console.log('💾 Saving transactions to database...');
+          try {
+            const dbResult = await PlaidDatabaseService.importTransactions(importResults.imported);
+            console.log('✅ Transactions saved to database:', dbResult);
+
+            // Record sync history if we have a connection_id
+            if (savedConnection?.id) {
+              const duration = Date.now() - startTime;
+              console.log('📝 Recording sync history...');
+
+              // Record sync history by inserting directly
+              await fetch('/api/db/transactions/sync-history', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-401K-Token': import.meta.env.VITE_401K_TOKEN,
+                },
+                body: JSON.stringify({
+                  connection_id: savedConnection.id,
+                  sync_type: 'manual',
+                  status: 'success',
+                  transactions_fetched: importResults.stats.total,
+                  transactions_new: dbResult.results?.imported || 0,
+                  transactions_duplicate: dbResult.results?.duplicates || 0,
+                  transactions_updated: dbResult.results?.updated || 0,
+                  duration_ms: duration,
+                }),
+              }).catch(err => console.error('Failed to record sync history:', err));
+            }
+
+            // Reload connection data to show updated last_synced_at timestamp
+            console.log('🔄 Reloading connection data...');
+            const updatedConnections = await loadSavedConnections();
+            if (updatedConnections && updatedConnections.length > 0) {
+              setSavedConnectionData(updatedConnections);
+              console.log('✅ Connection data refreshed');
+            }
+          } catch (error) {
+            console.error('❌ Failed to save transactions to database:', error);
+
+            // Record failed sync history
+            if (savedConnection?.id) {
+              await fetch('/api/db/transactions/sync-history', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-401K-Token': import.meta.env.VITE_401K_TOKEN,
+                },
+                body: JSON.stringify({
+                  connection_id: savedConnection.id,
+                  sync_type: 'manual',
+                  status: 'error',
+                  error_message: error.message,
+                  duration_ms: Date.now() - startTime,
+                }),
+              }).catch(err => console.error('Failed to record sync history:', err));
+            }
+          }
         }
 
         // Generate summary
@@ -163,20 +265,9 @@ export default function ImportPage({
         console.log('📊 Import Summary:', summary);
 
         // Update UI with success message
-        const successMessage = `Auto-imported ${importResults.stats.imported} transactions from ${plaidData.institution.name}`;
+        const institutionName = plaidData.institution?.name || 'your account';
+        const successMessage = `Auto-imported ${importResults.stats.imported} transactions from ${institutionName}`;
         console.log(`🎉 ${successMessage}`);
-
-        // Save the connection for future use (only for real Plaid connections)
-        const isMockData = importResults.isMockData;
-        if (!isMockData) {
-          console.log('💾 Saving Plaid connection for future use...');
-          const saved = await saveConnection(plaidData);
-          if (saved) {
-            console.log('✅ Connection saved successfully');
-          } else {
-            console.log('⚠️ Failed to save connection');
-          }
-        }
       } else if (importResults.success) {
         console.log('ℹ️ No new transactions to import');
         const message = importResults.stats.total === 0
@@ -206,24 +297,24 @@ export default function ImportPage({
         </p>
 
         {/* Saved Connections Section */}
-        {savedConnectionData && (
+        {savedConnectionData && savedConnectionData.length > 0 && (
           <div className="saved-connections-section">
             <h3>💾 Saved Connection</h3>
             <div className="saved-connection-card">
               <div className="connection-info">
                 <div className="institution-name">
-                  {savedConnectionData.institution?.name || 'Unknown Institution'}
+                  {savedConnectionData[0].institution_name || 'Unknown Institution'}
                 </div>
                 <div className="connection-details">
                   <span className="connection-date">
-                    Saved: {new Date(savedConnectionData.savedAt).toLocaleDateString()}
+                    Connected: {new Date(savedConnectionData[0].connected_at).toLocaleDateString()}
                   </span>
-                  <span className="connection-expires">
-                    Expires: {new Date(savedConnectionData.expiresAt).toLocaleDateString()}
+                  <span className="connection-last-sync">
+                    Last sync: {savedConnectionData[0].last_synced_at ? new Date(savedConnectionData[0].last_synced_at).toLocaleDateString() : 'Never'}
                   </span>
                 </div>
                 <div className="account-count">
-                  {savedConnectionData.accounts?.length || 0} account(s) connected
+                  {savedConnectionData[0].accounts?.length || 0} account(s) connected
                 </div>
               </div>
               <div className="connection-actions">

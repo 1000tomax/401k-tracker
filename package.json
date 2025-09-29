@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@octokit/rest": "^20.1.1",
+    "@supabase/supabase-js": "^2.58.0",
     "date-fns": "^4.1.0",
     "jsonwebtoken": "^9.0.2",
     "lodash": "^4.17.21",

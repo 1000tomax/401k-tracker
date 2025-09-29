@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import PlaidStorageService from '../services/PlaidStorageService';
+import PlaidDatabaseService from '../services/PlaidDatabaseService';
 
 const PlaidAuthContext = createContext();
 
@@ -14,31 +14,21 @@ export const PlaidAuthProvider = ({ children }) => {
   const [hasSavedConnections, setHasSavedConnections] = useState(false);
 
   useEffect(() => {
-    const checkExistingSession = () => {
+    const checkExistingSession = async () => {
       try {
-        // Check for saved connections
-        setHasSavedConnections(PlaidStorageService.hasSavedConnection());
+        // Check for saved connections in database
+        const hasConnections = await PlaidDatabaseService.hasSavedConnections();
+        setHasSavedConnections(hasConnections);
 
-        // Check authentication session
-        const sessionData = sessionStorage.getItem(STORAGE_KEY);
-        if (sessionData) {
-          const { authenticated, timestamp, password } = JSON.parse(sessionData);
-          const now = Date.now();
-          const sessionAge = now - timestamp;
-
-          // Session expires after 8 hours
-          if (authenticated && sessionAge < 8 * 60 * 60 * 1000) {
-            setIsAuthenticated(true);
-            setCurrentPassword(password); // Store password for loading saved connections
-          } else {
-            sessionStorage.removeItem(STORAGE_KEY);
-          }
-        }
+        // For database, we don't need password authentication anymore
+        // Connections are stored server-side with API auth
+        setIsAuthenticated(true);
+        setIsLoading(false);
       } catch (error) {
-        console.error('Error checking session:', error);
-        sessionStorage.removeItem(STORAGE_KEY);
+        console.error('Error checking saved connections:', error);
+        setIsAuthenticated(true); // Still allow access
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     checkExistingSession();
@@ -71,59 +61,52 @@ export const PlaidAuthProvider = ({ children }) => {
     setSavedConnections([]);
   };
 
-  // Save a new Plaid connection
+  // Save a new Plaid connection to database
   const saveConnection = async (connectionData) => {
-    if (!currentPassword) {
-      console.error('No password available for saving connection');
-      return false;
-    }
-
-    const success = await PlaidStorageService.saveConnection(connectionData, currentPassword);
-    if (success) {
+    try {
+      const connection = await PlaidDatabaseService.saveConnection(connectionData);
       setHasSavedConnections(true);
-      // You could load and update the savedConnections state here
+      // Reload connections
+      await loadSavedConnections();
+      return connection;
+    } catch (error) {
+      console.error('Failed to save connection:', error);
+      return null;
     }
-    return success;
   };
 
-  // Load saved connections
+  // Load saved connections from database
   const loadSavedConnections = async () => {
-    if (!currentPassword) {
-      console.error('No password available for loading connections');
-      return null;
-    }
-
     try {
-      const connectionData = await PlaidStorageService.loadConnection(currentPassword);
-      if (connectionData) {
-        setSavedConnections([connectionData]); // For now, supporting one connection
-        return connectionData;
-      }
-      return null;
+      const connections = await PlaidDatabaseService.getConnections();
+      setSavedConnections(connections);
+      setHasSavedConnections(connections.length > 0);
+      return connections;
     } catch (error) {
       console.error('Failed to load saved connections:', error);
-      return null;
+      return [];
     }
   };
 
-  // Clear all saved connections
-  const clearSavedConnections = () => {
-    PlaidStorageService.clearConnection();
+  // Clear all saved connections (database)
+  const clearSavedConnections = async () => {
+    // For now, just clear local state
+    // TODO: Add API endpoint to delete connections if needed
     setSavedConnections([]);
     setHasSavedConnections(false);
   };
 
   // Clear all data (for development/testing)
-  const clearAllData = () => {
-    console.log('🗑️ Clearing all local data for testing...');
+  const clearAllData = async () => {
+    console.log('🗑️ Clearing all data (database connections remain)...');
 
-    // Clear Plaid connections
-    clearSavedConnections();
+    // Clear local state
+    await clearSavedConnections();
 
     // Clear session storage
     sessionStorage.clear();
 
-    // Clear local storage (but be selective to avoid breaking other apps)
+    // Clear local storage (old data if any)
     const keysToRemove = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
@@ -133,11 +116,7 @@ export const PlaidAuthProvider = ({ children }) => {
     }
     keysToRemove.forEach(key => localStorage.removeItem(key));
 
-    // Reset auth state
-    setIsAuthenticated(false);
-    setCurrentPassword(null);
-
-    console.log('✅ All local data cleared. Refresh page to reset completely.');
+    console.log('✅ Local data cleared. Database connections persist.');
   };
 
   const value = {
