@@ -20,6 +20,7 @@ export default function Dashboard({ summary, isLoading }) {
     return (timeline || []).map(entry => ({
       date: entry.date,
       marketValue: entry.marketValue ?? 0,
+      costBasis: entry.costBasis ?? 0,
       label: formatDate(entry.date),
       marketValueShade: entry.marketValue ?? 0,
     }));
@@ -45,6 +46,11 @@ export default function Dashboard({ summary, isLoading }) {
       return null;
     }
 
+    const labelMap = {
+      marketValue: 'Market Value',
+      costBasis: 'Cost Basis',
+    };
+
     return (
       <div className="chart-tooltip">
         <div className="chart-tooltip-label">{label}</div>
@@ -52,7 +58,7 @@ export default function Dashboard({ summary, isLoading }) {
           {filtered.map(item => (
             <li key={item.dataKey}>
               <span className="dot" style={{ background: item.color || item.stroke }} />
-              <span className="name">Portfolio Value</span>
+              <span className="name">{labelMap[item.dataKey] || item.dataKey}</span>
               <span className="value">{formatCurrency(item.value ?? 0)}</span>
             </li>
           ))}
@@ -151,7 +157,8 @@ export default function Dashboard({ summary, isLoading }) {
                     height={32}
                     iconType="circle"
                     payload={[
-                      { value: 'Market value', type: 'line', color: 'rgba(99, 102, 241, 0.95)' }
+                      { value: 'Market Value', type: 'line', color: 'rgba(99, 102, 241, 0.95)' },
+                      { value: 'Cost Basis', type: 'line', color: 'rgba(251, 146, 60, 0.95)' }
                     ]}
                   />
                   <Area
@@ -168,11 +175,22 @@ export default function Dashboard({ summary, isLoading }) {
                   <Line
                     type="monotone"
                     dataKey="marketValue"
-                    name="Market value"
+                    name="Market Value"
                     stroke="rgba(99, 102, 241, 0.95)"
                     strokeWidth={2.5}
                     dot={false}
                     activeDot={{ r: 4, strokeWidth: 0, fill: 'rgba(99, 102, 241, 0.95)' }}
+                    connectNulls
+                    isAnimationActive={false}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="costBasis"
+                    name="Cost Basis"
+                    stroke="rgba(251, 146, 60, 0.95)"
+                    strokeWidth={2.5}
+                    dot={false}
+                    activeDot={{ r: 4, strokeWidth: 0, fill: 'rgba(251, 146, 60, 0.95)' }}
                     connectNulls
                     isAnimationActive={false}
                   />
@@ -229,9 +247,18 @@ export default function Dashboard({ summary, isLoading }) {
                         : '0.00';
                       const gainLossClass = holding.gainLoss >= 0 ? 'positive' : 'negative';
 
+                      // Format fund name nicely
+                      const formatFundName = (name) => {
+                        // "0899 Vanguard 500 Index Fund Adm" -> "VAN 500"
+                        if (name.includes('Vanguard 500')) {
+                          return 'VAN 500';
+                        }
+                        return name;
+                      };
+
                       return (
                         <tr key={`${holding.fund}-${idx}`}>
-                          <td>{holding.fund}</td>
+                          <td>{formatFundName(holding.fund)}</td>
                           <td className="numeric">{holding.shares.toFixed(4)}</td>
                           <td className="numeric">{formatCurrency(holding.avgCost)}</td>
                           <td className="numeric">{formatCurrency(holding.costBasis)}</td>

@@ -576,11 +576,13 @@ export function aggregatePortfolio(transactions) {
 
   const holdingsByFund = new Map();
   let runningInvested = 0;
+  let runningCostBasis = 0;
   const timeline = Array.from(timelineByDate.values())
     .sort((a, b) => a.date.localeCompare(b.date))
     .map(entry => {
       for (const tx of entry.transactions) {
         const amount = ensureNumber(tx.amount);
+        const units = ensureNumber(tx.units);
         const flowType = classifyFlow(tx.activity);
         const magnitude = Math.abs(amount);
 
@@ -590,8 +592,23 @@ export function aggregatePortfolio(transactions) {
           runningInvested -= magnitude;
         }
 
-        const holding = holdingsByFund.get(tx.fund) || { shares: 0, latestNav: 0 };
-        holding.shares += ensureNumber(tx.units);
+        const holding = holdingsByFund.get(tx.fund) || { shares: 0, costBasis: 0, latestNav: 0 };
+
+        // Track cost basis
+        if (units > 0) {
+          // Buying shares - add to cost basis
+          const purchaseCost = magnitude > 0 ? magnitude : Math.abs(units * ensureNumber(tx.unitPrice));
+          holding.costBasis += purchaseCost;
+          runningCostBasis += purchaseCost;
+        } else if (units < 0 && holding.shares > 0) {
+          // Selling shares - reduce cost basis proportionally
+          const avgCost = holding.costBasis / holding.shares;
+          const costReduction = avgCost * Math.min(Math.abs(units), holding.shares);
+          holding.costBasis = Math.max(0, holding.costBasis - costReduction);
+          runningCostBasis = Math.max(0, runningCostBasis - costReduction);
+        }
+
+        holding.shares += units;
         if (Number.isFinite(tx.unitPrice) && tx.unitPrice > 0) {
           holding.latestNav = tx.unitPrice;
         }
@@ -614,6 +631,7 @@ export function aggregatePortfolio(transactions) {
         net,
         balance: runningInvested,
         investedBalance: runningInvested,
+        costBasis: runningCostBasis,
         marketValue,
         transactions: entry.transactions ? entry.transactions.map(tx => ({ ...tx })) : [],
       };
