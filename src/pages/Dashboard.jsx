@@ -224,7 +224,7 @@ export default function Dashboard({ summary, isLoading }) {
                       <tr key={`${holding.fund}-${idx}`}>
                         <td>{holding.fund}</td>
                         <td className="numeric">{holding.shares.toFixed(4)}</td>
-                        <td className="numeric">{formatCurrency(holding.unitPrice)}</td>
+                        <td className="numeric">{formatCurrency(holding.latestNAV)}</td>
                         <td className="numeric">{formatCurrency(holding.marketValue)}</td>
                       </tr>
                     ))}

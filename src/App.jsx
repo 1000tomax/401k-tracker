@@ -232,6 +232,16 @@ export default function App() {
           if (existingHolding) {
             existingHolding.shares += holding.shares;
             existingHolding.marketValue += holding.marketValue;
+            existingHolding.costBasis += holding.costBasis;
+            existingHolding.gainLoss += holding.gainLoss;
+            // Use the most recent NAV (latest holding should have it)
+            if (holding.latestNAV) {
+              existingHolding.latestNAV = holding.latestNAV;
+            }
+            // Recalculate weighted average cost
+            existingHolding.avgCost = existingHolding.shares > 0
+              ? existingHolding.costBasis / existingHolding.shares
+              : 0;
           } else {
             combinedVoya.holdings.push({ ...holding });
           }
