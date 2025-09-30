@@ -33,14 +33,26 @@ export function formatPercent(value) {
 
 export function formatDate(value) {
   if (!value) return '—';
-  const date = new Date(`${value}T00:00:00`);
+
+  // Parse as UTC date, then convert to local timezone for display
+  let date;
+  if (value.includes('T')) {
+    // Already has time component (ISO format)
+    date = new Date(value);
+  } else {
+    // Date only - parse as UTC midnight then display in local timezone
+    date = new Date(`${value}T00:00:00Z`);
+  }
+
   if (Number.isNaN(date.getTime())) {
     return value;
   }
+
   return date.toLocaleDateString(undefined, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
   });
 }
 
