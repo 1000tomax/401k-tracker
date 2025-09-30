@@ -126,22 +126,74 @@ export default function App() {
   // Group holdings by account for display
   const holdingsByAccount = useMemo(() => {
     const grouped = new Map();
+    const voyaSources = new Map(); // Track Voya sources separately
 
     for (const holding of holdings) {
       const rawAccountName = holding.accountName || 'Unknown Account';
       const accountName = formatAccountName(rawAccountName);
 
-      if (!grouped.has(accountName)) {
-        grouped.set(accountName, {
-          accountName,
-          holdings: [],
-          totalValue: 0,
-        });
+      // Check if this is a Voya account with a source
+      const isVoya = accountName.startsWith('Voya 401(k)');
+      const voyaSourceMatch = accountName.match(/Voya 401\(k\) \((.+)\)/);
+
+      if (isVoya && voyaSourceMatch) {
+        // This is a Voya source account - group under "Voya 401(k)"
+        const source = voyaSourceMatch[1]; // PreTax, Roth, or Match
+
+        if (!voyaSources.has(source)) {
+          voyaSources.set(source, {
+            source,
+            holdings: [],
+            totalValue: 0,
+          });
+        }
+
+        const voyaSource = voyaSources.get(source);
+        voyaSource.holdings.push(holding);
+        voyaSource.totalValue += holding.marketValue;
+      } else {
+        // Regular account (not Voya or no source)
+        if (!grouped.has(accountName)) {
+          grouped.set(accountName, {
+            accountName,
+            holdings: [],
+            totalValue: 0,
+          });
+        }
+
+        const account = grouped.get(accountName);
+        account.holdings.push(holding);
+        account.totalValue += holding.marketValue;
+      }
+    }
+
+    // If we have Voya sources, combine them into one account
+    if (voyaSources.size > 0) {
+      const combinedVoya = {
+        accountName: 'Voya 401(k)',
+        holdings: [],
+        totalValue: 0,
+        sources: Array.from(voyaSources.values()),
+        isCollapsible: true, // Flag to indicate this account can be expanded
+      };
+
+      // Combine all holdings from all sources
+      for (const source of voyaSources.values()) {
+        combinedVoya.totalValue += source.totalValue;
+
+        // Merge holdings with same fund
+        for (const holding of source.holdings) {
+          const existingHolding = combinedVoya.holdings.find(h => h.fund === holding.fund);
+          if (existingHolding) {
+            existingHolding.shares += holding.shares;
+            existingHolding.marketValue += holding.marketValue;
+          } else {
+            combinedVoya.holdings.push({ ...holding });
+          }
+        }
       }
 
-      const account = grouped.get(accountName);
-      account.holdings.push(holding);
-      account.totalValue += holding.marketValue;
+      grouped.set('Voya 401(k)', combinedVoya);
     }
 
     return Array.from(grouped.values());

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { formatCurrency, formatDate } from '../utils/formatters.js';
 import {
   ResponsiveContainer,
@@ -14,6 +14,7 @@ import {
 
 export default function Dashboard({ summary, isLoading }) {
   const { totals, timeline, holdings, holdingsByAccount } = summary;
+  const [expandedAccounts, setExpandedAccounts] = useState(new Set());
 
   const trendData = useMemo(() => {
     return (timeline || []).map(entry => ({
@@ -58,6 +59,18 @@ export default function Dashboard({ summary, isLoading }) {
         </ul>
       </div>
     );
+  };
+
+  const toggleAccountExpanded = (accountName) => {
+    setExpandedAccounts(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(accountName)) {
+        newSet.delete(accountName);
+      } else {
+        newSet.add(accountName);
+      }
+      return newSet;
+    });
   };
 
   if (isLoading) {
@@ -177,36 +190,70 @@ export default function Dashboard({ summary, isLoading }) {
           <p className="meta">Your portfolio holdings grouped by account.</p>
         </div>
 
-        {holdingsByAccount.map(account => (
-          <div key={account.accountName} className="account-section">
-            <div className="account-header">
-              <h3>{account.accountName}</h3>
-              <span className="account-total">{formatCurrency(account.totalValue)}</span>
-            </div>
-            <div className="holdings-table-wrapper">
-              <table className="holdings-table">
-                <thead>
-                  <tr>
-                    <th>Fund</th>
-                    <th className="numeric">Shares</th>
-                    <th className="numeric">Price</th>
-                    <th className="numeric">Value</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {account.holdings.map((holding, idx) => (
-                    <tr key={`${holding.fund}-${idx}`}>
-                      <td>{holding.fund}</td>
-                      <td className="numeric">{holding.shares.toFixed(4)}</td>
-                      <td className="numeric">{formatCurrency(holding.unitPrice)}</td>
-                      <td className="numeric">{formatCurrency(holding.marketValue)}</td>
+        {holdingsByAccount.map(account => {
+          const isExpanded = expandedAccounts.has(account.accountName);
+          const isCollapsible = account.isCollapsible;
+
+          return (
+            <div key={account.accountName} className="account-section">
+              <div
+                className={`account-header ${isCollapsible ? 'collapsible' : ''}`}
+                onClick={() => isCollapsible && toggleAccountExpanded(account.accountName)}
+                style={isCollapsible ? { cursor: 'pointer' } : {}}
+              >
+                {isCollapsible && (
+                  <span className="expand-icon">{isExpanded ? '▼' : '▶'}</span>
+                )}
+                <h3>{account.accountName}</h3>
+                <span className="account-total">{formatCurrency(account.totalValue)}</span>
+              </div>
+
+              {/* Holdings Table */}
+              <div className="holdings-table-wrapper">
+                <table className="holdings-table">
+                  <thead>
+                    <tr>
+                      <th>Fund</th>
+                      <th className="numeric">Shares</th>
+                      <th className="numeric">Price</th>
+                      <th className="numeric">Value</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {account.holdings.map((holding, idx) => (
+                      <tr key={`${holding.fund}-${idx}`}>
+                        <td>{holding.fund}</td>
+                        <td className="numeric">{holding.shares.toFixed(4)}</td>
+                        <td className="numeric">{formatCurrency(holding.unitPrice)}</td>
+                        <td className="numeric">{formatCurrency(holding.marketValue)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Sources Breakdown (for Voya) */}
+              {isCollapsible && isExpanded && account.sources && (
+                <div className="sources-breakdown">
+                  <h4>Sources:</h4>
+                  <ul>
+                    {account.sources.map((source, idx) => {
+                      const percentage = ((source.totalValue / account.totalValue) * 100).toFixed(1);
+                      return (
+                        <li key={idx}>
+                          <span className="source-name">• {source.source}:</span>
+                          <span className="source-value">
+                            {formatCurrency(source.totalValue)} ({percentage}%)
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </section>
     </div>
   );

@@ -2270,6 +2270,26 @@ details ul {
   margin-bottom: var(--space-4);
   padding-bottom: var(--space-3);
   border-bottom: 2px solid var(--border-subtle);
+  gap: var(--space-3);
+}
+
+.account-section .account-header.collapsible {
+  transition: background-color 0.2s;
+  padding: var(--space-3);
+  margin: 0 calc(-1 * var(--space-3)) var(--space-4);
+  border-radius: var(--radius-sm);
+}
+
+.account-section .account-header.collapsible:hover {
+  background-color: var(--surface-hover);
+}
+
+.account-section .account-header .expand-icon {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  user-select: none;
+  min-width: 1rem;
+  display: inline-block;
 }
 
 .account-section .account-header h3 {
@@ -2277,12 +2297,59 @@ details ul {
   font-size: 1.1rem;
   font-weight: 600;
   color: var(--text-primary);
+  flex: 1;
 }
 
 .account-section .account-total {
   font-size: 1.25rem;
   font-weight: 700;
   color: var(--blue-400);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Sources breakdown (for Voya 401k) */
+.sources-breakdown {
+  margin-top: var(--space-5);
+  padding: var(--space-4);
+  background: var(--surface-elevated);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.sources-breakdown h4 {
+  margin: 0 0 var(--space-3) 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.sources-breakdown ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.sources-breakdown li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-2) 0;
+  font-size: 0.95rem;
+}
+
+.sources-breakdown .source-name {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.sources-breakdown .source-value {
+  color: var(--text-secondary);
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
