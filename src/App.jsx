@@ -5,6 +5,8 @@ import Accounts from './pages/Accounts.jsx';
 import { formatDate, formatCurrency } from './utils/formatters.js';
 import { PlaidAuthProvider } from './contexts/PlaidAuthContext.jsx';
 import HoldingsService from './services/HoldingsService.js';
+import TransactionService from './services/TransactionService.js';
+import { aggregatePortfolio } from './utils/parseTransactions.js';
 
 const API_URL = window.location.origin;
 const API_TOKEN = import.meta.env.VITE_401K_TOKEN || '';
@@ -18,37 +20,83 @@ export default function App() {
   const [status, setStatus] = useState('');
 
   const holdingsService = useMemo(() => new HoldingsService(API_URL, API_TOKEN), []);
+  const transactionService = useMemo(() => new TransactionService(API_URL, API_TOKEN), []);
 
-  // Load holdings on mount
+  // Helper: Convert portfolio to holdings array
+  const convertPortfolioToHoldings = useCallback((portfolio) => {
+    const holdings = [];
+
+    for (const [fund, sources] of Object.entries(portfolio.portfolio || {})) {
+      for (const [source, position] of Object.entries(sources)) {
+        if (!position.isClosed && Math.abs(position.shares) > 0.0001) {
+          holdings.push({
+            fund,
+            accountName: source,
+            shares: position.shares,
+            marketValue: position.marketValue,
+            costBasis: position.costBasis,
+            gainLoss: position.gainLoss,
+            avgCost: position.avgCost,
+            latestNAV: position.latestNAV,
+          });
+        }
+      }
+    }
+
+    return holdings;
+  }, []);
+
+  // Load holdings from transactions
   const loadHoldings = useCallback(async () => {
     try {
-      console.log('📊 Loading holdings snapshots...');
+      console.log('📊 Loading portfolio from transactions...');
       setIsLoading(true);
 
-      const data = await holdingsService.getSnapshots(90);
+      // Fetch all transactions
+      const transactions = await transactionService.getAllTransactions();
 
-      if (data.ok) {
-        setHoldings(data.currentHoldings || []);
-        setTimeline(data.timeline || []);
-        setTotals(data.totals || { marketValue: 0, totalHoldings: 0, lastUpdated: null });
-        console.log('✅ Holdings loaded:', {
-          holdings: data.currentHoldings?.length,
-          timeline: data.timeline?.length
-        });
+      console.log('📥 Loaded transactions:', transactions.length);
 
-        // Clear status message on successful load
+      if (transactions.length === 0) {
+        console.log('ℹ️ No transactions found');
+        setHoldings([]);
+        setTimeline([]);
+        setTotals({ marketValue: 0, costBasis: 0, gainLoss: 0, totalHoldings: 0, lastUpdated: null });
         setStatus('');
-      } else {
-        console.error('❌ Failed to load holdings:', data.error);
-        setStatus('Failed to load holdings. Please try again.');
+        return;
       }
+
+      // Aggregate into portfolio
+      const portfolio = aggregatePortfolio(transactions);
+
+      console.log('📊 Portfolio calculated:', {
+        holdings: Object.keys(portfolio.portfolio).length,
+        marketValue: portfolio.totals.marketValue,
+        costBasis: portfolio.totals.costBasis,
+        gainLoss: portfolio.totals.gainLoss
+      });
+
+      // Convert portfolio format to holdings format for dashboard
+      const holdingsArray = convertPortfolioToHoldings(portfolio);
+
+      setHoldings(holdingsArray);
+      setTimeline(portfolio.timeline || []);
+      setTotals({
+        marketValue: portfolio.totals.marketValue,
+        costBasis: portfolio.totals.costBasis,
+        gainLoss: portfolio.totals.gainLoss,
+        totalHoldings: holdingsArray.length,
+        lastUpdated: portfolio.lastUpdated,
+      });
+
+      setStatus('');
     } catch (error) {
-      console.error('❌ Error loading holdings:', error);
-      setStatus('Error loading holdings. Check console for details.');
+      console.error('❌ Error loading portfolio:', error);
+      setStatus('Error loading portfolio. Check console for details.');
     } finally {
       setIsLoading(false);
     }
-  }, [holdingsService]);
+  }, [transactionService, convertPortfolioToHoldings]);
 
   // Initial load
   useEffect(() => {

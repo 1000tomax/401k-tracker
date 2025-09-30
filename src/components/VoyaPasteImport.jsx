@@ -1,48 +1,40 @@
 import { useState, useEffect } from 'react';
 import VoyaParser from '../services/VoyaParser';
-import VoyaStorageService from '../services/VoyaStorageService';
 import VoyaDatabaseService from '../services/VoyaDatabaseService';
+import { formatCurrency, formatShares, formatUnitPrice, formatDate, formatFundName, formatSourceName } from '../utils/formatters.js';
 import './VoyaPasteImport.css';
 
 /**
- * Voya Paste Import Component
- * Allows users to copy-paste data from Voya website to import balance snapshots
+ * Voya Transaction Import Component
+ * Allows users to copy-paste transaction data from Voya website
  */
 function VoyaPasteImport({ onImportSuccess, onImportError }) {
   const [pastedText, setPastedText] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [parsedData, setParsedData] = useState(null);
-  const [latestSnapshot, setLatestSnapshot] = useState(null);
+  const [latestTransactions, setLatestTransactions] = useState([]);
   const [showPreview, setShowPreview] = useState(false);
 
   useEffect(() => {
-    // Load latest snapshot on mount
-    loadLatestSnapshot();
+    // Load latest transactions on mount
+    loadLatestTransactions();
   }, []);
 
-  const loadLatestSnapshot = async () => {
+  const loadLatestTransactions = async () => {
     try {
-      // Try to load from database first
-      const snapshot = await VoyaDatabaseService.getLatestSnapshot();
-      if (snapshot) {
-        setLatestSnapshot(snapshot);
-        console.log('✅ Loaded latest Voya snapshot from database:', snapshot);
-      } else {
-        // Fallback to localStorage if no database snapshot
-        const localSnapshot = await VoyaStorageService.getLatestSnapshot();
-        if (localSnapshot) {
-          setLatestSnapshot(localSnapshot);
-          console.log('✅ Loaded latest Voya snapshot from localStorage:', localSnapshot);
-        }
+      const transactions = await VoyaDatabaseService.getLatestTransactions(10);
+      if (transactions && transactions.length > 0) {
+        setLatestTransactions(transactions);
+        console.log('✅ Loaded latest Voya transactions:', transactions.length);
       }
     } catch (error) {
-      console.error('❌ Failed to load latest snapshot:', error);
+      console.error('❌ Failed to load latest transactions:', error);
     }
   };
 
   const handleParse = () => {
     if (!pastedText.trim()) {
-      alert('Please paste some data first!');
+      alert('Please paste some transaction data first!');
       return;
     }
 
@@ -55,10 +47,10 @@ function VoyaPasteImport({ onImportSuccess, onImportError }) {
       setParsedData(parsed);
       setShowPreview(true);
 
-      console.log('✅ Data parsed successfully:', parsed);
+      console.log('✅ Transactions parsed successfully:', parsed);
     } catch (error) {
       console.error('❌ Parse error:', error);
-      alert(`Failed to parse data: ${error.message}`);
+      alert(`Failed to parse transaction data: ${error.message}\n\nPlease make sure you copied the transaction history from Voya with all columns (Date, Activity, Fund, Money Source, Units, Price, Amount).`);
 
       if (onImportError) {
         onImportError(error);
@@ -76,16 +68,19 @@ function VoyaPasteImport({ onImportSuccess, onImportError }) {
     setIsProcessing(true);
 
     try {
-      // Save to database (primary storage)
-      const result = await VoyaDatabaseService.saveSnapshot(parsedData);
+      // Save transactions to database
+      const result = await VoyaDatabaseService.importTransactions(parsedData.transactions);
 
-      // Also save to localStorage as backup/cache
-      await VoyaStorageService.saveSnapshot(parsedData);
+      console.log('✅ Transactions saved successfully to database');
 
-      setLatestSnapshot(parsedData);
+      const message = result.duplicates > 0
+        ? `Imported ${result.imported} new transaction(s).\n${result.duplicates} duplicate(s) were skipped.`
+        : `Imported ${result.imported} new transaction(s) successfully!`;
 
-      console.log('✅ Snapshot saved successfully to database and localStorage');
-      alert(`Voya balance snapshot saved successfully!\n\nSaved ${result.saved} holdings:\n${result.snapshots.map(s => `- ${s.account}: $${s.market_value.toLocaleString()}`).join('\n')}`);
+      alert(message);
+
+      // Reload latest transactions
+      await loadLatestTransactions();
 
       // Clear the form
       setPastedText('');
@@ -96,8 +91,8 @@ function VoyaPasteImport({ onImportSuccess, onImportError }) {
         onImportSuccess(parsedData);
       }
     } catch (error) {
-      console.error('❌ Failed to save snapshot:', error);
-      alert(`Failed to save snapshot to database: ${error.message}\n\nPlease check your connection and try again.`);
+      console.error('❌ Failed to save transactions:', error);
+      alert(`Failed to save transactions to database: ${error.message}\n\nPlease check your connection and try again.`);
 
       if (onImportError) {
         onImportError(error);
@@ -118,65 +113,96 @@ function VoyaPasteImport({ onImportSuccess, onImportError }) {
     setShowPreview(false);
   };
 
-  const formatDate = (isoString) => {
-    const date = new Date(isoString);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
   // Show preview mode
   if (showPreview && parsedData) {
+    const summary = VoyaParser.getSummary(parsedData);
+
     return (
       <div className="voya-paste-import">
         <div className="preview-container">
-          <h3>📋 Preview Parsed Data</h3>
+          <h3>📋 Preview Transactions</h3>
 
-          <div className="preview-section">
-            <h4>Account Balance</h4>
-            <div className="balance-display">
-              <span className="label">Total Balance:</span>
-              <span className="value">${parsedData.account.balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-            </div>
-          </div>
-
-          {parsedData.holdings.length > 0 && (
-            <div className="preview-section">
-              <h4>Holdings</h4>
-              {parsedData.holdings.map((holding, idx) => (
-                <div key={idx} className="holding-preview">
-                  <div className="holding-name">
-                    <strong>{holding.ticker}</strong> - {holding.name}
-                  </div>
-                  <div className="holding-details">
-                    <span>{holding.shares.toFixed(4)} shares @ ${holding.price.toFixed(2)}</span>
-                    <span className="holding-value">${holding.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                  </div>
-                  <div className="holding-percentage">{holding.percentage}%</div>
-                </div>
-              ))}
+          {summary && (
+            <div className="preview-summary">
+              <div className="summary-stat">
+                <span className="label">Total Transactions:</span>
+                <span className="value">{summary.totalTransactions}</span>
+              </div>
+              <div className="summary-stat">
+                <span className="label">Total Amount:</span>
+                <span className="value">{formatCurrency(summary.totalAmount)}</span>
+              </div>
+              <div className="summary-stat">
+                <span className="label">Total Shares:</span>
+                <span className="value">{formatShares(summary.totalShares)}</span>
+              </div>
+              <div className="summary-stat">
+                <span className="label">Date Range:</span>
+                <span className="value">{formatDate(summary.dateRange.earliest)} to {formatDate(summary.dateRange.latest)}</span>
+              </div>
             </div>
           )}
 
-          {parsedData.sources.length > 0 && (
+          <div className="preview-section">
+            <h4>Transactions</h4>
+            <div className="table-wrapper">
+              <table className="preview-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Activity</th>
+                    <th>Fund</th>
+                    <th>Source</th>
+                    <th>Shares</th>
+                    <th>Price</th>
+                    <th>Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {parsedData.transactions.map((tx, idx) => (
+                    <tr key={idx}>
+                      <td>{formatDate(tx.date)}</td>
+                      <td>{tx.activity}</td>
+                      <td>{formatFundName(tx.fund)}</td>
+                      <td>{formatSourceName(tx.moneySource)}</td>
+                      <td>{formatShares(tx.units)}</td>
+                      <td>{formatUnitPrice(tx.unitPrice)}</td>
+                      <td>{formatCurrency(tx.amount)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {summary && summary.bySource && (
             <div className="preview-section">
-              <h4>Sources</h4>
-              {parsedData.sources.map((source, idx) => (
-                <div key={idx} className="source-preview">
-                  <span className="source-name">{source.name}</span>
-                  <span className="source-balance">${source.balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                </div>
-              ))}
+              <h4>By Money Source</h4>
+              <div className="summary-grid">
+                {Object.entries(summary.bySource).map(([source, data]) => (
+                  <div key={source} className="summary-card">
+                    <div className="card-title">{formatSourceName(source)}</div>
+                    <div className="card-stat">
+                      <span className="label">Transactions:</span>
+                      <span className="value">{data.count}</span>
+                    </div>
+                    <div className="card-stat">
+                      <span className="label">Amount:</span>
+                      <span className="value">{formatCurrency(data.amount)}</span>
+                    </div>
+                    <div className="card-stat">
+                      <span className="label">Shares:</span>
+                      <span className="value">{formatShares(data.shares)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
           <div className="button-group">
             <button onClick={handleSave} disabled={isProcessing} className="btn-primary">
-              {isProcessing ? '💾 Saving...' : '✅ Save Snapshot'}
+              {isProcessing ? '💾 Saving...' : '✅ Import Transactions'}
             </button>
             <button onClick={handleCancel} disabled={isProcessing} className="btn-secondary">
               ← Back
@@ -190,49 +216,52 @@ function VoyaPasteImport({ onImportSuccess, onImportError }) {
   // Show main import form
   return (
     <div className="voya-paste-import">
-      {latestSnapshot && (
-        <div className="latest-snapshot">
-          <h4>💰 Current Balance</h4>
-          <div className="snapshot-summary">
-            <div className="snapshot-balance">
-              <span className="label">Balance:</span>
-              <span className="value">${latestSnapshot.account.balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-            </div>
-            <div className="snapshot-date">
-              <span className="label">Last Updated:</span>
-              <span className="value">{formatDate(latestSnapshot.timestamp)}</span>
-            </div>
+      {latestTransactions.length > 0 && (
+        <div className="latest-transactions">
+          <h4>📊 Recent Transactions</h4>
+          <div className="transactions-summary">
+            <p>You have {latestTransactions.length} recent Voya transaction(s) imported.</p>
+            <p className="meta">Last import: {formatDate(latestTransactions[0]?.date)}</p>
           </div>
         </div>
       )}
 
       <div className="import-form">
-        <h3>📥 Import Voya Data</h3>
+        <h3>📥 Import Voya Transactions</h3>
 
         <div className="info-box">
           <p><strong>How to import:</strong></p>
           <ol>
             <li>Log in to <a href="https://my.voya.com" target="_blank" rel="noopener noreferrer">my.voya.com</a></li>
-            <li>Navigate to your account balances page</li>
-            <li>Select and copy <strong>both sections</strong>:
+            <li>Navigate to your transaction history page</li>
+            <li>Select and copy the transaction table with <strong>all columns</strong>:
               <ul>
-                <li>Fund Balances (fund name, shares, price)</li>
-                <li>Source Balances (PreTax, Roth, Match)</li>
+                <li>Date</li>
+                <li>Activity (e.g., "Contribution", "Fund Transfer In")</li>
+                <li>Fund (fund name/ticker)</li>
+                <li>Money Source (PreTax, Roth, Match, etc.)</li>
+                <li># of Units/Shares</li>
+                <li>Unit/Share Price</li>
+                <li>Amount</li>
               </ul>
             </li>
             <li>Paste the copied text below</li>
             <li>Click "Parse & Preview"</li>
           </ol>
+          <p className="note">
+            <strong>Note:</strong> "Fund Transfer In" transactions establish your initial cost basis.
+            Regular "Contribution" transactions are counted as new contributions.
+          </p>
         </div>
 
         <div className="form-group">
-          <label htmlFor="voya-paste">Paste Voya Data:</label>
+          <label htmlFor="voya-paste">Paste Voya Transaction Data:</label>
           <textarea
             id="voya-paste"
             className="paste-textarea"
             value={pastedText}
             onChange={(e) => setPastedText(e.target.value)}
-            placeholder="Paste fund balances and source balances here...&#x0a;&#x0a;Example:&#x0a;0899 Vanguard 500 Index Fund Adm: 100%&#x0a;$ 39.17  184.44  $7,224.90&#x0a;&#x0a;Employee PreTax&#x0a;$ 4,161.19&#x0a;ROTH&#x0a;$ 74.14&#x0a;..."
+            placeholder="Paste transaction data here...&#x0a;&#x0a;Example:&#x0a;Date	Activity	Fund	Money Source	# of Units/Shares	Unit/Share Price	Amount&#x0a;09/18/2025	Fund Transfer In	0899 Vanguard 500 Index Fund Adm	Employee PreTax	106.228	$39.006	$4,143.56&#x0a;09/24/2025	Contribution	0899 Vanguard 500 Index Fund Adm	ROTH	1.893	$39.039	$73.89"
             disabled={isProcessing}
             rows={12}
           />

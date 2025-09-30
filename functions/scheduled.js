@@ -1,13 +1,22 @@
 /**
  * Cloudflare Scheduled Worker - Daily Holdings Sync
- * Runs daily to fetch current holdings from Plaid and save snapshots
+ * DISABLED: Now using transaction-based portfolio tracking instead of snapshots
+ *
+ * Historical note: This worker previously synced Plaid holdings as snapshots.
+ * We've migrated to a transaction-based system where:
+ * - Plaid transactions are fetched on-demand via PlaidTransactionManager
+ * - Voya transactions are manually imported
+ * - Portfolio is calculated from transaction history using aggregatePortfolio()
  */
 import { initializePlaidClient } from '../lib/plaidConfig.js';
 import { createSupabaseAdmin } from '../src/lib/supabaseAdmin.js';
 
 export default {
   async scheduled(event, env, ctx) {
-    console.log('🕐 Starting scheduled holdings sync', new Date().toISOString());
+    console.log('⏸️  Scheduled holdings sync is DISABLED (using transaction-based tracking)', new Date().toISOString());
+
+    // Return early - don't run snapshot sync
+    return;
 
     try {
       const supabase = createSupabaseAdmin(env);

@@ -6,6 +6,7 @@
 import PlaidService from './PlaidService';
 import MockPlaidService from './MockPlaidService';
 import TransactionHashService from './TransactionHashService';
+import { shouldImportTransaction } from '../config/accountConfig.js';
 
 class PlaidTransactionManager {
   constructor() {
@@ -153,7 +154,7 @@ class PlaidTransactionManager {
     const accountsMap = new Map(accounts.map(acc => [acc.account_id, acc]));
 
     // Filter and convert investment transactions
-    return investment_transactions
+    const converted = investment_transactions
       .filter(plaidTx => {
         // Only include actual security transactions (buy/sell), skip transfers and dividends without securities
         const hasSecurityId = plaidTx.security_id && plaidTx.security_id.trim() !== '';
@@ -188,7 +189,7 @@ class PlaidTransactionManager {
         };
 
         // Enhance with metadata using TransactionHashService
-        return TransactionHashService.enhanceTransaction(baseTx, {
+        const enhanced = TransactionHashService.enhanceTransaction(baseTx, {
           sourceType: isMockData ? 'mock' : 'plaid',
           sourceId: connectionData.itemId || 'unknown',
           plaidTransactionId: plaidTx.investment_transaction_id,
@@ -206,7 +207,31 @@ class PlaidTransactionManager {
             accountSubtype: account?.subtype
           }
         });
+
+        // Store account reference for filtering
+        enhanced._account = account;
+
+        return enhanced;
       });
+
+    // Apply account-specific symbol filtering
+    const filtered = converted.filter(tx => {
+      const account = tx._account;
+      const shouldImport = shouldImportTransaction(
+        tx,
+        account?.account_id,
+        account?.name
+      );
+
+      // Clean up temp reference
+      delete tx._account;
+
+      return shouldImport;
+    });
+
+    console.log(`🔍 Symbol filtering: ${converted.length} converted → ${filtered.length} after account rules`);
+
+    return filtered;
   }
 
   /**

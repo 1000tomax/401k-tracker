@@ -1,59 +1,43 @@
 /**
- * Voya Data Parser
- * Parses copy-pasted text from Voya website to extract account information
+ * Voya Transaction Parser
+ * Parses copy-pasted transaction data from Voya website
+ * Uses the existing parseTransactions utility for consistent transaction handling
  */
+import { parseTransactions } from '../utils/parseTransactions.js';
 
 class VoyaParser {
   /**
-   * Parse pasted Voya data containing fund balances and source balances
-   * @param {string} pastedText - Raw text copied from Voya website
-   * @returns {object} Parsed account data with holdings and sources
+   * Parse pasted Voya transaction data
+   * @param {string} pastedText - Raw text copied from Voya transaction history
+   * @returns {object} Parsed transaction data
    */
   parse(pastedText) {
     try {
-      console.log('🔍 VoyaParser: Starting parse of pasted data');
+      console.log('🔍 VoyaParser: Starting parse of pasted transaction data');
 
-      const result = {
+      // Use the existing parseTransactions utility
+      // It already handles the format from Voya:
+      // Date  Activity  Fund  Money Source  Units  Price  Amount
+      const transactions = parseTransactions(pastedText);
+
+      if (transactions.length === 0) {
+        throw new Error('No valid transactions found in pasted text. Please make sure you copied the transaction history from Voya.');
+      }
+
+      console.log(`✅ VoyaParser: Successfully parsed ${transactions.length} transaction(s)`);
+
+      // Add Voya-specific metadata to each transaction
+      const voyaTransactions = transactions.map(tx => ({
+        ...tx,
+        sourceType: 'voya',
+        sourceId: 'voya_401k',
+      }));
+
+      return {
         timestamp: new Date().toISOString(),
-        account: {
-          name: 'AUTOMATED HEALTH SYSTEMS 401(K) RETIREMENT PLAN',
-          type: '401k',
-          balance: 0
-        },
-        holdings: [],
-        sources: []
+        transactions: voyaTransactions,
+        count: voyaTransactions.length,
       };
-
-      // Parse fund balances section
-      const holdings = this.parseFundBalances(pastedText);
-      if (holdings.length > 0) {
-        result.holdings = holdings;
-        // Calculate total balance from holdings
-        result.account.balance = holdings.reduce((sum, h) => sum + h.value, 0);
-      }
-
-      // Parse source balances section
-      const sources = this.parseSourceBalances(pastedText);
-      if (sources.length > 0) {
-        result.sources = sources;
-        // If we didn't get balance from holdings, use source total
-        if (result.account.balance === 0) {
-          result.account.balance = sources.reduce((sum, s) => sum + s.balance, 0);
-        }
-      }
-
-      // Validation
-      if (result.holdings.length === 0 && result.sources.length === 0) {
-        throw new Error('No valid data found in pasted text. Please make sure you copied the fund balances and source balances sections.');
-      }
-
-      console.log('✅ VoyaParser: Parse successful', {
-        balance: result.account.balance,
-        holdings: result.holdings.length,
-        sources: result.sources.length
-      });
-
-      return result;
     } catch (error) {
       console.error('❌ VoyaParser: Parse failed:', error);
       throw error;
@@ -61,142 +45,94 @@ class VoyaParser {
   }
 
   /**
-   * Parse fund balances section
-   * Example format:
-   * "0899 Vanguard 500 Index Fund Adm: 100%"
-   * "$ 39.17	184.44	$7,224.90"
-   */
-  parseFundBalances(text) {
-    const holdings = [];
-
-    try {
-      // Pattern to match fund lines like "0899 Vanguard 500 Index Fund Adm: 100%"
-      const fundNamePattern = /(\d{4})\s+([^:]+):\s*(\d+(?:\.\d+)?)%/g;
-
-      // Pattern to match value lines like "$ 39.17	184.44	$7,224.90"
-      // More flexible to handle various spacing/tabs
-      const valuePattern = /\$\s*([\d,]+\.?\d*)\s+([\d,]+\.?\d*)\s+\$\s*([\d,]+\.?\d*)/g;
-
-      const fundMatches = [...text.matchAll(fundNamePattern)];
-      const valueMatches = [...text.matchAll(valuePattern)];
-
-      // Match funds with their values
-      for (let i = 0; i < fundMatches.length && i < valueMatches.length; i++) {
-        const fundMatch = fundMatches[i];
-        const valueMatch = valueMatches[i];
-
-        const fundCode = fundMatch[1];
-        const fundName = fundMatch[2].trim();
-        const percentage = parseFloat(fundMatch[3]);
-
-        const price = parseFloat(valueMatch[1].replace(/,/g, ''));
-        const shares = parseFloat(valueMatch[2].replace(/,/g, ''));
-        const value = parseFloat(valueMatch[3].replace(/,/g, ''));
-
-        // Map fund names to tickers (we know VFIAX, can add more)
-        let ticker = 'UNKNOWN';
-        if (fundName.toLowerCase().includes('vanguard 500') || fundName.toLowerCase().includes('vfiax')) {
-          ticker = 'VFIAX';
-        }
-
-        holdings.push({
-          fundCode,
-          name: fundName,
-          ticker,
-          shares,
-          price,
-          value,
-          percentage
-        });
-
-        console.log(`✅ VoyaParser: Found holding: ${ticker} - ${shares} shares @ $${price} = $${value}`);
-      }
-    } catch (error) {
-      console.warn('⚠️ VoyaParser: Error parsing fund balances:', error);
-    }
-
-    return holdings;
-  }
-
-  /**
-   * Parse source balances section
-   * Example format:
-   * "Employee PreTax"
-   * "$ 4,161.19	$ 4,161.19"
-   * "ROTH"
-   * "$ 74.14	$ 74.14"
-   */
-  parseSourceBalances(text) {
-    const sources = [];
-
-    try {
-      // Common source names to look for
-      const sourcePatterns = [
-        { pattern: /Employee PreTax/i, name: 'Employee PreTax' },
-        { pattern: /ROTH/i, name: 'ROTH' },
-        { pattern: /Safe Harbor Match/i, name: 'Safe Harbor Match' },
-        { pattern: /Employer Match/i, name: 'Employer Match' },
-        { pattern: /Profit Sharing/i, name: 'Profit Sharing' }
-      ];
-
-      for (const { pattern, name } of sourcePatterns) {
-        const match = text.match(pattern);
-        if (match) {
-          // Find the dollar amount after this source name
-          const startIndex = match.index + match[0].length;
-          const remainingText = text.substring(startIndex);
-
-          // Look for dollar amount pattern: $ 4,161.19 or $4,161.19
-          const amountMatch = remainingText.match(/\$\s*([\d,]+\.?\d*)/);
-
-          if (amountMatch) {
-            const balance = parseFloat(amountMatch[1].replace(/,/g, ''));
-            sources.push({ name, balance });
-            console.log(`✅ VoyaParser: Found source: ${name} = $${balance}`);
-          }
-        }
-      }
-
-      // Alternative pattern: try to find "Source Name" followed by amounts
-      // Pattern like: "Employee PreTax\n$ 4,161.19	$ 4,161.19"
-      const linePattern = /(Employee PreTax|ROTH|Safe Harbor Match|Employer Match|Profit Sharing)\s*\n?\s*\$\s*([\d,]+\.?\d*)/gi;
-      const lineMatches = [...text.matchAll(linePattern)];
-
-      for (const match of lineMatches) {
-        const sourceName = match[1];
-        const balance = parseFloat(match[2].replace(/,/g, ''));
-
-        // Check if we already have this source
-        const existing = sources.find(s => s.name === sourceName);
-        if (!existing) {
-          sources.push({ name: sourceName, balance });
-          console.log(`✅ VoyaParser: Found source (alt): ${sourceName} = $${balance}`);
-        }
-      }
-    } catch (error) {
-      console.warn('⚠️ VoyaParser: Error parsing source balances:', error);
-    }
-
-    return sources;
-  }
-
-  /**
-   * Validate parsed data
+   * Validate parsed transaction data
+   * @param {object} parsedData - Data returned from parse()
+   * @returns {boolean} True if valid
    */
   validate(parsedData) {
-    if (!parsedData.account || !parsedData.account.balance) {
-      throw new Error('No balance found in parsed data');
+    if (!parsedData || !parsedData.transactions) {
+      throw new Error('Invalid parsed data: missing transactions');
     }
 
-    if (parsedData.account.balance <= 0) {
-      throw new Error('Invalid balance: must be greater than 0');
+    if (!Array.isArray(parsedData.transactions)) {
+      throw new Error('Invalid parsed data: transactions must be an array');
     }
 
-    if (parsedData.holdings.length === 0 && parsedData.sources.length === 0) {
-      throw new Error('No holdings or sources found in parsed data');
+    if (parsedData.transactions.length === 0) {
+      throw new Error('No transactions found in parsed data');
+    }
+
+    // Validate each transaction has required fields
+    for (const tx of parsedData.transactions) {
+      if (!tx.date) {
+        throw new Error('Transaction missing required field: date');
+      }
+      if (!tx.fund) {
+        throw new Error('Transaction missing required field: fund');
+      }
+      if (!tx.activity) {
+        throw new Error('Transaction missing required field: activity');
+      }
     }
 
     return true;
+  }
+
+  /**
+   * Get transaction summary for display
+   * @param {object} parsedData - Data returned from parse()
+   * @returns {object} Summary statistics
+   */
+  getSummary(parsedData) {
+    if (!parsedData || !parsedData.transactions) {
+      return null;
+    }
+
+    const transactions = parsedData.transactions;
+    const totalAmount = transactions.reduce((sum, tx) => sum + (tx.amount || 0), 0);
+    const totalShares = transactions.reduce((sum, tx) => sum + (tx.units || 0), 0);
+
+    // Group by money source
+    const bySource = {};
+    transactions.forEach(tx => {
+      const source = tx.moneySource || 'Unknown';
+      if (!bySource[source]) {
+        bySource[source] = {
+          count: 0,
+          amount: 0,
+          shares: 0,
+        };
+      }
+      bySource[source].count++;
+      bySource[source].amount += tx.amount || 0;
+      bySource[source].shares += tx.units || 0;
+    });
+
+    // Group by activity type
+    const byActivity = {};
+    transactions.forEach(tx => {
+      const activity = tx.activity || 'Unknown';
+      if (!byActivity[activity]) {
+        byActivity[activity] = {
+          count: 0,
+          amount: 0,
+        };
+      }
+      byActivity[activity].count++;
+      byActivity[activity].amount += tx.amount || 0;
+    });
+
+    return {
+      totalTransactions: transactions.length,
+      totalAmount,
+      totalShares,
+      bySource,
+      byActivity,
+      dateRange: {
+        earliest: transactions.reduce((min, tx) => tx.date < min ? tx.date : min, transactions[0].date),
+        latest: transactions.reduce((max, tx) => tx.date > max ? tx.date : max, transactions[0].date),
+      },
+    };
   }
 }
 

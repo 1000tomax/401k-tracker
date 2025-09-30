@@ -1,4 +1,4 @@
-name: Daily Holdings Sync
+name: Daily Transaction Sync
 
 on:
   schedule:
@@ -7,10 +7,10 @@ on:
   workflow_dispatch: # Allows manual trigger from GitHub Actions tab
 
 jobs:
-  sync-holdings:
+  sync-transactions:
     runs-on: ubuntu-latest
     steps:
-      - name: Sync Plaid Holdings
+      - name: Sync Plaid Transactions
         run: |
           curl -X POST https://401k.mreedon.com/api/sync/holdings \
             -H "X-401K-Token: ${{ secrets.API_SHARED_TOKEN }}" \

@@ -1,6 +1,6 @@
 /**
  * Voya Database Service
- * Handles saving Voya snapshots to the database
+ * Handles saving Voya transactions to the database
  */
 
 class VoyaDatabaseService {
@@ -20,113 +20,154 @@ class VoyaDatabaseService {
   }
 
   /**
-   * Save a Voya snapshot to the database
-   * @param {object} snapshot - Parsed Voya data with holdings and sources
-   * @returns {Promise} Response from API
+   * Import Voya transactions to the database
+   * @param {Array} transactions - Array of parsed transaction objects
+   * @returns {Promise} Response from API with import results
    */
-  async saveSnapshot(snapshot) {
+  async importTransactions(transactions) {
     try {
-      console.log('💾 VoyaDatabaseService: Saving snapshot to database', {
-        balance: snapshot.account?.balance,
-        sources: snapshot.sources?.length,
-        timestamp: snapshot.timestamp
+      console.log('💾 VoyaDatabaseService: Importing transactions to database', {
+        count: transactions.length
       });
 
-      const response = await fetch(`${this.baseURL}/voya/save-snapshot`, {
+      // Add source metadata to each transaction
+      const voyaTransactions = transactions.map(tx => ({
+        ...tx,
+        source_type: 'voya',
+        source_id: 'voya_401k',
+      }));
+
+      const response = await fetch(`${this.baseURL}/db/transactions`, {
         method: 'POST',
         headers: this.getHeaders(),
-        body: JSON.stringify({ snapshot }),
+        body: JSON.stringify({ transactions: voyaTransactions }),
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Failed to save snapshot: ${response.status}`);
+        throw new Error(errorData.error || `Failed to import transactions: ${response.status}`);
       }
 
       const data = await response.json();
-      console.log('✅ VoyaDatabaseService: Snapshot saved successfully', {
-        saved: data.saved,
-        snapshot_date: data.snapshot_date
+      console.log('✅ VoyaDatabaseService: Transactions imported successfully', {
+        imported: data.results?.imported,
+        duplicates: data.results?.duplicates,
+        total: data.results?.total
       });
 
-      return data;
+      return {
+        imported: data.results?.imported || 0,
+        duplicates: data.results?.duplicates || 0,
+        updated: data.results?.updated || 0,
+        total: data.results?.total || 0,
+        errors: data.results?.errors || 0,
+      };
     } catch (error) {
-      console.error('❌ VoyaDatabaseService: Failed to save snapshot:', error);
+      console.error('❌ VoyaDatabaseService: Failed to import transactions:', error);
       throw error;
     }
   }
 
   /**
-   * Get all Voya snapshots from database
-   * This would call the holdings/snapshots endpoint which includes all holdings (Plaid + Voya)
+   * Get latest Voya transactions from database
+   * @param {number} limit - Number of transactions to fetch
+   * @returns {Promise<Array>} Array of transactions
    */
-  async getSnapshots(daysBack = 90) {
+  async getLatestTransactions(limit = 10) {
     try {
-      console.log('📥 VoyaDatabaseService: Fetching snapshots from database');
+      console.log('📥 VoyaDatabaseService: Fetching latest transactions from database');
 
-      const response = await fetch(`${this.baseURL}/holdings/snapshots?days=${daysBack}`, {
+      const response = await fetch(`${this.baseURL}/db/transactions?source_type=voya&limit=${limit}`, {
         method: 'GET',
         headers: this.getHeaders(),
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Failed to get snapshots: ${response.status}`);
+        throw new Error(errorData.error || `Failed to get transactions: ${response.status}`);
       }
 
       const data = await response.json();
 
-      // Filter to only Voya accounts
-      const voyaHoldings = data.currentHoldings?.filter(h =>
-        h.accountName?.includes('401(K)') ||
-        h.accountName?.includes('Voya')
-      ) || [];
-
-      console.log('✅ VoyaDatabaseService: Fetched Voya snapshots', {
-        total: data.currentHoldings?.length,
-        voya: voyaHoldings.length
+      console.log('✅ VoyaDatabaseService: Fetched transactions', {
+        count: data.transactions?.length || 0
       });
 
-      return {
-        ...data,
-        voyaHoldings
-      };
+      return data.transactions || [];
     } catch (error) {
-      console.error('❌ VoyaDatabaseService: Failed to get snapshots:', error);
+      console.error('❌ VoyaDatabaseService: Failed to get transactions:', error);
+      // Return empty array instead of throwing - this is not critical
+      return [];
+    }
+  }
+
+  /**
+   * Get all Voya transactions from database
+   * @param {object} options - Query options (dateFrom, dateTo, etc.)
+   * @returns {Promise<Array>} Array of transactions
+   */
+  async getAllTransactions(options = {}) {
+    try {
+      const { dateFrom, dateTo, fund } = options;
+      const params = new URLSearchParams({
+        source_type: 'voya',
+      });
+
+      if (dateFrom) params.append('date_from', dateFrom);
+      if (dateTo) params.append('date_to', dateTo);
+      if (fund) params.append('fund', fund);
+
+      console.log('📥 VoyaDatabaseService: Fetching all transactions from database');
+
+      const response = await fetch(`${this.baseURL}/db/transactions?${params.toString()}`, {
+        method: 'GET',
+        headers: this.getHeaders(),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to get transactions: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      console.log('✅ VoyaDatabaseService: Fetched all transactions', {
+        count: data.transactions?.length || 0
+      });
+
+      return data.transactions || [];
+    } catch (error) {
+      console.error('❌ VoyaDatabaseService: Failed to get all transactions:', error);
       throw error;
     }
   }
 
   /**
-   * Get latest Voya snapshot
+   * Delete a transaction by ID
+   * @param {string} transactionId - Transaction ID to delete
+   * @returns {Promise} Response from API
    */
-  async getLatestSnapshot() {
+  async deleteTransaction(transactionId) {
     try {
-      const data = await this.getSnapshots(7); // Last 7 days
+      console.log('🗑️ VoyaDatabaseService: Deleting transaction', { transactionId });
 
-      if (!data.voyaHoldings || data.voyaHoldings.length === 0) {
-        return null;
+      const response = await fetch(`${this.baseURL}/db/transactions/${transactionId}`, {
+        method: 'DELETE',
+        headers: this.getHeaders(),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to delete transaction: ${response.status}`);
       }
 
-      // Calculate total balance across all sources
-      const totalBalance = data.voyaHoldings.reduce((sum, h) => sum + h.marketValue, 0);
+      const data = await response.json();
+      console.log('✅ VoyaDatabaseService: Transaction deleted successfully');
 
-      return {
-        timestamp: data.totals?.lastUpdated,
-        account: {
-          name: 'AUTOMATED HEALTH SYSTEMS 401(K) RETIREMENT PLAN',
-          type: '401k',
-          balance: totalBalance
-        },
-        holdings: data.voyaHoldings,
-        sources: data.voyaHoldings.map(h => ({
-          name: h.accountName.match(/\((.*?)\)/)?.[1] || 'Unknown',
-          balance: h.marketValue
-        }))
-      };
+      return data;
     } catch (error) {
-      console.error('❌ VoyaDatabaseService: Failed to get latest snapshot:', error);
-      return null;
+      console.error('❌ VoyaDatabaseService: Failed to delete transaction:', error);
+      throw error;
     }
   }
 }

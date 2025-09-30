@@ -420,7 +420,7 @@ function ensureFundTotals(target, fund) {
 const FLOW_RULES = {
   deposit: [/contribution/i, /dividend/i, /interest/i, /match/i, /loan repayment/i, /deposit/i, /transfer.*from/i, /acat/i],
   withdrawal: [/loan issue/i, /withdrawal/i, /distribution/i, /fee/i, /service fee/i],
-  neutral: [/exchange/i, /rebalance/i, /reallocation/i, /buy/i, /sell/i], // Buys/Sells are neutral - we only track current holdings
+  neutral: [/exchange/i, /rebalance/i, /reallocation/i, /buy/i, /sell/i, /fund transfer in/i, /fund transfer out/i], // Buys/Sells/Fund transfers are neutral - we only track current holdings
 };
 
 function classifyFlow(activity) {

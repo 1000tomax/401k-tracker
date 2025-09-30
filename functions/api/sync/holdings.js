@@ -1,10 +1,64 @@
 /**
- * Manual Holdings Sync Endpoint
- * Triggers an immediate sync of all Plaid holdings
+ * Plaid Transaction Sync Endpoint
+ * Triggers an immediate sync of Plaid investment transactions
+ * Updated to use transaction-based tracking instead of snapshots
  */
 import { initializePlaidClient } from '../../../src/lib/plaidConfig.js';
 import { createSupabaseAdmin } from '../../../src/lib/supabaseAdmin.js';
 import { handleCors, requireSharedToken, jsonResponse } from '../../../src/utils/cors-workers.js';
+
+// Import filtering logic
+function shouldImportTransaction(transaction, accountName) {
+  // Match Roth IRA accounts
+  const lowerName = (accountName || '').toLowerCase();
+  const isRothIRA = lowerName.includes('roth') && lowerName.includes('ira');
+
+  if (isRothIRA) {
+    // Roth IRA: Only import specific symbols
+    const allowedSymbols = ['VTI', 'DES', 'SCHD', 'QQQM'];
+    const symbol = (transaction.fund || '').toUpperCase().trim();
+
+    if (!allowedSymbols.includes(symbol)) {
+      return false;
+    }
+
+    // Only buy/sell transactions
+    const activity = (transaction.activity || '').toUpperCase();
+    const isAllowedType = ['PURCHASED', 'SOLD', 'BUY', 'SELL'].some(type =>
+      activity.includes(type)
+    );
+
+    if (!isAllowedType) {
+      return false;
+    }
+
+    // Ignore dividends
+    if (/dividend/i.test(transaction.activity || '')) {
+      return false;
+    }
+
+    // Ignore cash transfers
+    const isCashTransfer = /transfer|deposit|ach|cash/i.test(transaction.activity || '');
+    const hasNoShares = !transaction.units || Math.abs(transaction.units) < 0.0001;
+    if (isCashTransfer || hasNoShares) {
+      return false;
+    }
+  }
+
+  // For non-Roth accounts (401k, etc.), import all
+  return true;
+}
+
+function generateTransactionHash(tx) {
+  const data = `${tx.date}|${tx.amount}|${tx.fund?.toLowerCase() || ''}|${tx.activity?.toLowerCase() || ''}`;
+  let hash = 0;
+  for (let i = 0; i < data.length; i++) {
+    const char = data.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash).toString(16).slice(0, 8);
+}
 
 export async function onRequestPost(context) {
   const { request, env } = context;
@@ -36,60 +90,131 @@ export async function onRequestPost(context) {
       }, 200, env);
     }
 
-    console.log(`📊 Manual sync: Processing ${connections.length} connection(s)`);
+    console.log(`📊 Transaction sync: Processing ${connections.length} connection(s)`);
 
-    const today = new Date().toISOString().split('T')[0];
-    let totalHoldings = 0;
+    const endDate = new Date().toISOString().split('T')[0];
+    const startDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+    let totalTransactions = 0;
+    let totalImported = 0;
+    let totalDuplicates = 0;
     const errors = [];
     const results = [];
 
     for (const connection of connections) {
       try {
-        // Fetch holdings from Plaid
-        const response = await plaidClient.investmentsHoldingsGet({
+        console.log(`🔍 Fetching transactions for ${connection.institution_name}`);
+
+        // Fetch investment transactions from Plaid
+        const response = await plaidClient.investmentsTransactionsGet({
           access_token: connection.access_token,
+          start_date: startDate,
+          end_date: endDate,
         });
 
-        const { accounts, holdings, securities } = response.data;
-        let connectionHoldings = 0;
+        const { investment_transactions, accounts, securities } = response.data;
 
-        // Process each holding
-        for (const holding of holdings) {
-          const account = accounts.find(a => a.account_id === holding.account_id);
-          const security = securities.find(s => s.security_id === holding.security_id);
+        console.log(`📥 Received ${investment_transactions.length} transactions from ${connection.institution_name}`);
 
-          if (!account || !security) continue;
+        let connectionImported = 0;
+        let connectionDuplicates = 0;
+        let connectionFiltered = 0;
 
-          const snapshot = {
-            snapshot_date: today,
-            account_id: holding.account_id,
-            account_name: account.name,
+        // Create lookup maps
+        const securitiesMap = new Map(securities.map(sec => [sec.security_id, sec]));
+        const accountsMap = new Map(accounts.map(acc => [acc.account_id, acc]));
+
+        // Process each transaction
+        for (const plaidTx of investment_transactions) {
+          const security = securitiesMap.get(plaidTx.security_id);
+          const account = accountsMap.get(plaidTx.account_id);
+
+          if (!security || !account) continue;
+
+          // Convert to app format
+          const activity = plaidTx.type === 'buy' || plaidTx.type === 'purchase' ? 'Purchased' :
+                          plaidTx.type === 'sell' ? 'Sold' : plaidTx.type;
+
+          const rawUnits = parseFloat(plaidTx.quantity) || 0;
+          const rawAmount = parseFloat(plaidTx.amount) || 0;
+          const isSell = activity === 'Sold';
+
+          const transaction = {
+            date: plaidTx.date,
             fund: security.ticker_symbol || security.name,
-            shares: holding.quantity,
-            unit_price: holding.institution_price,
-            market_value: holding.institution_value,
+            moneySource: account.name,
+            activity: activity,
+            units: isSell ? -Math.abs(rawUnits) : Math.abs(rawUnits),
+            unitPrice: parseFloat(plaidTx.price) || 0,
+            amount: isSell ? -Math.abs(rawAmount) : Math.abs(rawAmount),
           };
 
-          // Upsert snapshot (update if exists for today, insert if not)
+          // Apply account-specific filtering
+          if (!shouldImportTransaction(transaction, account.name)) {
+            connectionFiltered++;
+            continue;
+          }
+
+          // Generate hash for deduplication
+          const transactionHash = generateTransactionHash(transaction);
+
+          // Check if already exists
+          const { data: existing } = await supabase
+            .from('transactions')
+            .select('id')
+            .eq('transaction_hash', transactionHash)
+            .single();
+
+          if (existing) {
+            connectionDuplicates++;
+            continue;
+          }
+
+          // Insert transaction
           const { error: insertError } = await supabase
-            .from('holdings_snapshots')
-            .upsert(snapshot, {
-              onConflict: 'snapshot_date,account_id,fund',
-              ignoreDuplicates: false,
+            .from('transactions')
+            .insert({
+              date: transaction.date,
+              fund: transaction.fund,
+              money_source: transaction.moneySource,
+              activity: transaction.activity,
+              units: transaction.units,
+              unit_price: transaction.unitPrice,
+              amount: transaction.amount,
+              source_type: 'plaid',
+              source_id: connection.item_id,
+              plaid_transaction_id: plaidTx.investment_transaction_id,
+              plaid_account_id: plaidTx.account_id,
+              transaction_hash: transactionHash,
+              imported_at: new Date().toISOString(),
+              last_updated_at: new Date().toISOString(),
+              metadata: {
+                institution: connection.institution_name,
+                security_id: plaidTx.security_id,
+                fees: plaidTx.fees || 0,
+              },
             });
 
           if (insertError) {
-            console.error('Error saving snapshot:', insertError);
-            errors.push({
-              institution: connection.institution_name,
-              fund: snapshot.fund,
-              error: insertError.message,
-            });
+            if (insertError.code === '23505') {
+              // Duplicate key - count as duplicate
+              connectionDuplicates++;
+            } else {
+              console.error('Error saving transaction:', insertError);
+              errors.push({
+                institution: connection.institution_name,
+                transaction: `${transaction.fund} ${transaction.date}`,
+                error: insertError.message,
+              });
+            }
           } else {
-            connectionHoldings++;
-            totalHoldings++;
+            connectionImported++;
+            totalImported++;
           }
         }
+
+        totalTransactions += investment_transactions.length;
+        totalDuplicates += connectionDuplicates;
 
         // Update last_synced_at for this connection
         await supabase
@@ -99,10 +224,13 @@ export async function onRequestPost(context) {
 
         results.push({
           institution: connection.institution_name,
-          holdings_synced: connectionHoldings,
+          total_fetched: investment_transactions.length,
+          imported: connectionImported,
+          duplicates: connectionDuplicates,
+          filtered: connectionFiltered,
         });
 
-        console.log(`✅ Synced ${connectionHoldings} holdings for ${connection.institution_name}`);
+        console.log(`✅ ${connection.institution_name}: ${connectionImported} imported, ${connectionDuplicates} duplicates, ${connectionFiltered} filtered`);
 
       } catch (error) {
         console.error(`❌ Error syncing ${connection.institution_name}:`, error.message);
@@ -115,15 +243,18 @@ export async function onRequestPost(context) {
 
     return jsonResponse({
       ok: true,
-      message: 'Holdings sync complete',
-      synced: totalHoldings,
+      message: 'Transaction sync complete',
+      synced: totalImported,
+      total_transactions: totalTransactions,
+      imported: totalImported,
+      duplicates: totalDuplicates,
       results,
       errors: errors.length > 0 ? errors : undefined,
-      snapshot_date: today,
+      date_range: { start: startDate, end: endDate },
     }, 200, env);
 
   } catch (error) {
-    console.error('❌ Manual holdings sync failed:', error);
+    console.error('❌ Transaction sync failed:', error);
     return jsonResponse({
       ok: false,
       error: 'Sync failed',
