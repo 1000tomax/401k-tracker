@@ -1,12 +1,18 @@
 import { createSupabaseAdmin } from '../../../src/lib/supabaseAdmin.js';
-import { jsonResponse, validateAuth } from '../../../src/utils/cors-workers.js';
+import { jsonResponse, requireSharedToken, handleCors } from '../../../src/utils/cors-workers.js';
 
 export async function onRequestGet(context) {
   const { request, env } = context;
 
+  // Handle CORS preflight
+  const corsResponse = handleCors(request, env);
+  if (corsResponse) return corsResponse;
+
   // Validate authentication
-  const authError = validateAuth(request, env);
-  if (authError) return authError;
+  const authCheck = requireSharedToken(request, env);
+  if (!authCheck.ok) {
+    return jsonResponse({ ok: false, error: authCheck.message }, authCheck.status, env);
+  }
 
   try {
     const supabase = createSupabaseAdmin(env);
