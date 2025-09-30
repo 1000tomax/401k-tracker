@@ -1,319 +1,112 @@
-# 401K Tracker 🚀
+# 401K Tracker
 
-A modern, secure web application for tracking your 401k and investment portfolio performance with **automatic Plaid integration** for real-time data synchronization and comprehensive debugging tools.
+A modern portfolio tracking application for retirement accounts. Automatically syncs holdings from investment accounts via Plaid and provides daily snapshots of your portfolio value.
 
 ## 🔗 Live Demo
 
-**[Try it now: https://401k.mreedon.com](https://401k.mreedon.com)**
+**[https://401k.mreedon.com](https://401k.mreedon.com)**
 
-### Demo Features
-- **Plaid Integration**: Connect real 401k/investment accounts securely
-- **Mock Data Mode**: Test with realistic sample data in development
-- **Live Portfolio Tracking**: Real-time updates from connected accounts
-- **Advanced Debugging**: 5-tab debugging interface for data inspection
-- **Encrypted Storage**: Secure browser persistence for connected accounts
+## Features
 
-## ✨ Key Features
+- 🔗 **Plaid Integration** - Secure connection to investment accounts (M1 Finance, Voya, etc.)
+- 📊 **Holdings Tracking** - Real-time view of your current positions
+- 📈 **Account Growth Chart** - Visualize portfolio value over time
+- ⏰ **Daily Auto-Sync** - Automatic holdings refresh via GitHub Actions (6 AM UTC)
+- 🗄️ **Supabase Database** - Secure cloud storage for holdings snapshots
+- ⚡ **Cloudflare Pages** - Fast, global deployment with Workers Functions
 
-### 🏦 Plaid Integration & Database
-- **Real-time Account Connection**: Securely connect 401k and investment accounts
-- **Automatic Transaction Import**: Import investment transactions, holdings, and account data
-- **Supabase Database**: Persistent cloud storage for all financial data
-- **Smart Deduplication**: Three-level hash system prevents duplicate transactions
-- **Dual Environment Support**: Mock data for development, live Plaid for production
-- **Comprehensive Debugging**: 5-tab interface for inspecting all imported data
+## Tech Stack
 
-### 📊 Portfolio Analytics
-- **Real-time Portfolio Overview** with market value, contributions, and performance
-- **Interactive Growth Charts** comparing market value vs. contributions over time
-- **Investment Transaction History** with detailed fund breakdown
-- **ROI Calculation** and comprehensive gain/loss tracking
-- **Securities Analysis** with real-time pricing and performance metrics
+- **Frontend**: React, Vite, Recharts
+- **Backend**: Cloudflare Workers Functions
+- **Database**: Supabase (PostgreSQL)
+- **APIs**: Plaid API for financial data
+- **Hosting**: Cloudflare Pages
+- **Automation**: GitHub Actions
 
-### 🔒 Security & Privacy
-- **Bank-Level Security**: Plaid's institutional-grade encryption and security
-- **Password-Protected Access**: Multi-layer authentication system
-- **Secure Database**: Supabase PostgreSQL with Row Level Security (RLS)
-- **API Authentication**: Token-based authentication for all endpoints
-- **No Data Sharing**: Your financial data stays private and secure
-- **Session Management**: Secure access token handling and validation
+## Architecture
 
-### 🛠️ Developer Tools
-- **Advanced Debugging Interface**: 5 comprehensive tabs for data inspection
-  - Overview: Key metrics and connection status
-  - Raw Transactions: Direct API response data
-  - Converted Data: Processed transaction format
-  - Securities: Holdings and investment details
-  - Accounts: Connected account information
-- **Enhanced Logging**: Emoji-coded console logs throughout data flow
-- **Mock Data Service**: Realistic test data for development
-- **Environment Detection**: Automatic dev/production mode switching
+### Data Flow
+1. **Plaid Connections** stored in `plaid_connections` table
+2. **Daily Cron** (GitHub Actions) triggers `/api/sync/holdings`
+3. **Holdings Sync** fetches latest data from Plaid → saves to `holdings_snapshots`
+4. **Dashboard** reads from `holdings_snapshots` for display
 
-### 📱 Modern Interface
-- **Responsive Design** optimized for desktop, tablet, and mobile
-- **Professional Financial UI** with dark theme for comfortable viewing
-- **Real-time Updates** with live data synchronization
-- **Intuitive Navigation** between portfolio, import, and debugging tools
+### Database Tables
+- `plaid_connections` - Plaid access tokens and institution info
+- `holdings_snapshots` - Daily snapshots of portfolio holdings
 
-## 🚀 Quick Start
+## Setup
 
 ### Prerequisites
 - Node.js 18+
-- Plaid account (get free credentials at https://dashboard.plaid.com)
-- Supabase account (free tier available at https://supabase.com)
-- Modern web browser
+- Supabase account
+- Plaid account (production credentials)
+- Cloudflare Pages account
 
-### Installation
+### Environment Variables
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/1000tomax/401k-tracker.git
-   cd 401k-tracker
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Set up environment variables**
-
-   Copy `.env.example` to `.env.local` and fill in your credentials:
-   ```bash
-   cp .env.example .env.local
-   ```
-
-   Required variables:
-   ```bash
-   # API Security
-   API_SHARED_TOKEN=your-secure-random-token
-   VITE_401K_TOKEN=your-secure-random-token
-
-   # Plaid Configuration
-   PLAID_CLIENT_ID=your-plaid-client-id
-   PLAID_SECRET=your-plaid-secret
-   PLAID_ENV=production  # or 'sandbox' for testing
-   VITE_PLAID_ENV=production
-   VITE_PLAID_ACCESS_PASSWORD=secure-access-password
-
-   # Supabase Database
-   SUPABASE_URL=your-supabase-project-url
-   SUPABASE_ANON_KEY=your-supabase-anon-key
-   SUPABASE_SERVICE_KEY=your-supabase-service-role-key
-   VITE_SUPABASE_URL=your-supabase-project-url
-   VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
-   ```
-
-   Get your Plaid credentials from: https://dashboard.plaid.com/team/keys
-   Get your Supabase credentials from: https://app.supabase.com/project/_/settings/api
-
-4. **Start the development server**
-   ```bash
-   npm run dev
-   ```
-
-5. **Open your browser** to `http://localhost:5173`
-
-## 💡 Usage Guide
-
-### Connecting Your Accounts
-
-#### Development Mode
-1. **Mock Data**: Click "Connect with Mock Data" for instant testing
-2. **Real Plaid**: Enter access password and connect actual accounts
-
-#### Production Mode
-1. Enter your secure access password
-2. Click "Connect Your 401k Account"
-3. Select your financial institution through Plaid Link
-4. Authenticate with your bank credentials
-5. Choose accounts to connect
-
-### Using the Debugging Interface
-
-The 5-tab debugging interface provides comprehensive data inspection:
-
-1. **Overview Tab**: Connection status, account summary, key metrics
-2. **Raw Transactions Tab**: Direct API responses from Plaid
-3. **Converted Tab**: Processed data in application format
-4. **Securities Tab**: Investment holdings and fund details
-5. **Accounts Tab**: Connected account information
-
-### Data Persistence
-
-Your connected accounts automatically persist:
-- **Encrypted Storage**: Data encrypted in browser localStorage
-- **30-Day Expiration**: Automatic cleanup of old connections
-- **Session Management**: 8-hour authenticated sessions
-- **Clear Data**: Development tools for testing and cleanup
-
-## 🏗️ Architecture
-
-### Technology Stack
-
-**Frontend:**
-- React 18 with modern hooks and context
-- Vite for fast development and building
-- React Router 6 for navigation
-- Recharts for data visualization
-
-**Integration:**
-- Plaid API for financial data
-- react-plaid-link for secure authentication
-- Web Crypto API for encryption
-- localStorage for persistence
-
-**Development:**
-- Comprehensive debugging interface
-- Mock data services
-- Environment-based configuration
-- Hot module replacement
-
-### Project Structure
-
-```
-src/
-├── components/
-│   ├── PlaidDebugger.jsx      # 5-tab debugging interface
-│   ├── PlaidLink.jsx          # Secure account connection
-│   ├── MockPlaidLink.jsx      # Development mock service
-│   ├── ImportMethodSelector.jsx # Dual environment selector
-│   └── PlaidAuth.jsx          # Authentication component
-├── contexts/
-│   └── PlaidAuthContext.jsx   # Authentication & session state
-├── services/
-│   ├── PlaidService.js        # Main Plaid API service
-│   ├── MockPlaidService.js    # Development mock data
-│   └── PlaidStorageService.js # Encrypted browser storage
-├── pages/
-│   ├── Dashboard.jsx          # Portfolio overview
-│   └── Import.jsx             # Data import & debugging
-├── utils/
-│   ├── parseTransactions.js   # Legacy CSV parsing
-│   └── formatters.js          # Data formatting utilities
-└── App.jsx                    # Main application
-```
-
-### Security Features
-
-- **Plaid Security**: Bank-level encryption and compliance
-- **Local Encryption**: AES-GCM with 100,000 PBKDF2 iterations
-- **Password Protection**: Multi-layer authentication system
-- **Session Security**: Automatic timeout and secure storage
-- **No External Services**: Data stays between you, Plaid, and your browser
-
-## 🚀 Advanced Features
-
-### Plaid Integration Highlights
-
-- **Real-time Data**: Live investment transactions and holdings
-- **Multi-Account Support**: Connect multiple 401k/investment accounts
-- **Comprehensive Coverage**: Transactions, securities, account details
-- **Error Handling**: Robust error recovery and user feedback
-- **Rate Limit Protection**: Built-in safeguards against API abuse
-
-### Debugging System
-
-- **Development Tools**: Comprehensive data inspection interface
-- **Live Data Monitoring**: Real-time API response viewing
-- **Mock Data Testing**: Realistic sample data for development
-- **Error Diagnostics**: Detailed logging and error tracking
-- **Performance Monitoring**: API call tracking and optimization
-
-### Data Processing
-
-- **Smart Conversion**: Plaid data → application format transformation
-- **Transaction Mapping**: Investment transaction type normalization
-- **Duplicate Detection**: Automatic duplicate transaction filtering
-- **Data Validation**: Comprehensive schema validation with Zod
-- **Performance Optimization**: Efficient data processing and caching
-
-## 🔧 Development
-
-### Available Scripts
-
-- `npm run dev` - Start development server with hot reload
-- `npm run build` - Build optimized production bundle
-- `npm run preview` - Preview production build locally
-
-### Environment Modes
-
-**Development Mode:**
-- Mock data integration for testing
-- Real Plaid connections available
-- Enhanced debugging and logging
-- Hot module replacement
-
-**Production Mode:**
-- Secure Plaid-only connections
-- Optimized performance
-- Enhanced security measures
-- Error boundary protection
-
-## 🚀 Deployment
-
-### Vercel (Recommended)
-
-1. Connect your GitHub repository to Vercel
-2. Set environment variables in Vercel dashboard
-3. Deploy automatically on every push to main
-
-### Environment Variables for Production
+Required in Cloudflare Pages dashboard:
 
 ```bash
-# Plaid Production Configuration
-VITE_PLAID_CLIENT_ID=your-production-client-id
-VITE_PLAID_SECRET=your-production-secret
-VITE_PLAID_ENV=production
-VITE_PLAID_ACCESS_PASSWORD=secure-production-password
+# Plaid API
+PLAID_CLIENT_ID=your_plaid_client_id
+PLAID_SECRET=your_plaid_secret
+PLAID_ENV=production
 
-# Optional Legacy Features
-GITHUB_PAT=github-token-if-needed
-GITHUB_USERNAME=your-username
-GITHUB_REPO=your-repo-name
-API_SHARED_TOKEN=secure-api-token
+# Supabase
+SUPABASE_URL=your_supabase_url
+SUPABASE_SERVICE_KEY=your_service_key
+
+# API Authentication
+API_SHARED_TOKEN=your_api_token
+
+# CORS
+CORS_ORIGIN=https://your-domain.com
 ```
 
-## 🤝 Contributing
+For local development, create `.env.local` with `VITE_401K_TOKEN` added.
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Follow the existing code patterns and security practices
-4. Test thoroughly in both development and production modes
-5. Submit a pull request with detailed description
+### Local Development
 
-## 📄 License
+```bash
+npm install
+npm run dev
+```
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+### Deploy to Cloudflare Pages
 
-## 🆘 Support & Troubleshooting
+1. Connect GitHub repo to Cloudflare Pages
+2. Set environment variables in Cloudflare dashboard
+3. Deploy automatically on push to `main`
 
-### Common Issues
+### GitHub Actions Setup
 
-**Connection Problems:**
-- Verify Plaid credentials are correct
-- Check network connectivity
-- Ensure institution supports Plaid integration
-- Review browser console for detailed error messages
+Add to repository secrets:
+- `API_SHARED_TOKEN` - For authenticating sync requests
 
-**Development Issues:**
-- Use mock data mode for testing without API calls
-- Check environment variable configuration
-- Clear browser localStorage if needed
-- Monitor debugging interface for data flow issues
+The daily sync workflow runs at 6 AM UTC automatically.
 
-**Authentication Problems:**
-- Verify access password is correct
-- Check session hasn't expired (8-hour limit)
-- Clear authentication data and re-login
-- Ensure browser supports localStorage and Web Crypto API
+## Project Structure
 
-### Getting Help
+```
+├── functions/              # Cloudflare Workers Functions
+│   ├── api/
+│   │   ├── holdings/       # Holdings endpoints
+│   │   ├── plaid/          # Plaid integration
+│   │   └── sync/           # Sync triggers
+│   └── scheduled.js        # Cron handler (unused, using GitHub Actions)
+├── src/
+│   ├── components/         # React components
+│   ├── contexts/           # React context providers
+│   ├── lib/                # Configuration (Plaid, Supabase)
+│   ├── pages/              # Page components (Dashboard, Accounts)
+│   ├── services/           # API service layers
+│   └── utils/              # Utility functions
+├── .github/workflows/      # GitHub Actions (daily sync)
+└── wrangler.toml           # Cloudflare configuration
+```
 
-For questions, bug reports, or feature requests:
-1. Check existing issues in the repository
-2. Review the debugging interface for data insights
-3. Include browser console logs when reporting issues
-4. Provide steps to reproduce any problems
+## License
 
-**Security Note**: Never share your Plaid credentials, access passwords, or sensitive financial data when seeking support.
+MIT
