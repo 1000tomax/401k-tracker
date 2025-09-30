@@ -296,9 +296,21 @@ export default function App() {
               {holdings.length > 0 && (
                 <div className="hero-metrics" aria-label="Portfolio quick metrics">
                   <div className="hero-metric">
-                    <span className="hero-metric-label">Portfolio Value</span>
+                    <span className="hero-metric-label">Cost Basis</span>
+                    <span className="hero-metric-value">
+                      {formatCurrency(totals.costBasis || 0)}
+                    </span>
+                  </div>
+                  <div className="hero-metric">
+                    <span className="hero-metric-label">Market Value</span>
                     <span className="hero-metric-value">
                       {formatCurrency(totals.marketValue || 0)}
+                    </span>
+                  </div>
+                  <div className="hero-metric">
+                    <span className="hero-metric-label">Gain/Loss</span>
+                    <span className={`hero-metric-value ${(totals.gainLoss || 0) >= 0 ? 'positive' : 'negative'}`}>
+                      {formatCurrency(totals.gainLoss || 0)}
                     </span>
                   </div>
                 </div>
