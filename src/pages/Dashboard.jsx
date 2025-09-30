@@ -217,7 +217,7 @@ export default function Dashboard({ summary, isLoading }) {
                       <th className="numeric">Shares</th>
                       <th className="numeric">Avg Cost</th>
                       <th className="numeric">Cost Basis</th>
-                      <th className="numeric">Price</th>
+                      <th className="numeric">Latest Price</th>
                       <th className="numeric">Value</th>
                       <th className="numeric">Gain/Loss</th>
                     </tr>
