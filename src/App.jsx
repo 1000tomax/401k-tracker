@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, NavLink, Navigate } from 'react-router-dom';
 import Dashboard from './pages/Dashboard.jsx';
+import Accounts from './pages/Accounts.jsx';
 import { formatDate, formatCurrency } from './utils/formatters.js';
 import { PlaidAuthProvider } from './contexts/PlaidAuthContext.jsx';
 import HoldingsService from './services/HoldingsService.js';
@@ -154,6 +155,9 @@ export default function App() {
               <NavLink to="/" className={({ isActive }) => (isActive ? 'active' : '')} end>
                 Dashboard
               </NavLink>
+              <NavLink to="/accounts" className={({ isActive }) => (isActive ? 'active' : '')}>
+                Accounts
+              </NavLink>
               <button
                 type="button"
                 className="nav-button"
@@ -182,6 +186,7 @@ export default function App() {
                   />
                 }
               />
+              <Route path="/accounts" element={<Accounts />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </main>
