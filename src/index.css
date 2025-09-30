@@ -2400,6 +2400,16 @@ details ul {
   text-align: right;
 }
 
+.holdings-table tbody td.numeric.positive {
+  color: #059669;
+  font-weight: 700;
+}
+
+.holdings-table tbody td.numeric.negative {
+  color: #ef4444;
+  font-weight: 700;
+}
+
 .holdings-table tbody tr:hover {
   background: var(--surface-elevated);
 }
