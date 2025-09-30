@@ -1,14 +1,5 @@
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import SummaryOverview from '../components/SummaryOverview.jsx';
-import AccountSeparatedPortfolio from '../components/AccountSeparatedPortfolio.jsx';
-import {
-  formatCurrency,
-  formatDate,
-  formatFundName,
-  formatSourceName,
-  formatShares,
-  formatUnitPrice,
-} from '../utils/formatters.js';
+import React, { useMemo } from 'react';
+import { formatCurrency, formatDate } from '../utils/formatters.js';
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -21,40 +12,17 @@ import {
   Legend,
 } from 'recharts';
 
-export default function Dashboard({
-  summary,
-  transactions,
-}) {
-  const baseTrend = (summary.timeline || []).map(entry => ({
-    date: entry.date,
-    marketValue: entry.marketValue ?? 0,
-  }));
-
-  // Enhanced data with recent sample data
-  const sampleData = [
-    { date: '2024-01-01', marketValue: 45000 },
-    { date: '2024-03-01', marketValue: 52000 },
-    { date: '2024-06-01', marketValue: 58000 },
-    { date: '2024-09-01', marketValue: 64000 },
-    { date: '2024-12-01', marketValue: 71000 },
-  ];
+export default function Dashboard({ summary, isLoading }) {
+  const { totals, timeline, holdings, holdingsByAccount } = summary;
 
   const trendData = useMemo(() => {
-    // If we have any real data, use only real data (don't mix with sample data)
-    if (baseTrend.length > 0) return baseTrend;
-    // Only use sample data if there's no real data at all
-    return sampleData;
-  }, [baseTrend]);
-
-  const usingSampleData = baseTrend.length === 0;
-
-  const formattedTrend = trendData.map(point => ({
-    ...point,
-    label: formatDate(point.date),
-    marketValueShade: point.marketValue,
-  }));
-
-  const axisLabel = usingSampleData ? 'Sample Balance' : 'Account Value';
+    return (timeline || []).map(entry => ({
+      date: entry.date,
+      marketValue: entry.marketValue ?? 0,
+      label: formatDate(entry.date),
+      marketValueShade: entry.marketValue ?? 0,
+    }));
+  }, [timeline]);
 
   const tickFormatter = value => {
     if (!Number.isFinite(value)) return '';
@@ -65,12 +33,6 @@ export default function Dashboard({
       return `$${(value / 1_000).toFixed(1)}K`;
     }
     return formatCurrency(value);
-  };
-
-  const [expandedDate, setExpandedDate] = useState(null);
-
-  const handleToggleDetails = date => {
-    setExpandedDate(prev => (prev === date ? null : date));
   };
 
   const renderTooltip = ({ active, payload, label }) => {
@@ -98,43 +60,47 @@ export default function Dashboard({
     );
   };
 
-  return (
-    <div className="dashboard">
-      <section>
-        <div className="section-header">
-          <h2>Account Overview</h2>
+  if (isLoading) {
+    return (
+      <div className="dashboard">
+        <div className="loading-state">
+          <p>Loading portfolio data...</p>
         </div>
+      </div>
+    );
+  }
 
-        {!transactions.length && (
+  if (!holdings?.length) {
+    return (
+      <div className="dashboard">
+        <section>
+          <div className="section-header">
+            <h2>Account Overview</h2>
+          </div>
           <div className="empty-state">
-            <p className="meta">No transactions loaded yet.</p>
-            <div className="empty-state-actions">
-              <a href="/import" className="import-link">🔗 Connect Your Accounts</a>
-            </div>
+            <p className="meta">No holdings data yet.</p>
             <p className="demo-description">
-              Connect your 401k and investment accounts via Plaid for automatic transaction import and real-time portfolio tracking.
+              Connect your accounts via Plaid to start tracking your portfolio automatically.
             </p>
           </div>
-        )}
-        <SummaryOverview
-          totals={summary.totals}
-          firstTransaction={summary.firstTransaction}
-        />
-      </section>
+        </section>
+      </div>
+    );
+  }
 
-      {trendData.length ? (
+  return (
+    <div className="dashboard">
+      {/* Account Growth Chart */}
+      {trendData.length > 0 && (
         <section className="chart-section">
           <div className="section-header">
             <h2>Account Growth</h2>
-            <p className="meta">Compare market value against cumulative net contributions across your history.</p>
+            <p className="meta">Track your portfolio value over time.</p>
           </div>
           <div className="chart-panel">
-            {usingSampleData && (
-              <p className="chart-demo-note">Showing sample data until more transactions are imported locally.</p>
-            )}
             <div className="chart-wrapper">
               <ResponsiveContainer width="100%" height={260}>
-                <ComposedChart data={formattedTrend} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                <ComposedChart data={trendData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="balanceTrendGradient" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="rgba(129, 140, 248, 0.85)" stopOpacity={0.55} />
@@ -157,7 +123,7 @@ export default function Dashboard({
                     tickFormatter={tickFormatter}
                     width={90}
                     label={{
-                      value: axisLabel,
+                      value: 'Account Value',
                       angle: -90,
                       position: 'insideLeft',
                       offset: 10,
@@ -172,8 +138,7 @@ export default function Dashboard({
                     height={32}
                     iconType="circle"
                     payload={[
-                      { value: 'Market value', type: 'line', color: 'rgba(99, 102, 241, 0.95)' },
-                      { value: 'Total contributions', type: 'line', color: '#f97316' }
+                      { value: 'Market value', type: 'line', color: 'rgba(99, 102, 241, 0.95)' }
                     ]}
                   />
                   <Area
@@ -203,97 +168,46 @@ export default function Dashboard({
             </div>
           </div>
         </section>
-      ) : null}
+      )}
 
+      {/* Current Holdings by Account */}
       <section>
-        <AccountSeparatedPortfolio
-          portfolio={summary.portfolio}
-          openPositions={summary.openPositions}
-          closedPositions={summary.closedPositions}
-          totals={summary.totals}
-        />
-      </section>
+        <div className="section-header">
+          <h2>Current Holdings</h2>
+          <p className="meta">Your portfolio holdings grouped by account.</p>
+        </div>
 
-      {/* Recent Activity */}
-      {summary.timeline?.length ? (
-        <section>
-          <div className="section-header">
-            <h2>Recent Activity</h2>
-            <p className="meta">Recent transaction activity by date.</p>
-          </div>
-          <div className="recent-table-wrapper">
-            <table className="recent-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Transactions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {summary.timeline
-                  .slice(-10)
-                  .reverse()
-                  .map(entry => (
-                    <React.Fragment key={entry.date}>
-                      <tr>
-                        <td>{formatDate(entry.date)}</td>
-                        <td>
-                          {entry.transactions?.length ? (
-                            <button
-                              type="button"
-                              className="link-button"
-                              onClick={() => handleToggleDetails(entry.date)}
-                            >
-                              {expandedDate === entry.date ? 'Hide' : 'View'} ({entry.transactions.length})
-                            </button>
-                          ) : (
-                            '—'
-                          )}
-                        </td>
-                      </tr>
-                      {expandedDate === entry.date && entry.transactions?.length ? (
-                        <tr className="recent-details">
-                          <td colSpan={2}>
-                            <div className="recent-details-wrapper">
-                              <table className="recent-details-table">
-                                <thead>
-                                  <tr>
-                                    <th>Date</th>
-                                    <th>Fund</th>
-                                    <th>Source</th>
-                                    <th>Activity</th>
-                                    <th>Shares</th>
-                                    <th>Unit Price</th>
-                                    <th>Amount</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {entry.transactions.map(tx => (
-                                    <tr
-                                      key={`${tx.date}-${tx.fund}-${tx.moneySource}-${tx.activity}-${tx.units}-${tx.amount}`}
-                                    >
-                                      <td>{formatDate(tx.date)}</td>
-                                      <td>{formatFundName(tx.fund)}</td>
-                                      <td>{formatSourceName(tx.moneySource)}</td>
-                                      <td>{tx.activity}</td>
-                                      <td className="numeric">{formatShares(tx.units)}</td>
-                                      <td className="numeric">{formatUnitPrice(tx.unitPrice)}</td>
-                                      <td className="numeric">{formatCurrency(tx.amount)}</td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                          </td>
-                        </tr>
-                      ) : null}
-                    </React.Fragment>
+        {holdingsByAccount.map(account => (
+          <div key={account.accountName} className="account-section">
+            <div className="account-header">
+              <h3>{account.accountName}</h3>
+              <span className="account-total">{formatCurrency(account.totalValue)}</span>
+            </div>
+            <div className="holdings-table-wrapper">
+              <table className="holdings-table">
+                <thead>
+                  <tr>
+                    <th>Fund</th>
+                    <th className="numeric">Shares</th>
+                    <th className="numeric">Price</th>
+                    <th className="numeric">Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {account.holdings.map((holding, idx) => (
+                    <tr key={`${holding.fund}-${idx}`}>
+                      <td>{holding.fund}</td>
+                      <td className="numeric">{holding.shares.toFixed(4)}</td>
+                      <td className="numeric">{formatCurrency(holding.unitPrice)}</td>
+                      <td className="numeric">{formatCurrency(holding.marketValue)}</td>
+                    </tr>
                   ))}
-              </tbody>
-            </table>
+                </tbody>
+              </table>
+            </div>
           </div>
-        </section>
-      ) : null}
+        ))}
+      </section>
     </div>
   );
 }

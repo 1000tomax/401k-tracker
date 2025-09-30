@@ -2234,8 +2234,150 @@ details ul {
     align-items: stretch;
     gap: var(--space-3);
   }
-  
+
   .status-action-btn {
     text-align: center;
+  }
+}
+
+/* Holdings-specific styles */
+.account-section {
+  margin-bottom: var(--space-8);
+}
+
+.account-section:last-child {
+  margin-bottom: 0;
+}
+
+.account-section .account-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: 2px solid var(--border-subtle);
+}
+
+.account-section .account-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.account-section .account-total {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--blue-400);
+  font-variant-numeric: tabular-nums;
+}
+
+.holdings-table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--radius-md);
+}
+
+.holdings-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 600px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--surface-secondary);
+  border: 1px solid var(--border-subtle);
+}
+
+.holdings-table thead th {
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  padding: var(--space-4);
+  white-space: nowrap;
+  background: var(--surface-elevated);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.holdings-table thead th.numeric {
+  text-align: right;
+}
+
+.holdings-table tbody td {
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-weight: 500;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.holdings-table tbody td.numeric {
+  text-align: right;
+}
+
+.holdings-table tbody tr:hover {
+  background: var(--surface-elevated);
+}
+
+.holdings-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.status-message {
+  padding: var(--space-4) var(--space-5);
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-weight: 500;
+  margin-bottom: var(--space-6);
+  text-align: center;
+}
+
+.nav-button {
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.9rem;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.nav-button:hover:not(:disabled) {
+  color: var(--text-primary);
+  background: var(--surface-elevated);
+  border-color: var(--blue-500);
+}
+
+.nav-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.loading-state {
+  text-align: center;
+  padding: var(--space-12) var(--space-6);
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+}
+
+@media (max-width: 768px) {
+  .account-section .account-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+
+  .holdings-table {
+    min-width: 500px;
   }
 }
