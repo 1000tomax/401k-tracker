@@ -2,6 +2,56 @@
 
 This document tracks ideas and planned features for the 401K Tracker.
 
+## Portfolio Change Indicators
+
+**Status:** Planned - ready to implement once more snapshots exist
+
+**Description:**
+Show simple growth/decline indicators throughout the app to give users a sense of progress:
+- Total portfolio change since last snapshot
+- Per-account change indicators
+- Visual up/down arrows with color coding (green/red)
+- Both dollar amount and percentage change
+
+**Examples:**
+```
+Portfolio Value: $7,821.53
+↑ +$124.50 (+1.6%) since Oct 23, 2025
+
+Voya 401(k): $7,224.90
+↑ +$156.32 (+2.2%) from last week
+```
+
+**Implementation Notes:**
+- Query last 2 snapshots for each account
+- Calculate: `current_value - previous_value = delta`
+- Calculate percentage: `(delta / previous_value) * 100`
+- Color code: Green for positive, red for negative, gray for unchanged
+- Display format: `↑ +$XXX.XX (+X.X%)` or `↓ -$XXX.XX (-X.X%)`
+
+**Data Available:**
+- ✅ Historical snapshots in `holdings_snapshots` table
+- ✅ Sorted by date for easy comparison
+- ✅ Per-account and per-fund granularity
+
+**Example Query:**
+```sql
+-- Get current and previous snapshot for an account
+WITH snapshots AS (
+  SELECT snapshot_date, SUM(market_value) as total_value
+  FROM holdings_snapshots
+  WHERE account_id = 'voya_401k_pretax'
+  GROUP BY snapshot_date
+  ORDER BY snapshot_date DESC
+  LIMIT 2
+)
+SELECT
+  (SELECT total_value FROM snapshots LIMIT 1) as current_value,
+  (SELECT total_value FROM snapshots LIMIT 1 OFFSET 1) as previous_value;
+```
+
+---
+
 ## Fund Detail View (Clickable ETFs)
 
 **Status:** Planned - waiting for more historical data
