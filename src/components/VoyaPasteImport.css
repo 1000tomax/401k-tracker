@@ -1,0 +1,368 @@
+/* Voya Paste Import Component Styles */
+
+.voya-paste-import {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* Latest Snapshot Display */
+.latest-snapshot {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.latest-snapshot h4 {
+  margin: 0 0 16px 0;
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.snapshot-summary {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+
+.snapshot-balance,
+.snapshot-date {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.snapshot-balance .label,
+.snapshot-date .label {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.snapshot-balance .value {
+  color: #4ade80;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.snapshot-date .value {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1rem;
+}
+
+/* Import Form */
+.import-form {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 24px;
+}
+
+.import-form h3 {
+  margin: 0 0 20px 0;
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+/* Info Box */
+.info-box {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 24px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.info-box p {
+  margin: 0 0 8px 0;
+}
+
+.info-box strong {
+  color: #fff;
+}
+
+.info-box ol {
+  margin: 8px 0 0 0;
+  padding-left: 20px;
+}
+
+.info-box li {
+  margin-bottom: 6px;
+}
+
+.info-box ul {
+  margin: 4px 0;
+  padding-left: 20px;
+}
+
+.info-box a {
+  color: #60a5fa;
+  text-decoration: none;
+}
+
+.info-box a:hover {
+  text-decoration: underline;
+}
+
+/* Form Group */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+/* Paste Textarea */
+.paste-textarea {
+  width: 100%;
+  min-height: 250px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  color: #fff;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  resize: vertical;
+  transition: border-color 0.2s;
+}
+
+.paste-textarea:focus {
+  outline: none;
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.paste-textarea::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.paste-textarea:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Button Group */
+.button-group {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.btn-primary,
+.btn-secondary {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: #3b82f6;
+  color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #2563eb;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.btn-primary:disabled {
+  background: rgba(59, 130, 246, 0.5);
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Preview Container */
+.preview-container {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 24px;
+}
+
+.preview-container h3 {
+  margin: 0 0 24px 0;
+  color: #fff;
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.preview-section {
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.preview-section:last-of-type {
+  border-bottom: none;
+}
+
+.preview-section h4 {
+  margin: 0 0 16px 0;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 1rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Balance Display */
+.balance-display {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: rgba(74, 222, 128, 0.1);
+  border: 1px solid rgba(74, 222, 128, 0.3);
+  border-radius: 6px;
+}
+
+.balance-display .label {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.balance-display .value {
+  color: #4ade80;
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+/* Holding Preview */
+.holding-preview {
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  margin-bottom: 12px;
+}
+
+.holding-preview:last-child {
+  margin-bottom: 0;
+}
+
+.holding-name {
+  color: #fff;
+  font-size: 1rem;
+  margin-bottom: 8px;
+}
+
+.holding-name strong {
+  color: #60a5fa;
+}
+
+.holding-details {
+  display: flex;
+  justify-content: space-between;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  margin-bottom: 4px;
+}
+
+.holding-value {
+  color: #4ade80;
+  font-weight: 600;
+}
+
+.holding-percentage {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.85rem;
+  text-align: right;
+}
+
+/* Source Preview */
+.source-preview {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.source-preview:last-child {
+  margin-bottom: 0;
+}
+
+.source-name {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.95rem;
+}
+
+.source-balance {
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .voya-paste-import {
+    padding: 0;
+  }
+
+  .import-form,
+  .preview-container,
+  .latest-snapshot {
+    padding: 16px;
+  }
+
+  .snapshot-summary {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .balance-display {
+    flex-direction: column;
+    gap: 8px;
+    text-align: center;
+  }
+
+  .holding-details {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .button-group {
+    flex-direction: column;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    width: 100%;
+  }
+}

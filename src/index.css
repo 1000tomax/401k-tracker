@@ -2249,6 +2249,20 @@ details ul {
   margin-bottom: 0;
 }
 
+.account-section > h3 {
+  margin: 0 0 var(--space-3) 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.account-section .section-description {
+  margin: 0 0 var(--space-5) 0;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
 .account-section .account-header {
   display: flex;
   justify-content: space-between;
