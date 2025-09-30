@@ -133,25 +133,33 @@ export default function App() {
   // Account name mapping for display
   const formatAccountName = (name) => {
     const cleanName = name || 'Unknown Account';
+    const lower = cleanName.toLowerCase();
 
     // Map account names to clean display names
 
     // Roth IRA
-    if (cleanName.toLowerCase().includes('roth') && cleanName.toLowerCase().includes('ira')) {
+    if (lower.includes('roth') && lower.includes('ira')) {
       return 'Roth IRA';
     }
 
-    // Voya 401(k) - keep the source in parentheses for granular tracking
-    // "AUTOMATED HEALTH SYSTEMS 401(K) (Employee PreTax)" -> "Voya 401(k) (PreTax)"
-    // "AUTOMATED HEALTH SYSTEMS 401(K) (ROTH)" -> "Voya 401(k) (Roth)"
-    // "AUTOMATED HEALTH SYSTEMS 401(K) (Safe Harbor Match)" -> "Voya 401(k) (Match)"
+    // Voya 401(k) sources - map various formats to standardized names
+    // Matches: "Safe Harbor Match", "Employee PreTax", "ROTH", etc.
+    if (lower.includes('pretax') || lower.includes('pre-tax') || lower === 'employee pretax') {
+      return 'Voya 401(k) (PreTax)';
+    }
+    if (lower.includes('match') || lower === 'safe harbor match') {
+      return 'Voya 401(k) (Match)';
+    }
+    // Check for standalone "ROTH" (not Roth IRA)
+    if (lower === 'roth' || (lower.includes('roth') && !lower.includes('ira'))) {
+      return 'Voya 401(k) (Roth)';
+    }
+
+    // Legacy format with 401(k) in the name
     if (cleanName.includes('401(K)') || cleanName.includes('401k')) {
-      // Extract the source from parentheses
       const sourceMatch = cleanName.match(/\(([^)]+)\)$/);
       if (sourceMatch) {
         const source = sourceMatch[1];
-
-        // Clean up source names
         if (source.toLowerCase().includes('pretax')) {
           return 'Voya 401(k) (PreTax)';
         } else if (source.toLowerCase().includes('roth')) {
@@ -160,8 +168,6 @@ export default function App() {
           return 'Voya 401(k) (Match)';
         }
       }
-
-      // Fallback if no source found
       return 'Voya 401(k)';
     }
 

@@ -215,19 +215,34 @@ export default function Dashboard({ summary, isLoading }) {
                     <tr>
                       <th>Fund</th>
                       <th className="numeric">Shares</th>
+                      <th className="numeric">Avg Cost</th>
+                      <th className="numeric">Cost Basis</th>
                       <th className="numeric">Price</th>
                       <th className="numeric">Value</th>
+                      <th className="numeric">Gain/Loss</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {account.holdings.map((holding, idx) => (
-                      <tr key={`${holding.fund}-${idx}`}>
-                        <td>{holding.fund}</td>
-                        <td className="numeric">{holding.shares.toFixed(4)}</td>
-                        <td className="numeric">{formatCurrency(holding.latestNAV)}</td>
-                        <td className="numeric">{formatCurrency(holding.marketValue)}</td>
-                      </tr>
-                    ))}
+                    {account.holdings.map((holding, idx) => {
+                      const gainLossPercent = holding.costBasis > 0
+                        ? ((holding.gainLoss / holding.costBasis) * 100).toFixed(2)
+                        : '0.00';
+                      const gainLossClass = holding.gainLoss >= 0 ? 'positive' : 'negative';
+
+                      return (
+                        <tr key={`${holding.fund}-${idx}`}>
+                          <td>{holding.fund}</td>
+                          <td className="numeric">{holding.shares.toFixed(4)}</td>
+                          <td className="numeric">{formatCurrency(holding.avgCost)}</td>
+                          <td className="numeric">{formatCurrency(holding.costBasis)}</td>
+                          <td className="numeric">{formatCurrency(holding.latestNAV)}</td>
+                          <td className="numeric">{formatCurrency(holding.marketValue)}</td>
+                          <td className={`numeric ${gainLossClass}`}>
+                            {formatCurrency(holding.gainLoss)} ({gainLossPercent}%)
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

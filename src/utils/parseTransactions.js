@@ -621,6 +621,17 @@ export function aggregatePortfolio(transactions) {
 
   const payPeriodDates = new Set();
 
+  // First pass: calculate latest NAV per fund (across all sources)
+  const latestNAVByFund = new Map();
+  for (const [key, entries] of byFundSource.entries()) {
+    const [fund] = key.split('||');
+    const nav = latestNavFor(entries);
+    // Keep the most recent NAV for this fund
+    if (!latestNAVByFund.has(fund) || nav > 0) {
+      latestNAVByFund.set(fund, nav);
+    }
+  }
+
   for (const [key, entries] of byFundSource.entries()) {
     const [fund, source] = key.split('||');
     const position = runningPositions[key] || { shares: 0, costBasis: 0, realizedGainLoss: 0, firstBuyDate: null, lastSellDate: null };
@@ -631,7 +642,7 @@ export function aggregatePortfolio(transactions) {
       shares = 0;
     }
     const avgCost = shares ? costBasis / shares : 0;
-    const latestNAV = latestNavFor(entries);
+    const latestNAV = latestNAVByFund.get(fund) || 0; // Use fund-wide latest NAV
     const marketValue = shares * latestNAV;
     let gainLoss = marketValue - costBasis;
     const realizedGainLoss = position.realizedGainLoss || 0;
