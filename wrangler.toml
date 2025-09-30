@@ -3,6 +3,5 @@ compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = "dist"
 
-# Daily holdings sync at 6 AM UTC (2 AM ET / 11 PM PT)
-[triggers]
-crons = ["0 6 * * *"]
+# Note: Cron triggers for Pages need to be configured in Cloudflare dashboard
+# Workers & Pages → Your project → Settings → Functions → Cron Triggers
