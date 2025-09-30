@@ -36,11 +36,8 @@ export default function App() {
           timeline: data.timeline?.length
         });
 
-        if (data.currentHoldings?.length > 0) {
-          setStatus(`Portfolio loaded: ${data.currentHoldings.length} holdings`);
-        } else {
-          setStatus('No holdings data yet. Sync your Plaid accounts to get started.');
-        }
+        // Clear status message on successful load
+        setStatus('');
       } else {
         console.error('❌ Failed to load holdings:', data.error);
         setStatus('Failed to load holdings. Please try again.');
