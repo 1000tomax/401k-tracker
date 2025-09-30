@@ -34,7 +34,7 @@ export class HoldingsService {
 
   async syncNow() {
     try {
-      const url = `${this.apiUrl}/api/sync/holdings`;
+      const url = `${this.apiUrl}/api/sync/transactions`;
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -44,13 +44,18 @@ export class HoldingsService {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Sync failed');
+        const error = await response.json().catch(() => ({}));
+        const errorMessage = error.details || error.error || 'Sync failed';
+        console.error('❌ Sync failed:', errorMessage);
+        if (error.details) {
+          console.error('Details:', error.details);
+        }
+        throw new Error(errorMessage);
       }
 
       return await response.json();
     } catch (error) {
-      console.error('Error syncing holdings:', error);
+      console.error('Error syncing transactions:', error);
       throw error;
     }
   }

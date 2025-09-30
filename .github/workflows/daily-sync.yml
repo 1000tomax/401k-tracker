@@ -12,7 +12,7 @@ jobs:
     steps:
       - name: Sync Plaid Transactions
         run: |
-          curl -X POST https://401k.mreedon.com/api/sync/holdings \
+          curl -X POST https://401k.mreedon.com/api/sync/transactions \
             -H "X-401K-Token: ${{ secrets.API_SHARED_TOKEN }}" \
             -H "Content-Type: application/json" \
             -v
