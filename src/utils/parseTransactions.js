@@ -420,7 +420,7 @@ function ensureFundTotals(target, fund) {
 const FLOW_RULES = {
   deposit: [/contribution/i, /dividend/i, /interest/i, /match/i, /loan repayment/i, /deposit/i, /transfer.*from/i, /acat/i],
   withdrawal: [/loan issue/i, /withdrawal/i, /distribution/i, /fee/i, /service fee/i],
-  neutral: [/exchange/i, /rebalance/i, /reallocation/i],
+  neutral: [/exchange/i, /rebalance/i, /reallocation/i, /buy/i, /sell/i], // Buys/Sells are neutral - we only track current holdings
 };
 
 function classifyFlow(activity) {
@@ -512,6 +512,7 @@ export function aggregatePortfolio(transactions) {
     timelineEntry.transactions.push(tx);
 
     // Track cash flows for all transactions
+    // Note: Buy/Sell are now neutral - we focus on current holdings, not contribution tracking
     if (flowType === 'deposit' && magnitude > 0) {
       totals.contributions += magnitude;
       sourceCashFlows[sourceKey].contributions += magnitude;
@@ -522,7 +523,7 @@ export function aggregatePortfolio(transactions) {
       sourceCashFlows[sourceKey].withdrawals += magnitude;
       timelineEntry.withdrawals += magnitude;
     }
-    // Note: 'neutral' flow type (transfers) don't affect cash flow totals
+    // Note: 'neutral' flow type (Buy/Sell/transfers) don't affect cash flow totals
 
 
     if (Math.abs(units) > SHARE_EPSILON && units > 0) {

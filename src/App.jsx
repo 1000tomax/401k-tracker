@@ -447,15 +447,9 @@ export default function App() {
             {transactions.length ? (
               <div className="hero-metrics" aria-label="Portfolio quick metrics">
                 <div className="hero-metric">
-                  <span className="hero-metric-label">Market Value</span>
+                  <span className="hero-metric-label">Portfolio Value</span>
                   <span className="hero-metric-value">
                     {formatCurrency(summary.totals.marketValue || 0)}
-                  </span>
-                </div>
-                <div className="hero-metric">
-                  <span className="hero-metric-label">Net Contributions</span>
-                  <span className="hero-metric-value">
-                    {formatCurrency(summary.totals.netInvested || 0)}
                   </span>
                 </div>
               </div>

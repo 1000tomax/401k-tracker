@@ -28,16 +28,15 @@ export default function Dashboard({
   const baseTrend = (summary.timeline || []).map(entry => ({
     date: entry.date,
     marketValue: entry.marketValue ?? 0,
-    contributed: entry.investedBalance ?? 0,
   }));
 
   // Enhanced data with recent sample data
   const sampleData = [
-    { date: '2024-01-01', marketValue: 45000, contributed: 42000 },
-    { date: '2024-03-01', marketValue: 52000, contributed: 45000 },
-    { date: '2024-06-01', marketValue: 58000, contributed: 50000 },
-    { date: '2024-09-01', marketValue: 64000, contributed: 55000 },
-    { date: '2024-12-01', marketValue: 71000, contributed: 60000 },
+    { date: '2024-01-01', marketValue: 45000 },
+    { date: '2024-03-01', marketValue: 52000 },
+    { date: '2024-06-01', marketValue: 58000 },
+    { date: '2024-09-01', marketValue: 64000 },
+    { date: '2024-12-01', marketValue: 71000 },
   ];
 
   const trendData = useMemo(() => {
@@ -90,9 +89,7 @@ export default function Dashboard({
           {filtered.map(item => (
             <li key={item.dataKey}>
               <span className="dot" style={{ background: item.color || item.stroke }} />
-              <span className="name">
-                {item.dataKey === 'contributed' ? 'Total contributions' : 'Market value'}
-              </span>
+              <span className="name">Portfolio Value</span>
               <span className="value">{formatCurrency(item.value ?? 0)}</span>
             </li>
           ))}
@@ -201,18 +198,6 @@ export default function Dashboard({
                     connectNulls
                     isAnimationActive={false}
                   />
-                  <Line
-                    type="monotone"
-                    dataKey="contributed"
-                    name="Total contributions"
-                    stroke="#f97316"
-                    strokeDasharray="6 3"
-                    strokeWidth={2.5}
-                    dot={false}
-                    activeDot={{ r: 4, strokeWidth: 0, fill: '#f97316' }}
-                    connectNulls
-                    isAnimationActive={false}
-                  />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
@@ -273,6 +258,7 @@ export default function Dashboard({
                               <table className="recent-details-table">
                                 <thead>
                                   <tr>
+                                    <th>Date</th>
                                     <th>Fund</th>
                                     <th>Source</th>
                                     <th>Activity</th>
@@ -286,6 +272,7 @@ export default function Dashboard({
                                     <tr
                                       key={`${tx.date}-${tx.fund}-${tx.moneySource}-${tx.activity}-${tx.units}-${tx.amount}`}
                                     >
+                                      <td>{formatDate(tx.date)}</td>
                                       <td>{formatFundName(tx.fund)}</td>
                                       <td>{formatSourceName(tx.moneySource)}</td>
                                       <td>{tx.activity}</td>
