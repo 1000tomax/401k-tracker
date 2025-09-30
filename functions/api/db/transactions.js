@@ -81,9 +81,23 @@ export async function onRequestGet(context) {
 
     if (error) throw error;
 
+    // Transform snake_case to camelCase for frontend
+    const transformedTransactions = (transactions || []).map(tx => ({
+      ...tx,
+      moneySource: tx.money_source,
+      unitPrice: tx.unit_price,
+      sourceType: tx.source_type,
+      sourceId: tx.source_id,
+      plaidTransactionId: tx.plaid_transaction_id,
+      plaidAccountId: tx.plaid_account_id,
+      transactionHash: tx.transaction_hash,
+      fuzzyHash: tx.fuzzy_hash,
+      enhancedHash: tx.enhanced_hash,
+    }));
+
     return jsonResponse({
       ok: true,
-      transactions: transactions || [],
+      transactions: transformedTransactions,
       pagination: {
         page,
         limit,

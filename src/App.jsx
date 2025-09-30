@@ -458,10 +458,6 @@ export default function App() {
                     {formatCurrency(summary.totals.netInvested || 0)}
                   </span>
                 </div>
-                <div className="hero-metric">
-                  <span className="hero-metric-label">Pay Periods</span>
-                  <span className="hero-metric-value">{summary.totals.payPeriods || 0}</span>
-                </div>
               </div>
             ) : null}
           </div>
