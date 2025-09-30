@@ -5,9 +5,9 @@
  */
 import { createClient } from '@supabase/supabase-js';
 
-export function createSupabaseAdmin() {
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+export function createSupabaseAdmin(env = process.env) {
+  const supabaseUrl = env.SUPABASE_URL;
+  const supabaseServiceKey = env.SUPABASE_SERVICE_KEY;
 
   if (!supabaseUrl || !supabaseServiceKey) {
     throw new Error('Missing Supabase admin credentials in environment variables');
