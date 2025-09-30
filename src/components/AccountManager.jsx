@@ -36,10 +36,38 @@ const AccountManager = () => {
     fetchAccounts();
   }, []);
 
-  const handlePlaidSuccess = async () => {
-    console.log('✅ Plaid connection successful! Refreshing account list...');
-    // Refresh the account list after successful connection
-    await fetchAccounts();
+  const handlePlaidSuccess = async (data) => {
+    console.log('✅ Plaid connection successful!', data);
+
+    try {
+      // Save connection to database
+      const response = await fetch(`${API_URL}/api/plaid/save-connection`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-401K-Token': API_TOKEN,
+        },
+        body: JSON.stringify({
+          access_token: data.accessToken,
+          item_id: data.itemId,
+          institution_name: data.institution?.name || 'Unknown Institution',
+          institution_id: data.institution?.institution_id,
+        }),
+      });
+
+      if (response.ok) {
+        console.log('✅ Connection saved to database');
+        // Refresh the account list
+        await fetchAccounts();
+      } else {
+        const error = await response.json();
+        console.error('❌ Failed to save connection:', error);
+        alert(`Connection succeeded but failed to save: ${error.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('❌ Error saving connection:', error);
+      alert('Connection succeeded but failed to save to database.');
+    }
   };
 
   const handleDisconnectAccount = async (account) => {
