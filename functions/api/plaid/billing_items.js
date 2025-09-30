@@ -2,7 +2,7 @@
  * Get Plaid billing information for all items
  * Cloudflare Workers function
  */
-import { initializePlaidClient } from '../../../lib/plaidConfig.js';
+import { initializePlaidClient } from '../../../src/lib/plaidConfig.js';
 import { createSupabaseAdmin } from '../../../src/lib/supabaseAdmin.js';
 import { handleCors, requireSharedToken, jsonResponse } from '../../../src/utils/cors-workers.js';
 
