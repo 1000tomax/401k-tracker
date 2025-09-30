@@ -52,6 +52,7 @@ const SOURCE_NAME_OVERRIDES = {
   'Safe Harbor Match': 'Match',
   'Employee PreTax': 'Traditional',
   'Employee Post Tax': 'Roth',
+  'She Roth on that thing til i IRA': 'Roth IRA',
 };
 
 export function formatFundName(name) {
