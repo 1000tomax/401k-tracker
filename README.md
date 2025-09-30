@@ -107,6 +107,14 @@ The daily sync workflow runs at 6 AM UTC automatically.
 └── wrangler.toml           # Cloudflare configuration
 ```
 
+## Future Enhancements
+
+- [ ] **Live Stock Prices** - Integrate real-time price API (e.g., Alpha Vantage, Polygon.io) for Roth IRA funds (VTI, SCHD, QQQM, DES)
+- [ ] **Price Refresh Button** - Manual trigger to update latest prices
+- [ ] **Auto Price Updates** - Scheduled price updates during market hours
+- [ ] **Historical Price Charts** - Individual fund performance tracking
+- [ ] **Performance Analytics** - ROI, annualized returns, sector allocation
+
 ## License
 
 MIT

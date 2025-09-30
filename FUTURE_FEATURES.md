@@ -4,85 +4,85 @@ This document tracks ideas and planned features for the 401K Tracker.
 
 ## Portfolio Change Indicators
 
-**Status:** Planned - ready to implement once more snapshots exist
+**Status:** ✅ Implemented - shown in dashboard chart and gain/loss columns
 
 **Description:**
 Show simple growth/decline indicators throughout the app to give users a sense of progress:
-- Total portfolio change since last snapshot
-- Per-account change indicators
-- Visual up/down arrows with color coding (green/red)
-- Both dollar amount and percentage change
+- ✅ Total portfolio gain/loss with percentage (shown in header)
+- ✅ Per-holding gain/loss indicators (shown in holdings table)
+- ✅ Visual color coding (green/red)
+- ✅ Historical chart showing cost basis vs market value over time
 
-**Examples:**
-```
-Portfolio Value: $7,821.53
-↑ +$124.50 (+1.6%) since Oct 23, 2025
+**Completed Features:**
+- Portfolio header shows: Cost Basis, Market Value, and Total Gain/Loss
+- Holdings table shows per-position gain/loss with percentage
+- Account Growth chart displays both cost basis and market value lines
+- Color-coded gain/loss columns (green for positive, red for negative)
 
-Voya 401(k): $7,224.90
-↑ +$156.32 (+2.2%) from last week
-```
-
-**Implementation Notes:**
-- Query last 2 snapshots for each account
-- Calculate: `current_value - previous_value = delta`
-- Calculate percentage: `(delta / previous_value) * 100`
-- Color code: Green for positive, red for negative, gray for unchanged
-- Display format: `↑ +$XXX.XX (+X.X%)` or `↓ -$XXX.XX (-X.X%)`
-
-**Data Available:**
-- ✅ Historical snapshots in `holdings_snapshots` table
-- ✅ Sorted by date for easy comparison
-- ✅ Per-account and per-fund granularity
-
-**Example Query:**
-```sql
--- Get current and previous snapshot for an account
-WITH snapshots AS (
-  SELECT snapshot_date, SUM(market_value) as total_value
-  FROM holdings_snapshots
-  WHERE account_id = 'voya_401k_pretax'
-  GROUP BY snapshot_date
-  ORDER BY snapshot_date DESC
-  LIMIT 2
-)
-SELECT
-  (SELECT total_value FROM snapshots LIMIT 1) as current_value,
-  (SELECT total_value FROM snapshots LIMIT 1 OFFSET 1) as previous_value;
-```
+**Data Source:**
+- ✅ Transaction-based portfolio calculation
+- ✅ Real-time cost basis tracking
+- ✅ Timeline data with historical values
 
 ---
 
 ## Fund Detail View (Clickable ETFs)
 
-**Status:** Planned - waiting for more historical data
+**Status:** Planned - waiting for more historical transaction data
 
 **Description:**
 Add clickable fund/ETF names in holdings tables that open a detailed view showing:
 - Historical price chart for the fund
-- Your holdings over time (share accumulation)
+- Your transaction history for that specific fund
 - Cost basis and performance (% gain/loss)
-- Transaction history for that specific fund
+- Share accumulation over time
 - Key metrics (current price, your total shares, market value)
 
 **Implementation Notes:**
-- Query `holdings_snapshots` table by fund ticker
+- Query `transactions` table by fund ticker
 - Create `FundDetail` component with Recharts price chart
 - Add route `/fund/:ticker` or use modal overlay
 - Reuse existing chart styling and components
-- Wait until 2-3 weeks of data accumulated for meaningful charts
+- Show buy/sell transactions on timeline
 
 **Data Available:**
-- ✅ Historical unit prices in `holdings_snapshots.unit_price`
-- ✅ Share quantities over time in `holdings_snapshots.shares`
-- ✅ Market values in `holdings_snapshots.market_value`
+- ✅ Historical transaction data in `transactions` table
+- ✅ Transaction dates, prices, and quantities
+- ✅ Cost basis tracking per fund
 
-**Example Query:**
-```sql
-SELECT snapshot_date, unit_price, shares, market_value
-FROM holdings_snapshots
-WHERE fund = 'VFIAX'
-ORDER BY snapshot_date ASC;
-```
+---
+
+## Live Stock Price Integration
+
+**Status:** Planned - high priority
+
+**Description:**
+Integrate real-time stock price API to show current market values for Roth IRA funds instead of relying on latest transaction prices.
+
+**Target Funds:**
+- VTI (Vanguard Total Stock Market ETF)
+- SCHD (Schwab U.S. Dividend Equity ETF)
+- QQQM (Invesco NASDAQ 100 ETF)
+- DES (WisdomTree U.S. SmallCap Dividend Fund)
+
+**API Options:**
+- **Alpha Vantage** - Free tier: 25 requests/day
+- **Polygon.io** - Free tier: 5 API calls/minute
+- **Finnhub** - Free tier: 60 calls/minute
+- **Yahoo Finance** (via unofficial APIs)
+
+**Implementation Notes:**
+- Add price refresh button on dashboard
+- Cache prices (update every 15 minutes during market hours)
+- Store latest prices in database
+- Scheduled job to update prices during market hours (9:30 AM - 4:00 PM ET)
+- Fallback to transaction price if API fails
+- Show last updated timestamp
+
+**Data Needed:**
+- Current price per ticker
+- Last updated time
+- Market open/close status
 
 ---
 
