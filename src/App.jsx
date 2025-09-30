@@ -88,10 +88,38 @@ export default function App() {
   // Account name mapping for display
   const formatAccountName = (name) => {
     const cleanName = name || 'Unknown Account';
-    // Map funny account names to clean display names
+
+    // Map account names to clean display names
+
+    // Roth IRA
     if (cleanName.toLowerCase().includes('roth') && cleanName.toLowerCase().includes('ira')) {
       return 'Roth IRA';
     }
+
+    // Voya 401(k) - keep the source in parentheses for granular tracking
+    // "AUTOMATED HEALTH SYSTEMS 401(K) (Employee PreTax)" -> "Voya 401(k) (PreTax)"
+    // "AUTOMATED HEALTH SYSTEMS 401(K) (ROTH)" -> "Voya 401(k) (Roth)"
+    // "AUTOMATED HEALTH SYSTEMS 401(K) (Safe Harbor Match)" -> "Voya 401(k) (Match)"
+    if (cleanName.includes('401(K)') || cleanName.includes('401k')) {
+      // Extract the source from parentheses
+      const sourceMatch = cleanName.match(/\(([^)]+)\)$/);
+      if (sourceMatch) {
+        const source = sourceMatch[1];
+
+        // Clean up source names
+        if (source.toLowerCase().includes('pretax')) {
+          return 'Voya 401(k) (PreTax)';
+        } else if (source.toLowerCase().includes('roth')) {
+          return 'Voya 401(k) (Roth)';
+        } else if (source.toLowerCase().includes('match')) {
+          return 'Voya 401(k) (Match)';
+        }
+      }
+
+      // Fallback if no source found
+      return 'Voya 401(k)';
+    }
+
     return cleanName;
   };
 
@@ -175,8 +203,9 @@ export default function App() {
                 className="nav-button"
                 onClick={handleSync}
                 disabled={isSyncing}
+                title="Sync Plaid accounts (Voya must be updated manually)"
               >
-                {isSyncing ? 'Syncing...' : 'Sync Now'}
+                {isSyncing ? 'Syncing Plaid...' : 'Sync Plaid'}
               </button>
             </nav>
           </header>
