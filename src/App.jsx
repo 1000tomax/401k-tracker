@@ -85,12 +85,24 @@ export default function App() {
     }
   }, [holdingsService, loadHoldings]);
 
+  // Account name mapping for display
+  const formatAccountName = (name) => {
+    const cleanName = name || 'Unknown Account';
+    // Map funny account names to clean display names
+    if (cleanName.toLowerCase().includes('roth') && cleanName.toLowerCase().includes('ira')) {
+      return 'Roth IRA';
+    }
+    return cleanName;
+  };
+
   // Group holdings by account for display
   const holdingsByAccount = useMemo(() => {
     const grouped = new Map();
 
     for (const holding of holdings) {
-      const accountName = holding.accountName || 'Unknown Account';
+      const rawAccountName = holding.accountName || 'Unknown Account';
+      const accountName = formatAccountName(rawAccountName);
+
       if (!grouped.has(accountName)) {
         grouped.set(accountName, {
           accountName,
