@@ -12,7 +12,40 @@ jobs:
     steps:
       - name: Sync Plaid Transactions
         run: |
-          curl -X POST https://401k.mreedon.com/api/sync/transactions \
-            -H "X-401K-Token: ${{ secrets.API_SHARED_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            -v
+          # Retry up to 3 times with exponential backoff
+          max_attempts=3
+          attempt=1
+
+          while [ $attempt -le $max_attempts ]; do
+            echo "Attempt $attempt of $max_attempts..."
+
+            response=$(curl -X POST https://401k.mreedon.com/api/sync/transactions \
+              -H "X-401K-Token: ${{ secrets.API_SHARED_TOKEN }}" \
+              -H "Content-Type: application/json" \
+              -w "\n%{http_code}" \
+              -s \
+              --connect-timeout 10 \
+              --max-time 60)
+
+            http_code=$(echo "$response" | tail -n1)
+            body=$(echo "$response" | sed '$d')
+
+            echo "Response code: $http_code"
+            echo "Response body: $body"
+
+            if [ "$http_code" -eq 200 ]; then
+              echo "✅ Sync successful!"
+              exit 0
+            fi
+
+            if [ $attempt -lt $max_attempts ]; then
+              wait_time=$((2 ** attempt))
+              echo "⚠️ Request failed. Waiting ${wait_time}s before retry..."
+              sleep $wait_time
+            fi
+
+            attempt=$((attempt + 1))
+          done
+
+          echo "❌ All retry attempts failed"
+          exit 1
