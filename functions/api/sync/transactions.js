@@ -129,6 +129,14 @@ export async function onRequestPost(context) {
 
         console.log(`📥 Received ${investment_transactions.length} transactions from ${connection.institution_name}`);
 
+        // Debug: Log ALL transaction types in the raw response
+        const typeBreakdown = {};
+        investment_transactions.forEach(tx => {
+          const key = `${tx.type || 'null'}/${tx.subtype || 'null'}`;
+          typeBreakdown[key] = (typeBreakdown[key] || 0) + 1;
+        });
+        console.log(`📊 Transaction type breakdown:`, JSON.stringify(typeBreakdown, null, 2));
+
         let connectionImported = 0;
         let connectionDuplicates = 0;
         let connectionFiltered = 0;

@@ -1,0 +1,38 @@
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0* Host 401k.mreedon.com:443 was resolved.
+* IPv6: 2606:4700:310c::ac42:2f95, 2606:4700:310c::ac42:2c6b
+* IPv4: 172.67.215.225, 104.21.35.78
+*   Trying [2606:4700:310c::ac42:2f95]:443...
+* schannel: disabled automatic use of client certificate
+* ALPN: curl offers http/1.1
+* ALPN: server accepted http/1.1
+* Connected to 401k.mreedon.com (2606:4700:310c::ac42:2f95) port 443
+* using HTTP/1.x
+> POST /api/sync/transactions HTTP/1.1
+> Host: 401k.mreedon.com
+> User-Agent: curl/8.14.1
+> Accept: */*
+> 
+* Request completely sent off
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0< HTTP/1.1 401 Unauthorized
+< Date: Wed, 01 Oct 2025 20:49:20 GMT
+< Content-Type: application/json
+< Content-Length: 41
+< Connection: keep-alive
+< Access-Control-Allow-Origin: http://localhost:5173
+< Cache-Control: no-store
+< Vary: Origin, accept-encoding
+< Access-Control-Allow-Credentials: true
+< Access-Control-Allow-Headers: Content-Type, X-401K-Token
+< Access-Control-Allow-Methods: POST, GET, OPTIONS, DELETE, PUT
+< Report-To: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=2F3v7Qwa%2BCFlpDOZPKGDAzrLC12CVFBLWRUf8XvSbDZkes%2Fbaxc1ujc4Bf9zKDakj4ZwnjWTiBZXAeVzSCLDCTp3%2F59Awya%2FJB%2Fa4eSnutcAZRhozbanHhqdkNo%3D"}]}
+< Nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+< Server: cloudflare
+< cf-cache-status: DYNAMIC
+< CF-RAY: 987ed377e900f851-ORD
+< alt-svc: h3=":443"; ma=86400
+< 
+{ [41 bytes data]
+100    41  100    41    0     0    145      0 --:--:-- --:--:-- --:--:--   145{"ok":false,"error":"Invalid auth token"}
+* Connection #0 to host 401k.mreedon.com left intact
