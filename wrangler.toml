@@ -3,5 +3,10 @@ compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = "dist"
 
+# Environment variables for Functions
+# Note: These reference secrets set in Cloudflare Pages dashboard
+[vars]
+# These are placeholder values - actual values come from Cloudflare Pages env vars
+
 # Note: Cron triggers for Pages need to be configured in Cloudflare dashboard
 # Workers & Pages → Your project → Settings → Functions → Cron Triggers
