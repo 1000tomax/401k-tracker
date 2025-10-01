@@ -96,6 +96,7 @@ export default function App() {
         gainLoss: portfolio.totals.gainLoss,
         totalHoldings: holdingsArray.length,
         lastUpdated: portfolio.lastUpdated,
+        priceTimestamps: portfolio.priceTimestamps || {},
       });
 
       setStatus('');
@@ -187,10 +188,14 @@ export default function App() {
   const holdingsByAccount = useMemo(() => {
     const grouped = new Map();
     const voyaSources = new Map(); // Track Voya sources separately
+    const priceTimestamps = totals.priceTimestamps || {};
 
     for (const holding of holdings) {
       const rawAccountName = holding.accountName || 'Unknown Account';
       const accountName = formatAccountName(rawAccountName);
+
+      // Get price timestamp info for this account
+      const priceInfo = priceTimestamps[rawAccountName] || null;
 
       // Check if this is a Voya account with a source
       const isVoya = accountName.startsWith('Voya 401(k)');
@@ -205,6 +210,7 @@ export default function App() {
             source,
             holdings: [],
             totalValue: 0,
+            priceInfo,
           });
         }
 
@@ -218,6 +224,7 @@ export default function App() {
             accountName,
             holdings: [],
             totalValue: 0,
+            priceInfo,
           });
         }
 
@@ -229,12 +236,21 @@ export default function App() {
 
     // If we have Voya sources, combine them into one account
     if (voyaSources.size > 0) {
+      // Find the most recent price info from all Voya sources
+      let mostRecentPriceInfo = null;
+      for (const source of voyaSources.values()) {
+        if (source.priceInfo && (!mostRecentPriceInfo || source.priceInfo.timestamp > mostRecentPriceInfo.timestamp)) {
+          mostRecentPriceInfo = source.priceInfo;
+        }
+      }
+
       const combinedVoya = {
         accountName: 'Voya 401(k)',
         holdings: [],
         totalValue: 0,
         sources: Array.from(voyaSources.values()),
         isCollapsible: true, // Flag to indicate this account can be expanded
+        priceInfo: mostRecentPriceInfo,
       };
 
       // Combine all holdings from all sources

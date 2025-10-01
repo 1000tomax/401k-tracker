@@ -212,6 +212,31 @@ export default function Dashboard({ summary, isLoading }) {
           const isExpanded = expandedAccounts.has(account.accountName);
           const isCollapsible = account.isCollapsible;
 
+          // Format price timestamp
+          const formatPriceTimestamp = (priceInfo) => {
+            if (!priceInfo || !priceInfo.timestamp) return '';
+
+            if (priceInfo.source === 'live') {
+              // For live prices, show full date and time
+              const date = new Date(priceInfo.timestamp);
+              const month = date.getMonth() + 1;
+              const day = date.getDate();
+              const hours = date.getHours();
+              const minutes = date.getMinutes().toString().padStart(2, '0');
+              const ampm = hours >= 12 ? 'PM' : 'AM';
+              const displayHours = hours % 12 || 12;
+              return `${month}/${day} ${displayHours}:${minutes} ${ampm}`;
+            } else {
+              // For transaction-based prices, show just the date with "(transaction date)" suffix
+              const date = new Date(priceInfo.timestamp + 'T00:00:00');
+              const month = date.getMonth() + 1;
+              const day = date.getDate();
+              return `${month}/${day} (transaction date)`;
+            }
+          };
+
+          const priceTimestampText = formatPriceTimestamp(account.priceInfo);
+
           return (
             <div key={account.accountName} className="account-section">
               <div
@@ -222,7 +247,12 @@ export default function Dashboard({ summary, isLoading }) {
                 {isCollapsible && (
                   <span className="expand-icon">{isExpanded ? '▼' : '▶'}</span>
                 )}
-                <h3>{account.accountName}</h3>
+                <div className="account-header-content">
+                  <h3>{account.accountName}</h3>
+                  {priceTimestampText && (
+                    <p className="price-timestamp">Prices as of {priceTimestampText}</p>
+                  )}
+                </div>
                 <span className="account-total">{formatCurrency(account.totalValue)}</span>
               </div>
 

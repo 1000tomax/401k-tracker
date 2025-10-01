@@ -2292,12 +2292,25 @@ details ul {
   display: inline-block;
 }
 
+.account-section .account-header .account-header-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
 .account-section .account-header h3 {
   margin: 0;
   font-size: 1.1rem;
   font-weight: 600;
   color: var(--text-primary);
-  flex: 1;
+}
+
+.account-section .account-header .price-timestamp {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 400;
 }
 
 .account-section .account-total {

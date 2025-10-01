@@ -461,6 +461,7 @@ export function aggregatePortfolio(transactions, livePrices = null) {
 
   let lastUpdated = null;
   let firstTransaction = null;
+  const priceTimestamps = {}; // Track price update timestamps by moneySource
 
   for (const tx of chronological) {
     const key = `${tx.fund}||${tx.moneySource}`;
@@ -643,7 +644,7 @@ export function aggregatePortfolio(transactions, livePrices = null) {
   // Use live prices if available, otherwise fall back to transaction NAV
   const latestNAVByFund = new Map();
   for (const [key, entries] of byFundSource.entries()) {
-    const [fund] = key.split('||');
+    const [fund, moneySource] = key.split('||');
 
     // Check if we have a live price for this fund
     let nav = 0;
@@ -654,10 +655,27 @@ export function aggregatePortfolio(transactions, livePrices = null) {
       nav = livePrices[fund].price;
       priceSource = 'live';
       console.log(`📈 Using live price for ${fund}: $${nav.toFixed(2)}`);
+
+      // Track the price timestamp for this money source
+      if (!priceTimestamps[moneySource]) {
+        priceTimestamps[moneySource] = {
+          timestamp: livePrices[fund].updatedAt,
+          source: priceSource
+        };
+      }
     } else {
       // Fall back to latest transaction price
       nav = latestNavFor(entries);
       priceSource = 'transaction';
+
+      // For transaction-based prices, use the most recent transaction date for this source
+      const latestTx = entries[entries.length - 1];
+      if (latestTx && (!priceTimestamps[moneySource] || latestTx.date > priceTimestamps[moneySource].timestamp)) {
+        priceTimestamps[moneySource] = {
+          timestamp: latestTx.date,
+          source: priceSource
+        };
+      }
     }
 
     // Keep the most recent NAV for this fund
@@ -863,5 +881,6 @@ export function aggregatePortfolio(transactions, livePrices = null) {
     timeline,
     firstTransaction,
     lastUpdated,
+    priceTimestamps,
   };
 }
