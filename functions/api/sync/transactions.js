@@ -119,12 +119,58 @@ export async function onRequestPost(context) {
         let connectionImported = 0;
         let connectionDuplicates = 0;
         let connectionFiltered = 0;
+        let rawTransactionsSaved = 0;
 
         // Create lookup maps
         const securitiesMap = new Map(securities.map(sec => [sec.security_id, sec]));
         const accountsMap = new Map(accounts.map(acc => [acc.account_id, acc]));
 
-        // Process each transaction
+        // First pass: Save ALL raw transactions (no filtering)
+        console.log(`💾 Saving ${investment_transactions.length} raw transactions...`);
+        for (const plaidTx of investment_transactions) {
+          const security = securitiesMap.get(plaidTx.security_id);
+          const account = accountsMap.get(plaidTx.account_id);
+
+          if (!security || !account) continue;
+
+          // Save raw transaction (upsert to handle duplicates)
+          const { error: rawError } = await supabase
+            .from('raw_plaid_transactions')
+            .upsert({
+              plaid_transaction_id: plaidTx.investment_transaction_id,
+              plaid_account_id: plaidTx.account_id,
+              plaid_security_id: plaidTx.security_id,
+              source_connection_id: connection.item_id,
+              institution_name: connection.institution_name,
+              account_name: account.name,
+              date: plaidTx.date,
+              type: plaidTx.type,
+              subtype: plaidTx.subtype,
+              security_symbol: security.ticker_symbol,
+              security_name: security.name,
+              security_cusip: security.cusip,
+              quantity: plaidTx.quantity,
+              price: plaidTx.price,
+              amount: plaidTx.amount,
+              fees: plaidTx.fees || 0,
+              currency_code: plaidTx.iso_currency_code || 'USD',
+              raw_json: plaidTx,
+              imported_at: new Date().toISOString(),
+            }, {
+              onConflict: 'plaid_transaction_id',
+            });
+
+          if (!rawError) {
+            rawTransactionsSaved++;
+          } else if (rawError.code !== '23505') {
+            // Log error if it's not a duplicate key violation
+            console.warn(`⚠️ Error saving raw transaction ${plaidTx.investment_transaction_id}:`, rawError.message);
+          }
+        }
+
+        console.log(`✅ Saved ${rawTransactionsSaved} raw transactions`);
+
+        // Second pass: Process transactions with filtering for main table
         for (const plaidTx of investment_transactions) {
           const security = securitiesMap.get(plaidTx.security_id);
           const account = accountsMap.get(plaidTx.account_id);
@@ -225,12 +271,13 @@ export async function onRequestPost(context) {
         results.push({
           institution: connection.institution_name,
           total_fetched: investment_transactions.length,
+          raw_saved: rawTransactionsSaved,
           imported: connectionImported,
           duplicates: connectionDuplicates,
           filtered: connectionFiltered,
         });
 
-        console.log(`✅ ${connection.institution_name}: ${connectionImported} imported, ${connectionDuplicates} duplicates, ${connectionFiltered} filtered`);
+        console.log(`✅ ${connection.institution_name}: ${rawTransactionsSaved} raw saved, ${connectionImported} imported, ${connectionDuplicates} duplicates, ${connectionFiltered} filtered`);
 
       } catch (error) {
         console.error(`❌ Error syncing ${connection.institution_name}:`, error.message);
