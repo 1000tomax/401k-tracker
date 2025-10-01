@@ -266,7 +266,7 @@ export async function onRequestPost(context) {
           const { data: insertedDivs, error: divError } = await supabase
             .from('dividends')
             .upsert(dividendsToInsert, {
-              onConflict: 'dividend_hash',
+              onConflict: 'plaid_transaction_id',
               ignoreDuplicates: true
             });
 
@@ -345,7 +345,7 @@ export async function onRequestPost(context) {
           const { data: insertedTxs, error: insertError } = await supabase
             .from('transactions')
             .upsert(transactionsToInsert, {
-              onConflict: 'transaction_hash',
+              onConflict: 'plaid_transaction_id',
               ignoreDuplicates: true
             });
 
