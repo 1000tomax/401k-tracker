@@ -188,16 +188,41 @@ export async function onRequestPost(context) {
         // Second pass: Extract and save dividends (separate from buy/sell transactions)
         console.log(`💰 Processing dividends...`);
         for (const plaidTx of investment_transactions) {
-          const security = securitiesMap.get(plaidTx.security_id);
           const account = accountsMap.get(plaidTx.account_id);
-
-          if (!security || !account) continue;
+          if (!account) continue;
 
           // Check if this is a dividend transaction
           const txType = plaidTx.type?.toLowerCase();
-          const isDividend = ['dividend', 'cash'].includes(txType);
+          const txName = plaidTx.name?.toLowerCase() || '';
+          const isDividend = ['dividend', 'cash'].includes(txType) || txName.includes('dividend');
 
           if (!isDividend) continue;
+
+          // Get security - for dividends, security_id might be in description instead
+          let security = securitiesMap.get(plaidTx.security_id);
+
+          // If no security but transaction name has symbol, try to extract it
+          if (!security && plaidTx.name) {
+            // M1 Finance format: "Dividend of CUSIP $X.XX received"
+            // Try to find security by matching CUSIP in name
+            for (const [secId, sec] of securitiesMap) {
+              if (sec.cusip && plaidTx.name.includes(sec.cusip)) {
+                security = sec;
+                break;
+              }
+              // Also try ticker symbol match
+              if (sec.ticker_symbol && plaidTx.name.toLowerCase().includes(sec.ticker_symbol.toLowerCase())) {
+                security = sec;
+                break;
+              }
+            }
+          }
+
+          // Skip if we still can't identify the security
+          if (!security) {
+            console.warn(`⚠️ Dividend without identifiable security: ${plaidTx.name}`);
+            continue;
+          }
 
           // Create dividend record
           const dividend = {
