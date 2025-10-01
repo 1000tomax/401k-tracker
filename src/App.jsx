@@ -66,8 +66,17 @@ export default function App() {
         return;
       }
 
-      // Aggregate into portfolio
-      const portfolio = aggregatePortfolio(transactions);
+      // Fetch live ETF prices (for Roth IRA holdings)
+      console.log('💰 Fetching live ETF prices...');
+      const livePrices = await holdingsService.getLatestPrices();
+      if (livePrices) {
+        console.log('✅ Live prices loaded:', Object.keys(livePrices));
+      } else {
+        console.log('⚠️ Live prices unavailable, using transaction prices');
+      }
+
+      // Aggregate into portfolio with live prices
+      const portfolio = aggregatePortfolio(transactions, livePrices);
 
       console.log('📊 Portfolio calculated:', {
         holdings: Object.keys(portfolio.portfolio).length,

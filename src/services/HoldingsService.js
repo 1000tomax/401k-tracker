@@ -59,6 +59,31 @@ export class HoldingsService {
       throw error;
     }
   }
+
+  async getLatestPrices() {
+    try {
+      const url = `${this.apiUrl}/api/prices/latest`;
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-401K-Token': this.token,
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        console.error('Failed to fetch live prices:', error);
+        return null; // Return null on error, will fall back to transaction prices
+      }
+
+      const data = await response.json();
+      return data.ok ? data.prices : null;
+    } catch (error) {
+      console.error('Error fetching live prices:', error);
+      return null; // Graceful degradation - use transaction prices
+    }
+  }
 }
 
 export default HoldingsService;

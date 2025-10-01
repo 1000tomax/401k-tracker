@@ -434,7 +434,7 @@ function classifyFlow(activity) {
 
 const SHARE_EPSILON = 1e-6;
 
-export function aggregatePortfolio(transactions) {
+export function aggregatePortfolio(transactions, livePrices = null) {
   const portfolio = {};
   const totals = {
     shares: 0,
@@ -640,13 +640,29 @@ export function aggregatePortfolio(transactions) {
   const payPeriodDates = new Set();
 
   // First pass: calculate latest NAV per fund (across all sources)
+  // Use live prices if available, otherwise fall back to transaction NAV
   const latestNAVByFund = new Map();
   for (const [key, entries] of byFundSource.entries()) {
     const [fund] = key.split('||');
-    const nav = latestNavFor(entries);
+
+    // Check if we have a live price for this fund
+    let nav = 0;
+    let priceSource = 'transaction';
+
+    if (livePrices && livePrices[fund] && livePrices[fund].price > 0) {
+      // Use live price from API
+      nav = livePrices[fund].price;
+      priceSource = 'live';
+      console.log(`📈 Using live price for ${fund}: $${nav.toFixed(2)}`);
+    } else {
+      // Fall back to latest transaction price
+      nav = latestNavFor(entries);
+      priceSource = 'transaction';
+    }
+
     // Keep the most recent NAV for this fund
     if (!latestNAVByFund.has(fund) || nav > 0) {
-      latestNAVByFund.set(fund, nav);
+      latestNAVByFund.set(fund, { price: nav, source: priceSource });
     }
   }
 
@@ -660,7 +676,9 @@ export function aggregatePortfolio(transactions) {
       shares = 0;
     }
     const avgCost = shares ? costBasis / shares : 0;
-    const latestNAV = latestNAVByFund.get(fund) || 0; // Use fund-wide latest NAV
+    const navData = latestNAVByFund.get(fund) || { price: 0, source: 'transaction' };
+    const latestNAV = navData.price; // Extract price from object
+    const priceSource = navData.source; // Track whether this is live or transaction price
     const marketValue = shares * latestNAV;
     let gainLoss = marketValue - costBasis;
     const realizedGainLoss = position.realizedGainLoss || 0;
@@ -692,6 +710,7 @@ export function aggregatePortfolio(transactions) {
       firstBuyDate,
       lastSellDate,
       realizedGainLoss,
+      priceSource, // 'live' or 'transaction'
       // Additional metadata for better tracking
       totalSaleProceeds: isClosed ? Math.abs(realizedGainLoss + costBasis) : 0,
       hasTransactions: entries.length > 0

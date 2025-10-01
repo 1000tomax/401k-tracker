@@ -10,6 +10,7 @@ A modern portfolio tracking application for retirement accounts. Automatically s
 
 - 🔗 **Plaid Integration** - Secure connection to investment accounts (M1 Finance, Voya, etc.)
 - 📊 **Holdings Tracking** - Real-time view of your current positions
+- 💰 **Live ETF Prices** - Auto-refresh Roth IRA prices every 15 min during market hours (Finnhub API)
 - 📈 **Account Growth Chart** - Visualize portfolio value over time
 - ⏰ **Daily Auto-Sync** - Automatic holdings refresh via GitHub Actions (6 AM UTC)
 - 🗄️ **Supabase Database** - Secure cloud storage for holdings snapshots
@@ -20,7 +21,7 @@ A modern portfolio tracking application for retirement accounts. Automatically s
 - **Frontend**: React, Vite, Recharts
 - **Backend**: Cloudflare Workers Functions
 - **Database**: Supabase (PostgreSQL)
-- **APIs**: Plaid API for financial data
+- **APIs**: Plaid API for financial data, Finnhub API for live stock prices
 - **Hosting**: Cloudflare Pages
 - **Automation**: GitHub Actions
 

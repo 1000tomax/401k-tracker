@@ -1,0 +1,37 @@
+name: Sync ETF Prices
+
+on:
+  # Run every 15 minutes during market hours (9:30 AM - 4:00 PM ET)
+  # Cron is in UTC, so 13:30 - 20:00 UTC = 9:30 AM - 4:00 PM ET
+  schedule:
+    - cron: '*/15 13-19 * * 1-5'  # Every 15 min, Mon-Fri during market hours
+
+  # Allow manual trigger for testing
+  workflow_dispatch:
+
+jobs:
+  sync-prices:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Sync ETF prices from Finnhub
+        run: |
+          echo "🔄 Triggering price refresh..."
+
+          response=$(curl -s -w "\n%{http_code}" -X POST \
+            https://401k.mreedon.com/api/prices/refresh \
+            -H "X-401K-Token: ${{ secrets.API_SHARED_TOKEN }}" \
+            -H "Content-Type: application/json")
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | head -n-1)
+
+          echo "Response: $body"
+          echo "HTTP Status: $http_code"
+
+          if [ "$http_code" -ne 200 ]; then
+            echo "❌ Price sync failed with status $http_code"
+            exit 1
+          fi
+
+          echo "✅ Price sync completed successfully"
