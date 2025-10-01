@@ -140,13 +140,33 @@ export async function onRequestPost(context) {
         const securitiesMap = new Map(securities.map(sec => [sec.security_id, sec]));
         const accountsMap = new Map(accounts.map(acc => [acc.account_id, acc]));
 
+        console.log(`📋 Securities available: ${securities.length} (symbols: ${securities.map(s => s.ticker_symbol).join(', ')})`);
+        console.log(`📋 Accounts available: ${accounts.length}`);
+
         // First pass: Save ALL raw transactions (no filtering)
         console.log(`💾 Saving ${investment_transactions.length} raw transactions...`);
+
+        // Debug: Check for dividend transactions
+        const dividendTxs = investment_transactions.filter(tx =>
+          tx.type === 'cash' && tx.subtype === 'dividend'
+        );
+        console.log(`🔍 Found ${dividendTxs.length} dividend transactions in Plaid response`);
+        if (dividendTxs.length > 0) {
+          console.log('📊 Sample dividend transaction:', JSON.stringify(dividendTxs[0], null, 2));
+        }
+
         for (const plaidTx of investment_transactions) {
           const security = securitiesMap.get(plaidTx.security_id);
           const account = accountsMap.get(plaidTx.account_id);
 
-          if (!security || !account) continue;
+          // Debug: Log when we skip transactions
+          if (!security || !account) {
+            if (plaidTx.type === 'cash' && plaidTx.subtype === 'dividend') {
+              console.log(`⚠️ SKIPPING DIVIDEND: Missing ${!security ? 'security' : 'account'} for tx ${plaidTx.investment_transaction_id}`);
+              console.log(`   security_id: ${plaidTx.security_id}, account_id: ${plaidTx.account_id}`);
+            }
+            continue;
+          }
 
           // Save raw transaction (upsert to handle duplicates)
           const { error: rawError } = await supabase
