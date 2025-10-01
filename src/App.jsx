@@ -321,6 +321,11 @@ export default function App() {
       grouped.set('Voya 401(k)', combinedVoya);
     }
 
+    // Sort holdings within each account by market value (highest first)
+    for (const account of grouped.values()) {
+      account.holdings.sort((a, b) => b.marketValue - a.marketValue);
+    }
+
     return Array.from(grouped.values());
   }, [holdings]);
 
