@@ -11,6 +11,7 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
+import DividendSummaryWidget from '../components/DividendSummaryWidget.jsx';
 
 export default function Dashboard({ summary, isLoading }) {
   const { totals, timeline, holdings, holdingsByAccount } = summary;
@@ -200,6 +201,9 @@ export default function Dashboard({ summary, isLoading }) {
           </div>
         </section>
       )}
+
+      {/* Dividend Income Summary Widget */}
+      <DividendSummaryWidget />
 
       {/* Current Holdings by Account */}
       <section>

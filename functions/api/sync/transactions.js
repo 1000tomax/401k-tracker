@@ -60,6 +60,17 @@ function generateTransactionHash(tx) {
   return Math.abs(hash).toString(16).slice(0, 8);
 }
 
+function generateDividendHash(dividend) {
+  const data = `${dividend.date}|${dividend.fund?.toLowerCase() || ''}|${dividend.account?.toLowerCase() || ''}|${dividend.amount}`;
+  let hash = 0;
+  for (let i = 0; i < data.length; i++) {
+    const char = data.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash).toString(16).slice(0, 8);
+}
+
 export async function onRequestPost(context) {
   const { request, env } = context;
 
@@ -98,6 +109,8 @@ export async function onRequestPost(context) {
     let totalTransactions = 0;
     let totalImported = 0;
     let totalDuplicates = 0;
+    let totalDividends = 0;
+    let totalDividendsDuplicates = 0;
     const errors = [];
     const results = [];
 
@@ -120,6 +133,8 @@ export async function onRequestPost(context) {
         let connectionDuplicates = 0;
         let connectionFiltered = 0;
         let rawTransactionsSaved = 0;
+        let dividendsImported = 0;
+        let dividendsDuplicates = 0;
 
         // Create lookup maps
         const securitiesMap = new Map(securities.map(sec => [sec.security_id, sec]));
@@ -170,7 +185,83 @@ export async function onRequestPost(context) {
 
         console.log(`✅ Saved ${rawTransactionsSaved} raw transactions`);
 
-        // Second pass: Process transactions with filtering for main table
+        // Second pass: Extract and save dividends (separate from buy/sell transactions)
+        console.log(`💰 Processing dividends...`);
+        for (const plaidTx of investment_transactions) {
+          const security = securitiesMap.get(plaidTx.security_id);
+          const account = accountsMap.get(plaidTx.account_id);
+
+          if (!security || !account) continue;
+
+          // Check if this is a dividend transaction
+          const txType = plaidTx.type?.toLowerCase();
+          const isDividend = ['dividend', 'cash'].includes(txType);
+
+          if (!isDividend) continue;
+
+          // Create dividend record
+          const dividend = {
+            date: plaidTx.date,
+            fund: security.ticker_symbol || security.name,
+            account: account.name,
+            amount: Math.abs(parseFloat(plaidTx.amount) || 0),
+          };
+
+          // Generate hash for deduplication
+          const dividendHash = generateDividendHash(dividend);
+
+          // Check if already exists
+          const { data: existingDiv } = await supabase
+            .from('dividends')
+            .select('id')
+            .eq('dividend_hash', dividendHash)
+            .single();
+
+          if (existingDiv) {
+            dividendsDuplicates++;
+            continue;
+          }
+
+          // Insert dividend
+          const { error: divError } = await supabase
+            .from('dividends')
+            .insert({
+              date: dividend.date,
+              fund: dividend.fund,
+              account: dividend.account,
+              amount: dividend.amount,
+              source_type: 'plaid',
+              source_id: connection.item_id,
+              plaid_transaction_id: plaidTx.investment_transaction_id,
+              plaid_account_id: plaidTx.account_id,
+              security_id: security.cusip || security.isin || plaidTx.security_id,
+              security_type: security.type || 'unknown',
+              dividend_type: 'ordinary',
+              dividend_hash: dividendHash,
+              imported_at: new Date().toISOString(),
+              metadata: {
+                institution: connection.institution_name,
+                security_ticker: security.ticker_symbol,
+                security_name: security.name,
+                fees: plaidTx.fees || 0,
+                original_type: plaidTx.type,
+              },
+            });
+
+          if (divError) {
+            if (divError.code === '23505') {
+              dividendsDuplicates++;
+            } else {
+              console.error('Error saving dividend:', divError);
+            }
+          } else {
+            dividendsImported++;
+          }
+        }
+
+        console.log(`✅ Dividends: ${dividendsImported} imported, ${dividendsDuplicates} duplicates`);
+
+        // Third pass: Process buy/sell transactions with filtering for main table
         for (const plaidTx of investment_transactions) {
           const security = securitiesMap.get(plaidTx.security_id);
           const account = accountsMap.get(plaidTx.account_id);
@@ -261,6 +352,8 @@ export async function onRequestPost(context) {
 
         totalTransactions += investment_transactions.length;
         totalDuplicates += connectionDuplicates;
+        totalDividends += dividendsImported;
+        totalDividendsDuplicates += dividendsDuplicates;
 
         // Update last_synced_at for this connection
         await supabase
@@ -272,12 +365,14 @@ export async function onRequestPost(context) {
           institution: connection.institution_name,
           total_fetched: investment_transactions.length,
           raw_saved: rawTransactionsSaved,
-          imported: connectionImported,
-          duplicates: connectionDuplicates,
-          filtered: connectionFiltered,
+          transactions_imported: connectionImported,
+          transactions_duplicates: connectionDuplicates,
+          transactions_filtered: connectionFiltered,
+          dividends_imported: dividendsImported,
+          dividends_duplicates: dividendsDuplicates,
         });
 
-        console.log(`✅ ${connection.institution_name}: ${rawTransactionsSaved} raw saved, ${connectionImported} imported, ${connectionDuplicates} duplicates, ${connectionFiltered} filtered`);
+        console.log(`✅ ${connection.institution_name}: ${rawTransactionsSaved} raw saved, ${connectionImported} txns imported, ${dividendsImported} dividends imported, ${connectionDuplicates} duplicates, ${connectionFiltered} filtered`);
 
       } catch (error) {
         console.error(`❌ Error syncing ${connection.institution_name}:`, error.message);
@@ -293,8 +388,10 @@ export async function onRequestPost(context) {
       message: 'Transaction sync complete',
       synced: totalImported,
       total_transactions: totalTransactions,
-      imported: totalImported,
-      duplicates: totalDuplicates,
+      transactions_imported: totalImported,
+      transactions_duplicates: totalDuplicates,
+      dividends_imported: totalDividends,
+      dividends_duplicates: totalDividendsDuplicates,
       results,
       errors: errors.length > 0 ? errors : undefined,
       date_range: { start: startDate, end: endDate },

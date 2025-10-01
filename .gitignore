@@ -26,3 +26,6 @@ dist/
 
 # Local instruction files
 CLAUDE.md
+
+# MCP configuration (may contain credentials)
+.mcp.json

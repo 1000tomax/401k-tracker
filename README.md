@@ -78,6 +78,24 @@ CORS_ORIGIN=https://your-domain.com
 
 For local development, create `.env.local` with `VITE_401K_TOKEN` added.
 
+### Claude Code MCP Server Setup
+
+The project includes Supabase MCP server configuration for AI-assisted development. This allows Claude Code to directly query the database when building or debugging features.
+
+**Setup:**
+1. Ensure `.mcp.json` exists in project root (already configured)
+2. Restart Claude Code to load the MCP server
+3. Authenticate with Supabase when prompted (uses OAuth)
+4. MCP runs in read-only mode by default for safety
+
+**Features:**
+- Query database tables directly during development
+- Verify schema without manual inspection
+- Debug data issues in real-time
+- Generate accurate migrations based on current schema
+
+**Security:** The `.mcp.json` file is gitignored and scoped to this project only.
+
 ### Local Development
 
 ```bash

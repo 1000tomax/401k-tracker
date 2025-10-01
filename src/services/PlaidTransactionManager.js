@@ -52,43 +52,48 @@ class PlaidTransactionManager {
         accounts: rawPlaidData.accounts?.length || 0
       });
 
-      // Convert to app format with enhanced metadata
-      const convertedTransactions = this.convertPlaidTransactions(
+      // Convert to app format with enhanced metadata - now returns {transactions, dividends}
+      const converted = this.convertPlaidTransactions(
         rawPlaidData,
         plaidConnectionData,
         isMockData
       );
 
-      console.log('🔄 Transactions converted:', {
-        converted: convertedTransactions.length,
-        dateRange: this.getTransactionDateRange(convertedTransactions)
+      // Apply account-specific filtering
+      const filteredTransactions = this.applyAccountFiltering(converted.transactions, 'transaction');
+      const filteredDividends = this.applyAccountFiltering(converted.dividends, 'dividend');
+
+      console.log('🔄 Data converted and filtered:', {
+        transactions: filteredTransactions.length,
+        dividends: filteredDividends.length,
+        dateRange: this.getTransactionDateRange(filteredTransactions)
       });
 
-      // Deduplicate against existing transactions
-      let deduplicationResults;
+      // Deduplicate transactions against existing transactions
+      let transactionDedup;
       if (skipDuplicateCheck || existingTransactions.length === 0) {
-        console.log('⏭️ Skipping deduplication check');
-        deduplicationResults = {
-          imported: convertedTransactions,
+        console.log('⏭️ Skipping transaction deduplication check');
+        transactionDedup = {
+          imported: filteredTransactions,
           duplicates: [],
           conflicts: [],
           errors: [],
           stats: {
-            total: convertedTransactions.length,
-            imported: convertedTransactions.length,
+            total: filteredTransactions.length,
+            imported: filteredTransactions.length,
             skipped: 0,
             conflicts: 0
           }
         };
       } else {
-        console.log('🔍 Running deduplication against existing transactions...');
-        deduplicationResults = TransactionHashService.deduplicateTransactions(
+        console.log('🔍 Running transaction deduplication...');
+        transactionDedup = TransactionHashService.deduplicateTransactions(
           existingTransactions,
-          convertedTransactions,
+          filteredTransactions,
           {
             strategy: 'skip_duplicates',
             logDuplicates: true,
-            dateToleranceDays: 1 // Allow 1 day tolerance for date mismatches
+            dateToleranceDays: 1
           }
         );
       }
@@ -96,14 +101,22 @@ class PlaidTransactionManager {
       // Update sync time
       this.updateLastSyncTime(plaidConnectionData.accessToken);
 
-      // Prepare results
+      // Prepare results with both transactions and dividends
       const results = {
         success: true,
-        imported: deduplicationResults.imported,
-        duplicates: deduplicationResults.duplicates,
-        conflicts: deduplicationResults.conflicts,
-        errors: deduplicationResults.errors,
-        stats: deduplicationResults.stats,
+        // Transactions
+        imported: transactionDedup.imported,
+        duplicates: transactionDedup.duplicates,
+        conflicts: transactionDedup.conflicts,
+        errors: transactionDedup.errors,
+        stats: transactionDedup.stats,
+        // Dividends (always imported, backend will deduplicate)
+        dividends: filteredDividends,
+        dividendStats: {
+          total: filteredDividends.length,
+          imported: filteredDividends.length
+        },
+        // Metadata
         rawPlaidData,
         connectionData: plaidConnectionData,
         syncTimestamp: new Date().toISOString(),
@@ -111,7 +124,8 @@ class PlaidTransactionManager {
       };
 
       console.log('✅ Auto-import completed:', {
-        imported: results.stats.imported,
+        transactions: results.stats.imported,
+        dividends: results.dividends.length,
         duplicates: results.stats.skipped,
         conflicts: results.stats.conflicts,
         errors: results.errors.length
@@ -125,6 +139,7 @@ class PlaidTransactionManager {
         success: false,
         error: error.message,
         imported: [],
+        dividends: [],
         duplicates: [],
         conflicts: [],
         errors: [{ error: error.message }],
@@ -134,6 +149,10 @@ class PlaidTransactionManager {
           skipped: 0,
           conflicts: 0
         },
+        dividendStats: {
+          total: 0,
+          imported: 0
+        },
         connectionData: plaidConnectionData
       };
     }
@@ -141,10 +160,11 @@ class PlaidTransactionManager {
 
   /**
    * Convert Plaid transactions to app format with enhanced metadata
+   * Now splits transactions into two streams: transactions (buy/sell) and dividends
    * @param {Object} rawPlaidData - Raw Plaid API response
    * @param {Object} connectionData - Plaid connection information
    * @param {boolean} isMockData - Whether this is mock data
-   * @returns {Array} Enhanced transactions
+   * @returns {Object} Object containing {transactions: [], dividends: []}
    */
   convertPlaidTransactions(rawPlaidData, connectionData, isMockData = false) {
     const { investment_transactions = [], securities = [], accounts = [] } = rawPlaidData;
@@ -153,86 +173,178 @@ class PlaidTransactionManager {
     const securitiesMap = new Map(securities.map(sec => [sec.security_id, sec]));
     const accountsMap = new Map(accounts.map(acc => [acc.account_id, acc]));
 
-    // Filter and convert investment transactions
-    const converted = investment_transactions
-      .filter(plaidTx => {
-        // Only include actual security transactions (buy/sell), skip transfers and dividends without securities
-        const hasSecurityId = plaidTx.security_id && plaidTx.security_id.trim() !== '';
-        const isTradeTransaction = ['buy', 'sell', 'purchase', 'purchased', 'sold'].includes(plaidTx.type?.toLowerCase());
-        const hasQuantity = plaidTx.quantity && Math.abs(parseFloat(plaidTx.quantity)) > 0;
+    const transactions = [];
+    const dividends = [];
 
-        return hasSecurityId && (isTradeTransaction || hasQuantity);
-      })
-      .map(plaidTx => {
-        // Get related data
-        const security = securitiesMap.get(plaidTx.security_id);
-        const account = accountsMap.get(plaidTx.account_id);
+    // Process all investment transactions
+    for (const plaidTx of investment_transactions) {
+      const security = securitiesMap.get(plaidTx.security_id);
+      const account = accountsMap.get(plaidTx.account_id);
+      const txType = plaidTx.type?.toLowerCase();
 
-        // Convert to app format
-        const activity = this.mapPlaidActivity(plaidTx.type);
-        const rawUnits = parseFloat(plaidTx.quantity) || 0;
-        const rawAmount = parseFloat(plaidTx.amount) || 0;
+      // Classify transaction type
+      const isDividend = ['dividend', 'cash'].includes(txType);
+      const isTradeTransaction = ['buy', 'sell', 'purchase', 'purchased', 'sold'].includes(txType);
+      const hasSecurityId = plaidTx.security_id && plaidTx.security_id.trim() !== '';
+      const hasQuantity = plaidTx.quantity && Math.abs(parseFloat(plaidTx.quantity)) > 0;
 
-        // For sell transactions, keep negative units and amounts
-        const isSell = activity === 'Sell';
-        const units = isSell ? -Math.abs(rawUnits) : Math.abs(rawUnits);
-        const amount = isSell ? -Math.abs(rawAmount) : Math.abs(rawAmount);
+      if (isDividend) {
+        // Extract dividend
+        dividends.push(this.extractDividend(plaidTx, security, account, connectionData, isMockData));
+      } else if (hasSecurityId && (isTradeTransaction || hasQuantity)) {
+        // Extract buy/sell transaction
+        transactions.push(this.extractTransaction(plaidTx, security, account, connectionData, isMockData));
+      }
+    }
 
-        const baseTx = {
-          date: plaidTx.date,
-          fund: this.formatFundName(plaidTx, security),
-          moneySource: this.formatAccountName(account),
-          activity: activity,
-          units: units,
-          unitPrice: parseFloat(plaidTx.price) || 0,
-          amount: amount
-        };
+    console.log(`📊 Split Plaid data: ${transactions.length} transactions, ${dividends.length} dividends`);
 
-        // Enhance with metadata using TransactionHashService
-        const enhanced = TransactionHashService.enhanceTransaction(baseTx, {
-          sourceType: isMockData ? 'mock' : 'plaid',
-          sourceId: connectionData.itemId || 'unknown',
-          plaidTransactionId: plaidTx.investment_transaction_id,
-          // Additional Plaid metadata
-          plaidData: {
-            accountId: plaidTx.account_id,
-            securityId: plaidTx.security_id,
-            fees: plaidTx.fees || 0,
-            originalType: plaidTx.type,
-            institution: connectionData.institution?.name,
-            securityTicker: security?.ticker_symbol,
-            securityName: security?.name,
-            securityType: security?.type,
-            accountType: account?.type,
-            accountSubtype: account?.subtype
-          }
-        });
+    return { transactions, dividends };
+  }
 
-        // Store account reference for filtering
-        enhanced._account = account;
+  /**
+   * Extract a buy/sell transaction from Plaid data
+   * @private
+   */
+  extractTransaction(plaidTx, security, account, connectionData, isMockData) {
+    const activity = this.mapPlaidActivity(plaidTx.type);
+    const rawUnits = parseFloat(plaidTx.quantity) || 0;
+    const rawAmount = parseFloat(plaidTx.amount) || 0;
 
-        return enhanced;
-      });
+    // For sell transactions, keep negative units and amounts
+    const isSell = activity === 'Sell';
+    const units = isSell ? -Math.abs(rawUnits) : Math.abs(rawUnits);
+    const amount = isSell ? -Math.abs(rawAmount) : Math.abs(rawAmount);
 
-    // Apply account-specific symbol filtering
-    const filtered = converted.filter(tx => {
-      const account = tx._account;
+    const baseTx = {
+      date: plaidTx.date,
+      fund: this.formatFundName(plaidTx, security),
+      moneySource: this.formatAccountName(account),
+      activity: activity,
+      units: units,
+      unitPrice: parseFloat(plaidTx.price) || 0,
+      amount: amount
+    };
+
+    // Enhance with metadata using TransactionHashService
+    const enhanced = TransactionHashService.enhanceTransaction(baseTx, {
+      sourceType: isMockData ? 'mock' : 'plaid',
+      sourceId: connectionData.itemId || 'unknown',
+      plaidTransactionId: plaidTx.investment_transaction_id,
+      // Additional Plaid metadata
+      plaidData: {
+        accountId: plaidTx.account_id,
+        securityId: plaidTx.security_id,
+        fees: plaidTx.fees || 0,
+        originalType: plaidTx.type,
+        institution: connectionData.institution?.name,
+        securityTicker: security?.ticker_symbol,
+        securityName: security?.name,
+        securityType: security?.type,
+        accountType: account?.type,
+        accountSubtype: account?.subtype
+      }
+    });
+
+    // Store account reference for filtering
+    enhanced._account = account;
+
+    return enhanced;
+  }
+
+  /**
+   * Extract a dividend from Plaid data
+   * @private
+   */
+  extractDividend(plaidTx, security, account, connectionData, isMockData) {
+    const amount = Math.abs(parseFloat(plaidTx.amount) || 0);
+    const fundName = this.formatFundName(plaidTx, security);
+    const accountName = this.formatAccountName(account);
+
+    // Create dividend hash for deduplication
+    const hashComponents = [
+      plaidTx.date,
+      fundName,
+      accountName,
+      amount.toFixed(2)
+    ].join('|');
+
+    const dividendHash = TransactionHashService.createHash(hashComponents);
+
+    const dividend = {
+      date: plaidTx.date,
+      fund: fundName,
+      account: accountName,
+      amount: amount,
+
+      // Source tracking
+      sourceType: isMockData ? 'mock' : 'plaid',
+      sourceId: connectionData.itemId || 'unknown',
+      plaidTransactionId: plaidTx.investment_transaction_id,
+      plaidAccountId: plaidTx.account_id,
+
+      // Enhanced metadata
+      securityId: security?.cusip || security?.isin || plaidTx.security_id,
+      securityType: security?.type || 'unknown',
+      dividendType: this.inferDividendType(plaidTx.type, plaidTx.name),
+
+      // Deduplication
+      dividendHash: dividendHash,
+
+      // Metadata
+      metadata: {
+        institution: connectionData.institution?.name,
+        securityTicker: security?.ticker_symbol,
+        securityName: security?.name,
+        fees: plaidTx.fees || 0,
+        originalType: plaidTx.type,
+        accountType: account?.type,
+        accountSubtype: account?.subtype
+      }
+    };
+
+    // Store account reference for filtering
+    dividend._account = account;
+
+    return dividend;
+  }
+
+  /**
+   * Infer dividend type from transaction data
+   * @private
+   */
+  inferDividendType(type, name) {
+    const lower = (name || '').toLowerCase();
+    if (lower.includes('qualified')) return 'qualified';
+    if (lower.includes('capital gain')) return 'capital_gains';
+    if (lower.includes('ordinary')) return 'ordinary';
+    return 'ordinary'; // Default
+  }
+
+  /**
+   * Apply account-specific filtering to transactions and dividends
+   * @private
+   */
+  applyAccountFiltering(items, itemType = 'transaction') {
+    const filtered = items.filter(item => {
+      const account = item._account;
       const shouldImport = shouldImportTransaction(
-        tx,
+        item,
         account?.account_id,
         account?.name
       );
 
       // Clean up temp reference
-      delete tx._account;
+      delete item._account;
 
       return shouldImport;
     });
 
-    console.log(`🔍 Symbol filtering: ${converted.length} converted → ${filtered.length} after account rules`);
+    console.log(`🔍 Symbol filtering (${itemType}): ${items.length} → ${filtered.length} after account rules`);
 
     return filtered;
   }
+
 
   /**
    * Check if Plaid data needs refreshing
@@ -379,15 +491,20 @@ class PlaidTransactionManager {
    * @returns {Object} Summary information
    */
   generateImportSummary(results) {
-    const { stats, connectionData, isMockData, syncTimestamp } = results;
+    const { stats, dividendStats, connectionData, isMockData, syncTimestamp } = results;
+
+    const transactionsImported = stats.imported;
+    const dividendsImported = dividendStats?.imported || 0;
+    const total = transactionsImported + dividendsImported;
 
     return {
       success: results.success,
       message: results.success
-        ? `Successfully imported ${stats.imported} transactions from ${connectionData.institution?.name || 'your account'}`
-        : `Failed to import transactions: ${results.error}`,
+        ? `Successfully imported ${total} items (${transactionsImported} transactions, ${dividendsImported} dividends) from ${connectionData.institution?.name || 'your account'}`
+        : `Failed to import data: ${results.error}`,
       details: {
-        imported: stats.imported,
+        transactions: transactionsImported,
+        dividends: dividendsImported,
         duplicates: stats.skipped,
         conflicts: stats.conflicts,
         errors: results.errors.length,
@@ -419,8 +536,15 @@ class PlaidTransactionManager {
       recommendations.push(`${results.errors.length} errors occurred during import`);
     }
 
-    if (results.stats.imported === 0 && results.success) {
-      recommendations.push('No new transactions found - your data is up to date');
+    const transactionsImported = results.stats.imported;
+    const dividendsImported = results.dividendStats?.imported || 0;
+
+    if (transactionsImported === 0 && dividendsImported === 0 && results.success) {
+      recommendations.push('No new data found - your data is up to date');
+    }
+
+    if (dividendsImported > 0) {
+      recommendations.push(`${dividendsImported} dividend payments tracked for passive income analytics`);
     }
 
     return recommendations;
