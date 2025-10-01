@@ -70,3 +70,26 @@ jobs:
 
           echo "❌ All URLs and retry attempts failed"
           exit 1
+
+      - name: Send Transaction Email
+        if: success()  # Only run if sync succeeded
+        run: |
+          echo "📧 Sending transaction summary email..."
+
+          response=$(curl -s -w "\n%{http_code}" -X POST \
+            https://401k.mreedon.com/api/emails/send-transaction-summary \
+            -H "X-401K-Token: ${{ secrets.API_SHARED_TOKEN }}" \
+            -H "Content-Type: application/json")
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | head -n-1)
+
+          echo "Response: $body"
+          echo "HTTP Status: $http_code"
+
+          if [ "$http_code" -eq 200 ]; then
+            echo "✅ Transaction email sent successfully"
+          else
+            echo "⚠️ Email failed, but continuing (non-critical)"
+            # Don't fail the workflow if email fails
+          fi
