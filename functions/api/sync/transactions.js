@@ -187,6 +187,8 @@ export async function onRequestPost(context) {
 
         // Second pass: Extract and save dividends (separate from buy/sell transactions)
         console.log(`💰 Processing dividends...`);
+        const dividendsToInsert = [];
+
         for (const plaidTx of investment_transactions) {
           const account = accountsMap.get(plaidTx.account_id);
           if (!account) continue;
@@ -235,58 +237,53 @@ export async function onRequestPost(context) {
           // Generate hash for deduplication
           const dividendHash = generateDividendHash(dividend);
 
-          // Check if already exists
-          const { data: existingDiv } = await supabase
-            .from('dividends')
-            .select('id')
-            .eq('dividend_hash', dividendHash)
-            .single();
+          dividendsToInsert.push({
+            date: dividend.date,
+            fund: dividend.fund,
+            account: dividend.account,
+            amount: dividend.amount,
+            source_type: 'plaid',
+            source_id: connection.item_id,
+            plaid_transaction_id: plaidTx.investment_transaction_id,
+            plaid_account_id: plaidTx.account_id,
+            security_id: security.cusip || security.isin || plaidTx.security_id,
+            security_type: security.type || 'unknown',
+            dividend_type: 'ordinary',
+            dividend_hash: dividendHash,
+            imported_at: new Date().toISOString(),
+            metadata: {
+              institution: connection.institution_name,
+              security_ticker: security.ticker_symbol,
+              security_name: security.name,
+              fees: plaidTx.fees || 0,
+              original_type: plaidTx.type,
+            },
+          });
+        }
 
-          if (existingDiv) {
-            dividendsDuplicates++;
-            continue;
-          }
-
-          // Insert dividend
-          const { error: divError } = await supabase
+        // Batch insert dividends (upsert to handle duplicates)
+        if (dividendsToInsert.length > 0) {
+          const { data: insertedDivs, error: divError } = await supabase
             .from('dividends')
-            .insert({
-              date: dividend.date,
-              fund: dividend.fund,
-              account: dividend.account,
-              amount: dividend.amount,
-              source_type: 'plaid',
-              source_id: connection.item_id,
-              plaid_transaction_id: plaidTx.investment_transaction_id,
-              plaid_account_id: plaidTx.account_id,
-              security_id: security.cusip || security.isin || plaidTx.security_id,
-              security_type: security.type || 'unknown',
-              dividend_type: 'ordinary',
-              dividend_hash: dividendHash,
-              imported_at: new Date().toISOString(),
-              metadata: {
-                institution: connection.institution_name,
-                security_ticker: security.ticker_symbol,
-                security_name: security.name,
-                fees: plaidTx.fees || 0,
-                original_type: plaidTx.type,
-              },
+            .upsert(dividendsToInsert, {
+              onConflict: 'dividend_hash',
+              ignoreDuplicates: true
             });
 
           if (divError) {
-            if (divError.code === '23505') {
-              dividendsDuplicates++;
-            } else {
-              console.error('Error saving dividend:', divError);
-            }
+            console.error('Error batch saving dividends:', divError);
           } else {
-            dividendsImported++;
+            // Supabase doesn't return inserted count on upsert with ignoreDuplicates
+            // So we'll assume all were processed
+            dividendsImported = dividendsToInsert.length;
           }
         }
 
-        console.log(`✅ Dividends: ${dividendsImported} imported, ${dividendsDuplicates} duplicates`);
+        console.log(`✅ Dividends: ${dividendsImported} processed`);
 
         // Third pass: Process buy/sell transactions with filtering for main table
+        const transactionsToInsert = [];
+
         for (const plaidTx of investment_transactions) {
           const security = securitiesMap.get(plaidTx.security_id);
           const account = accountsMap.get(plaidTx.account_id);
@@ -320,58 +317,47 @@ export async function onRequestPost(context) {
           // Generate hash for deduplication
           const transactionHash = generateTransactionHash(transaction);
 
-          // Check if already exists
-          const { data: existing } = await supabase
-            .from('transactions')
-            .select('id')
-            .eq('transaction_hash', transactionHash)
-            .single();
+          transactionsToInsert.push({
+            date: transaction.date,
+            fund: transaction.fund,
+            money_source: transaction.moneySource,
+            activity: transaction.activity,
+            units: transaction.units,
+            unit_price: transaction.unitPrice,
+            amount: transaction.amount,
+            source_type: 'plaid',
+            source_id: connection.item_id,
+            plaid_transaction_id: plaidTx.investment_transaction_id,
+            plaid_account_id: plaidTx.account_id,
+            transaction_hash: transactionHash,
+            imported_at: new Date().toISOString(),
+            last_updated_at: new Date().toISOString(),
+            metadata: {
+              institution: connection.institution_name,
+              security_id: plaidTx.security_id,
+              fees: plaidTx.fees || 0,
+            },
+          });
+        }
 
-          if (existing) {
-            connectionDuplicates++;
-            continue;
-          }
-
-          // Insert transaction
-          const { error: insertError } = await supabase
+        // Batch insert transactions (upsert to handle duplicates)
+        if (transactionsToInsert.length > 0) {
+          const { data: insertedTxs, error: insertError } = await supabase
             .from('transactions')
-            .insert({
-              date: transaction.date,
-              fund: transaction.fund,
-              money_source: transaction.moneySource,
-              activity: transaction.activity,
-              units: transaction.units,
-              unit_price: transaction.unitPrice,
-              amount: transaction.amount,
-              source_type: 'plaid',
-              source_id: connection.item_id,
-              plaid_transaction_id: plaidTx.investment_transaction_id,
-              plaid_account_id: plaidTx.account_id,
-              transaction_hash: transactionHash,
-              imported_at: new Date().toISOString(),
-              last_updated_at: new Date().toISOString(),
-              metadata: {
-                institution: connection.institution_name,
-                security_id: plaidTx.security_id,
-                fees: plaidTx.fees || 0,
-              },
+            .upsert(transactionsToInsert, {
+              onConflict: 'transaction_hash',
+              ignoreDuplicates: true
             });
 
           if (insertError) {
-            if (insertError.code === '23505') {
-              // Duplicate key - count as duplicate
-              connectionDuplicates++;
-            } else {
-              console.error('Error saving transaction:', insertError);
-              errors.push({
-                institution: connection.institution_name,
-                transaction: `${transaction.fund} ${transaction.date}`,
-                error: insertError.message,
-              });
-            }
+            console.error('Error batch saving transactions:', insertError);
+            errors.push({
+              institution: connection.institution_name,
+              error: insertError.message,
+            });
           } else {
-            connectionImported++;
-            totalImported++;
+            connectionImported = transactionsToInsert.length;
+            totalImported += connectionImported;
           }
         }
 
