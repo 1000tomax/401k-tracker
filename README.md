@@ -8,12 +8,15 @@ A modern portfolio tracking application for retirement accounts. Automatically s
 
 ## Features
 
-- 🔗 **Plaid Integration** - Secure connection to investment accounts (M1 Finance, Voya, etc.)
-- 📊 **Holdings Tracking** - Real-time view of your current positions
+- 🔗 **Plaid Integration** - Secure connection to investment accounts (M1 Finance Roth IRA)
+- 📊 **Transaction Tracking** - Full transaction history with cost basis calculation
 - 💰 **Live ETF Prices** - Auto-refresh Roth IRA prices every 15 min during market hours (Finnhub API)
-- 📈 **Account Growth Chart** - Visualize portfolio value over time
-- ⏰ **Daily Auto-Sync** - Automatic holdings refresh via GitHub Actions (6 AM UTC)
-- 🗄️ **Supabase Database** - Secure cloud storage for holdings snapshots
+- 📈 **Account Growth Chart** - Visualize portfolio value and cost basis over time
+- 💵 **Gain/Loss Tracking** - Real-time profit/loss calculation per holding and total portfolio
+- 📧 **Email Notifications** - Daily transaction summaries via Resend API
+- ⏰ **Daily Auto-Sync** - Automatic Plaid sync via GitHub Actions (6 AM UTC)
+- 🗄️ **Supabase Database** - Secure cloud storage for transactions and raw data
+- 📋 **Manual Voya Import** - Copy-paste 401(k) data for tracking
 - ⚡ **Cloudflare Pages** - Fast, global deployment with Workers Functions
 
 ## Tech Stack
@@ -29,13 +32,20 @@ A modern portfolio tracking application for retirement accounts. Automatically s
 
 ### Data Flow
 1. **Plaid Connections** stored in `plaid_connections` table
-2. **Daily Cron** (GitHub Actions) triggers `/api/sync/holdings`
-3. **Holdings Sync** fetches latest data from Plaid → saves to `holdings_snapshots`
-4. **Dashboard** reads from `holdings_snapshots` for display
+2. **Daily Cron** (GitHub Actions) triggers `/api/sync/transactions`
+3. **Transaction Sync** fetches investment transactions from Plaid
+   - Saves ALL transactions to `raw_plaid_transactions` (unfiltered)
+   - Filters and saves buy/sell transactions to `transactions`
+4. **Price Refresh** (every 15 min during market hours) updates `current_etf_prices`
+5. **Portfolio Calculation** aggregates transactions with live prices
+6. **Dashboard** displays current holdings with real-time values
 
 ### Database Tables
 - `plaid_connections` - Plaid access tokens and institution info
-- `holdings_snapshots` - Daily snapshots of portfolio holdings
+- `raw_plaid_transactions` - Complete unfiltered transaction history from Plaid (dividends, transfers, etc.)
+- `transactions` - Filtered buy/sell transactions for portfolio tracking
+- `current_etf_prices` - Live stock prices (refreshed every 15 min during market hours)
+- `email_notifications` - Email delivery audit trail
 
 ## Setup
 
@@ -93,28 +103,34 @@ The daily sync workflow runs at 6 AM UTC automatically.
 ```
 ├── functions/              # Cloudflare Workers Functions
 │   ├── api/
-│   │   ├── holdings/       # Holdings endpoints
-│   │   ├── plaid/          # Plaid integration
-│   │   └── sync/           # Sync triggers
-│   └── scheduled.js        # Cron handler (unused, using GitHub Actions)
+│   │   ├── db/             # Database query endpoints
+│   │   ├── emails/         # Email notification system
+│   │   ├── plaid/          # Plaid integration (connect, exchange)
+│   │   ├── prices/         # Live ETF price endpoints
+│   │   ├── sync/           # Transaction sync triggers
+│   │   └── voya/           # Voya 401(k) manual import
 ├── src/
 │   ├── components/         # React components
 │   ├── contexts/           # React context providers
 │   ├── lib/                # Configuration (Plaid, Supabase)
 │   ├── pages/              # Page components (Dashboard, Accounts)
 │   ├── services/           # API service layers
-│   └── utils/              # Utility functions
-├── .github/workflows/      # GitHub Actions (daily sync)
+│   └── utils/              # Utility functions (portfolio calculation, formatters)
+├── supabase/migrations/    # Database schema migrations
+├── .github/workflows/      # GitHub Actions (daily sync, price refresh)
 └── wrangler.toml           # Cloudflare configuration
 ```
 
 ## Future Enhancements
 
-- [ ] **Live Stock Prices** - Integrate real-time price API (e.g., Alpha Vantage, Polygon.io) for Roth IRA funds (VTI, SCHD, QQQM, DES)
-- [ ] **Price Refresh Button** - Manual trigger to update latest prices
-- [ ] **Auto Price Updates** - Scheduled price updates during market hours
-- [ ] **Historical Price Charts** - Individual fund performance tracking
-- [ ] **Performance Analytics** - ROI, annualized returns, sector allocation
+See [FUTURE_FEATURES.md](FUTURE_FEATURES.md) for detailed roadmap.
+
+**Planned:**
+- 📧 Weekly/monthly/quarterly email recaps with Claude AI commentary
+- 📊 Individual fund detail views with transaction history
+- 💹 Dividend tracking using raw transaction data
+- 🎯 Retirement goal tracking and projections
+- 📱 PWA support for mobile app experience
 
 ## License
 

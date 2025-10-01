@@ -132,11 +132,41 @@ Real-time stock price API integration showing current market values for Roth IRA
 - Multi-fund support if user diversifies holdings
 - Automated reminder to update balance monthly
 
+### Dividend Tracking
+
+**Status:** 🔜 Ready to implement - raw data now available
+
+**Description:**
+Track dividend income and reinvestments now that all Plaid transactions are stored unfiltered in `raw_plaid_transactions`.
+
+**Data Available:**
+- ✅ Raw dividend transactions with amounts, dates, and reinvestment details
+- ✅ Historical data from day one (complete 90-day history captured)
+- ✅ Separate from main portfolio tracking (won't interfere with cost basis)
+
+**Planned Features:**
+- Dividend income timeline chart
+- Dividend yield calculation per fund
+- Reinvestment vs cash dividend breakdown
+- Annual dividend income projection
+
+---
+
 ### Transaction Tracking
-- Import transactions from Plaid
-- Manual transaction entry
-- Calculate cost basis and realized gains
-- Track dividends and reinvestments
+
+**Status:** ✅ Implemented
+
+**Completed:**
+- ✅ Import transactions from Plaid (daily auto-sync)
+- ✅ Calculate cost basis and unrealized gains
+- ✅ Raw transaction storage for complete audit trail
+- ✅ Transaction-based portfolio calculation
+- ✅ Deduplication to prevent duplicate transactions
+
+**Still Planned:**
+- [ ] Manual transaction entry (for accounts without Plaid)
+- [ ] Realized gains tracking on sales
+- [ ] Cash flow analysis (deposits, withdrawals from raw data)
 
 ### Performance Metrics
 - YTD, 1Y, 5Y, all-time returns
