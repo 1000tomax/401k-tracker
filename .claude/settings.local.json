@@ -9,7 +9,9 @@
       "Bash(git add:*)",
       "Read(//home/mreedon/**)",
       "Bash(node:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(python3:*)",
+      "Read(//tmp/**)"
     ],
     "deny": [],
     "ask": []

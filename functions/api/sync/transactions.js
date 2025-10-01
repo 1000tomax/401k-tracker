@@ -220,6 +220,15 @@ export async function onRequestPost(context) {
 
         // Second pass: Extract and save dividends (separate from buy/sell transactions)
         console.log(`💰 Processing dividends...`);
+
+        // Debug: Log all securities with CUSIPs for dividend matching
+        console.log(`📋 Securities CUSIPs available for matching:`);
+        securities.forEach(sec => {
+          if (sec.cusip) {
+            console.log(`  ${sec.cusip} -> ${sec.ticker_symbol}`);
+          }
+        });
+
         const dividendsToInsert = [];
 
         for (const plaidTx of investment_transactions) {
@@ -250,9 +259,13 @@ export async function onRequestPost(context) {
               for (const [secId, sec] of securitiesMap) {
                 if (sec.cusip === extractedCusip) {
                   security = sec;
-                  console.log(`✅ Matched CUSIP to security: ${sec.ticker_symbol}`);
+                  console.log(`✅ Matched CUSIP ${extractedCusip} to security: ${sec.ticker_symbol}`);
                   break;
                 }
+              }
+
+              if (!security) {
+                console.log(`❌ Could not match CUSIP ${extractedCusip} to any security in the list`);
               }
             }
 
