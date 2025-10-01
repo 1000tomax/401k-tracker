@@ -138,7 +138,7 @@ export default function App() {
       return;
     }
 
-    console.log('📈 Market open - enabling auto-refresh every 5 minutes');
+    console.log('📈 Market open - enabling auto-refresh every 15 minutes');
 
     const interval = setInterval(() => {
       if (isMarketHours()) {
@@ -147,7 +147,7 @@ export default function App() {
       } else {
         console.log('🕐 Market closed - stopping auto-refresh');
       }
-    }, 5 * 60 * 1000); // 5 minutes
+    }, 15 * 60 * 1000); // 15 minutes
 
     return () => clearInterval(interval);
   }, [loadHoldings, isMarketHours]);
