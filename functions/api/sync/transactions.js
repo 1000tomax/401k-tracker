@@ -167,12 +167,17 @@ export async function onRequestPost(context) {
           const security = securitiesMap.get(plaidTx.security_id);
           const account = accountsMap.get(plaidTx.account_id);
 
-          // Debug: Log when we skip transactions
-          if (!security || !account) {
-            if (plaidTx.type === 'cash' && plaidTx.subtype === 'dividend') {
-              console.log(`⚠️ SKIPPING DIVIDEND: Missing ${!security ? 'security' : 'account'} for tx ${plaidTx.investment_transaction_id}`);
-              console.log(`   security_id: ${plaidTx.security_id}, account_id: ${plaidTx.account_id}`);
-            }
+          // Skip if no account (always required)
+          if (!account) {
+            console.log(`⚠️ SKIPPING: No account found for tx ${plaidTx.investment_transaction_id}`);
+            continue;
+          }
+
+          // For dividends, security_id is often null, so we'll extract CUSIP from name field later
+          // For non-dividends, require a security
+          const isDividend = plaidTx.type === 'cash' && plaidTx.subtype === 'dividend';
+          if (!security && !isDividend) {
+            console.log(`⚠️ SKIPPING: No security found for non-dividend tx ${plaidTx.investment_transaction_id}`);
             continue;
           }
 
@@ -189,9 +194,9 @@ export async function onRequestPost(context) {
               date: plaidTx.date,
               type: plaidTx.type,
               subtype: plaidTx.subtype,
-              security_symbol: security.ticker_symbol,
-              security_name: security.name,
-              security_cusip: security.cusip,
+              security_symbol: security?.ticker_symbol || null,
+              security_name: security?.name || null,
+              security_cusip: security?.cusip || null,
               quantity: plaidTx.quantity,
               price: plaidTx.price,
               amount: plaidTx.amount,
@@ -230,34 +235,51 @@ export async function onRequestPost(context) {
 
           // Get security - for dividends, security_id might be in description instead
           let security = securitiesMap.get(plaidTx.security_id);
+          let extractedCusip = null;
 
-          // If no security but transaction name has symbol, try to extract it
+          // If no security but transaction name has CUSIP, try to extract it
           if (!security && plaidTx.name) {
-            // M1 Finance format: "Dividend of CUSIP $X.XX received"
-            // Try to find security by matching CUSIP in name
-            for (const [secId, sec] of securitiesMap) {
-              if (sec.cusip && plaidTx.name.includes(sec.cusip)) {
-                security = sec;
-                break;
+            // M1 Finance format: "Dividend of 97717W604 $0.09 received. - DIVIDEND"
+            // Extract CUSIP (9 characters: 8 alphanumeric + 1 check digit)
+            const cusipMatch = plaidTx.name.match(/\b([0-9]{3}[0-9A-Z]{5}[0-9])\b/);
+            if (cusipMatch) {
+              extractedCusip = cusipMatch[1];
+              console.log(`📍 Extracted CUSIP from dividend: ${extractedCusip}`);
+
+              // Try to find security by CUSIP
+              for (const [secId, sec] of securitiesMap) {
+                if (sec.cusip === extractedCusip) {
+                  security = sec;
+                  console.log(`✅ Matched CUSIP to security: ${sec.ticker_symbol}`);
+                  break;
+                }
               }
-              // Also try ticker symbol match
-              if (sec.ticker_symbol && plaidTx.name.toLowerCase().includes(sec.ticker_symbol.toLowerCase())) {
-                security = sec;
-                break;
+            }
+
+            // If still no match, try ticker symbol
+            if (!security) {
+              for (const [secId, sec] of securitiesMap) {
+                if (sec.ticker_symbol && plaidTx.name.toLowerCase().includes(sec.ticker_symbol.toLowerCase())) {
+                  security = sec;
+                  console.log(`✅ Matched ticker to security: ${sec.ticker_symbol}`);
+                  break;
+                }
               }
             }
           }
 
-          // Skip if we still can't identify the security
-          if (!security) {
-            console.warn(`⚠️ Dividend without identifiable security: ${plaidTx.name}`);
+          // If we still can't identify the security, log warning but continue
+          // We'll use the extracted CUSIP for the record
+          if (!security && !extractedCusip) {
+            console.warn(`⚠️ Dividend without identifiable security or CUSIP: ${plaidTx.name}`);
             continue;
           }
 
           // Create dividend record
+          const fundName = security?.ticker_symbol || security?.name || extractedCusip || 'Unknown';
           const dividend = {
             date: plaidTx.date,
-            fund: security.ticker_symbol || security.name,
+            fund: fundName,
             account: account.name,
             amount: Math.abs(parseFloat(plaidTx.amount) || 0),
           };
@@ -274,17 +296,19 @@ export async function onRequestPost(context) {
             source_id: connection.item_id,
             plaid_transaction_id: plaidTx.investment_transaction_id,
             plaid_account_id: plaidTx.account_id,
-            security_id: security.cusip || security.isin || plaidTx.security_id,
-            security_type: security.type || 'unknown',
+            security_id: security?.cusip || extractedCusip || plaidTx.security_id,
+            security_type: security?.type || 'etf',
             dividend_type: 'ordinary',
             dividend_hash: dividendHash,
             imported_at: new Date().toISOString(),
             metadata: {
               institution: connection.institution_name,
-              security_ticker: security.ticker_symbol,
-              security_name: security.name,
+              security_ticker: security?.ticker_symbol || null,
+              security_name: security?.name || null,
+              security_cusip: extractedCusip || null,
               fees: plaidTx.fees || 0,
               original_type: plaidTx.type,
+              original_name: plaidTx.name,
             },
           });
         }
