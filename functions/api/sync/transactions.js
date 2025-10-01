@@ -220,15 +220,6 @@ export async function onRequestPost(context) {
 
         // Second pass: Extract and save dividends (separate from buy/sell transactions)
         console.log(`💰 Processing dividends...`);
-
-        // Debug: Log all securities with CUSIPs for dividend matching
-        console.log(`📋 Securities CUSIPs available for matching:`);
-        securities.forEach(sec => {
-          if (sec.cusip) {
-            console.log(`  ${sec.cusip} -> ${sec.ticker_symbol}`);
-          }
-        });
-
         const dividendsToInsert = [];
 
         for (const plaidTx of investment_transactions) {
@@ -281,15 +272,32 @@ export async function onRequestPost(context) {
             }
           }
 
+          // If we still can't identify the security from Plaid data, try our lookup table
+          let tickerFromLookup = null;
+          if (!security && extractedCusip) {
+            const { data: lookupResult } = await supabase
+              .from('security_lookup')
+              .select('ticker_symbol, security_name')
+              .eq('cusip', extractedCusip)
+              .single();
+
+            if (lookupResult) {
+              tickerFromLookup = lookupResult.ticker_symbol;
+              console.log(`✅ Found ticker from lookup table: ${extractedCusip} -> ${tickerFromLookup}`);
+            } else {
+              console.log(`⚠️ CUSIP ${extractedCusip} not in lookup table`);
+            }
+          }
+
           // If we still can't identify the security, log warning but continue
           // We'll use the extracted CUSIP for the record
-          if (!security && !extractedCusip) {
+          if (!security && !extractedCusip && !tickerFromLookup) {
             console.warn(`⚠️ Dividend without identifiable security or CUSIP: ${plaidTx.name}`);
             continue;
           }
 
           // Create dividend record
-          const fundName = security?.ticker_symbol || security?.name || extractedCusip || 'Unknown';
+          const fundName = security?.ticker_symbol || tickerFromLookup || extractedCusip || 'Unknown';
           const dividend = {
             date: plaidTx.date,
             fund: fundName,
@@ -316,7 +324,7 @@ export async function onRequestPost(context) {
             imported_at: new Date().toISOString(),
             metadata: {
               institution: connection.institution_name,
-              security_ticker: security?.ticker_symbol || null,
+              security_ticker: security?.ticker_symbol || tickerFromLookup || null,
               security_name: security?.name || null,
               security_cusip: extractedCusip || null,
               fees: plaidTx.fees || 0,
