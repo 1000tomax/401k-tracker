@@ -106,12 +106,51 @@ export default function App() {
     } finally {
       setIsLoading(false);
     }
-  }, [transactionService, convertPortfolioToHoldings]);
+  }, [transactionService, convertPortfolioToHoldings, holdingsService]);
+
+  // Check if currently during US market hours (9:30 AM - 4:00 PM ET, Mon-Fri)
+  const isMarketHours = useCallback(() => {
+    const now = new Date();
+
+    // Convert to ET timezone
+    const etTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+    const day = etTime.getDay(); // 0 = Sunday, 6 = Saturday
+    const hours = etTime.getHours();
+    const minutes = etTime.getMinutes();
+    const totalMinutes = hours * 60 + minutes;
+
+    // Check if weekday (Mon-Fri)
+    if (day === 0 || day === 6) return false;
+
+    // Market hours: 9:30 AM (570 min) to 4:00 PM (960 min) ET
+    return totalMinutes >= 570 && totalMinutes < 960;
+  }, []);
 
   // Initial load
   useEffect(() => {
     loadHoldings();
   }, [loadHoldings]);
+
+  // Auto-refresh prices during market hours
+  useEffect(() => {
+    if (!isMarketHours()) {
+      console.log('🕐 Market closed - auto-refresh disabled');
+      return;
+    }
+
+    console.log('📈 Market open - enabling auto-refresh every 5 minutes');
+
+    const interval = setInterval(() => {
+      if (isMarketHours()) {
+        console.log('🔄 Auto-refreshing prices...');
+        loadHoldings();
+      } else {
+        console.log('🕐 Market closed - stopping auto-refresh');
+      }
+    }, 5 * 60 * 1000); // 5 minutes
+
+    return () => clearInterval(interval);
+  }, [loadHoldings, isMarketHours]);
 
   // Manual sync
   const handleSync = useCallback(async () => {
