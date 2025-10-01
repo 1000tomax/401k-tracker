@@ -2,9 +2,9 @@
 -- WARNING: This deletes data! Only use for testing.
 
 -- First, let's see what we're about to delete
-SELECT 'BEFORE DELETE - Transactions from Plaid/Roth' as info, COUNT(*) as count
+SELECT 'BEFORE DELETE - Transactions from Plaid' as info, COUNT(*) as count
 FROM transactions
-WHERE source_type = 'plaid' OR account LIKE '%Roth%';
+WHERE source_type = 'plaid';
 
 SELECT 'BEFORE DELETE - Raw Plaid transactions' as info, COUNT(*) as count
 FROM raw_plaid_transactions;
@@ -12,7 +12,7 @@ FROM raw_plaid_transactions;
 SELECT 'BEFORE DELETE - Dividends' as info, COUNT(*) as count
 FROM dividends;
 
-SELECT 'BEFORE DELETE - Total transactions (including Voya)' as info, COUNT(*) as count
+SELECT 'BEFORE DELETE - Total transactions' as info, COUNT(*) as count
 FROM transactions;
 
 -- Clear all raw Plaid transactions (these are all from M1 Finance)
