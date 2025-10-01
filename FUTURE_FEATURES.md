@@ -54,35 +54,30 @@ Add clickable fund/ETF names in holdings tables that open a detailed view showin
 
 ## Live Stock Price Integration
 
-**Status:** Planned - high priority
+**Status:** ✅ Implemented - auto-refreshes every 15 minutes during market hours
 
 **Description:**
-Integrate real-time stock price API to show current market values for Roth IRA funds instead of relying on latest transaction prices.
+Real-time stock price API integration showing current market values for Roth IRA ETFs instead of relying on latest transaction prices.
 
 **Target Funds:**
-- VTI (Vanguard Total Stock Market ETF)
-- SCHD (Schwab U.S. Dividend Equity ETF)
-- QQQM (Invesco NASDAQ 100 ETF)
-- DES (WisdomTree U.S. SmallCap Dividend Fund)
+- ✅ VTI (Vanguard Total Stock Market ETF)
+- ✅ SCHD (Schwab U.S. Dividend Equity ETF)
+- ✅ QQQM (Invesco NASDAQ 100 ETF)
+- ✅ DES (WisdomTree U.S. SmallCap Dividend Fund)
 
-**API Options:**
-- **Alpha Vantage** - Free tier: 25 requests/day
-- **Polygon.io** - Free tier: 5 API calls/minute
-- **Finnhub** - Free tier: 60 calls/minute
-- **Yahoo Finance** (via unofficial APIs)
+**Completed Implementation:**
+- ✅ Finnhub API integration (60 calls/min free tier)
+- ✅ Auto-refresh every 15 minutes during market hours via GitHub Actions
+- ✅ Market hours detection (Mon-Fri, 9:30 AM - 4:00 PM ET)
+- ✅ Database caching in `current_etf_prices` table
+- ✅ Graceful fallback to transaction prices if API unavailable
+- ✅ Price source tracking ('live' vs 'transaction')
 
-**Implementation Notes:**
-- Add price refresh button on dashboard
-- Cache prices (update every 15 minutes during market hours)
-- Store latest prices in database
-- Scheduled job to update prices during market hours (9:30 AM - 4:00 PM ET)
-- Fallback to transaction price if API fails
-- Show last updated timestamp
-
-**Data Needed:**
-- Current price per ticker
-- Last updated time
-- Market open/close status
+**Technical Details:**
+- API endpoints: `/api/prices/refresh`, `/api/prices/latest`
+- GitHub Action: `.github/workflows/price-sync.yml`
+- Frontend integration: `aggregatePortfolio()` merges live prices
+- Voya 401(k) still uses transaction prices (proprietary fund)
 
 ---
 
