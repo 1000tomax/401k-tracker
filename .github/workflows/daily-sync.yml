@@ -12,53 +12,61 @@ jobs:
     steps:
       - name: Sync Plaid Transactions
         run: |
-          # Retry up to 3 times with exponential backoff
-          max_attempts=3
-          attempt=1
+          # Try custom domain first, fallback to pages.dev if DNS fails
+          urls=(
+            "https://401k.mreedon.com/api/sync/transactions"
+            "https://401k-tracker.pages.dev/api/sync/transactions"
+          )
 
-          while [ $attempt -le $max_attempts ]; do
-            echo "Attempt $attempt of $max_attempts..."
+          for url in "${urls[@]}"; do
+            echo "Trying URL: $url"
+            max_attempts=2
+            attempt=1
 
-            # Run curl and capture both output and exit code
-            set +e  # Don't exit on error
-            response=$(curl -X POST https://401k.mreedon.com/api/sync/transactions \
-              -H "X-401K-Token: ${{ secrets.API_SHARED_TOKEN }}" \
-              -H "Content-Type: application/json" \
-              -w "\n%{http_code}" \
-              --connect-timeout 10 \
-              --max-time 60 \
-              2>&1)  # Capture stderr too
-            curl_exit=$?
-            set -e  # Re-enable exit on error
+            while [ $attempt -le $max_attempts ]; do
+              echo "  Attempt $attempt of $max_attempts..."
 
-            echo "Curl exit code: $curl_exit"
+              # Run curl and capture both output and exit code
+              set +e  # Don't exit on error
+              response=$(curl -X POST "$url" \
+                -H "X-401K-Token: ${{ secrets.API_SHARED_TOKEN }}" \
+                -H "Content-Type: application/json" \
+                -w "\n%{http_code}" \
+                --connect-timeout 10 \
+                --max-time 60 \
+                2>&1)  # Capture stderr too
+              curl_exit=$?
+              set -e  # Re-enable exit on error
 
-            if [ $curl_exit -eq 0 ]; then
-              http_code=$(echo "$response" | tail -n1)
-              body=$(echo "$response" | sed '$d')
+              if [ $curl_exit -eq 0 ]; then
+                http_code=$(echo "$response" | tail -n1)
+                body=$(echo "$response" | sed '$d')
 
-              echo "HTTP Response code: $http_code"
-              echo "Response body: $body"
+                echo "  HTTP Response code: $http_code"
+                echo "  Response body: $body"
 
-              if [ "$http_code" -eq 200 ]; then
-                echo "✅ Sync successful!"
-                exit 0
+                if [ "$http_code" -eq 200 ]; then
+                  echo "✅ Sync successful via $url"
+                  exit 0
+                else
+                  echo "  ⚠️ HTTP error: $http_code"
+                fi
               else
-                echo "⚠️ HTTP error: $http_code"
+                echo "  ⚠️ Curl failed with exit code $curl_exit"
+                if [ $curl_exit -eq 6 ]; then
+                  echo "  DNS resolution failed, trying next URL..."
+                  break  # Skip to next URL
+                fi
               fi
-            else
-              echo "⚠️ Curl failed with exit code $curl_exit"
-              echo "Error output: $response"
-            fi
 
-            if [ $attempt -lt $max_attempts ]; then
-              wait_time=$((2 ** attempt))
-              echo "⚠️ Waiting ${wait_time}s before retry..."
-              sleep $wait_time
-            fi
+              if [ $attempt -lt $max_attempts ]; then
+                echo "  Waiting 2s before retry..."
+                sleep 2
+              fi
 
-            attempt=$((attempt + 1))
+              attempt=$((attempt + 1))
+            done
           done
 
-          echo "❌ All retry attempts failed"
+          echo "❌ All URLs and retry attempts failed"
           exit 1
