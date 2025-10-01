@@ -81,6 +81,43 @@ Real-time stock price API integration showing current market values for Roth IRA
 
 ---
 
+## Email Automation
+
+**Status:** 🚧 In Progress - Phase 1 complete, Phases 2-4 planned
+
+**Completed (Phase 1):**
+- ✅ Transaction notification emails via Resend API
+- ✅ Triggers after daily sync when new transactions detected
+- ✅ Portfolio analytics endpoint for email data
+- ✅ Dark-mode friendly HTML email templates
+- ✅ Email tracking in database (audit trail, duplicate prevention)
+- ✅ Graceful error handling (doesn't crash workflow if email fails)
+
+**Email Content (Transaction):**
+- Recent transactions grouped by account
+- Portfolio totals (value, gain/loss, YTD contributions)
+- Mobile-responsive design with CTA to dashboard
+- Plain text fallback
+
+**Planned (Phase 2-4):**
+- [ ] **Weekly Recap** - Summary of week's activity with Claude AI commentary
+- [ ] **Monthly Recap** - Month-over-month performance, contribution analysis, top/worst performers, Claude AI market context
+- [ ] **Quarterly Projections** - Retirement forecasting with 3 scenarios (conservative/base/optimistic), milestone tracking, Claude AI deep analysis
+
+**Technical Details:**
+- Endpoints: `/api/emails/send-transaction-summary`, `/api/emails/analytics/portfolio-summary`
+- Database: `email_notifications` table for audit trail
+- Integrations: Resend (email delivery), Claude API (future commentary)
+- Cost: ~$0.05/year (Claude API for weekly/monthly/quarterly)
+
+**Next Steps:**
+1. Build weekly/monthly/quarterly email templates
+2. Add Claude API integration for market commentary
+3. Create retirement projection calculator
+4. Set up GitHub Actions for weekly/monthly/quarterly schedules
+
+---
+
 ## Other Ideas
 
 ### Portfolio Analytics

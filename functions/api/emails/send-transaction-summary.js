@@ -92,12 +92,6 @@ export async function onRequestPost(context) {
 
   try {
     console.log('📧 Transaction email: Starting...');
-    console.log('📧 Environment check:', {
-      hasResendKey: !!env.RESEND_API_KEY,
-      hasNotificationEmail: !!env.NOTIFICATION_EMAIL,
-      resendKeyLength: env.RESEND_API_KEY?.length || 0,
-      allEnvKeys: Object.keys(env).filter(k => k.includes('RESEND') || k.includes('NOTIFICATION'))
-    });
 
     // Check required env vars
     if (!env.RESEND_API_KEY) {
