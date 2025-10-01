@@ -199,8 +199,6 @@ export function generateTransactionEmail(data) {
     }
   }
 
-  const gainLossClass = parseFloat(portfolio.gainLossPercent) >= 0 ? 'positive' : 'negative';
-
   const html = `
 <!DOCTYPE html>
 <html>
@@ -225,23 +223,11 @@ export function generateTransactionEmail(data) {
       </div>
 
       <div class="section">
-        <h2 class="section-title">Portfolio Update</h2>
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-label">Total Value</div>
-            <div class="stat-value">${formatCurrency(portfolio.totalValue)}</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Gain/Loss</div>
-            <div class="stat-value ${gainLossClass}">${formatCurrency(portfolio.gainLoss)}</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Return</div>
-            <div class="stat-value ${gainLossClass}">${portfolio.gainLossPercent}%</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">YTD Contributions</div>
-            <div class="stat-value">${formatCurrency(ytdContributions)}</div>
+        <div class="stat-card" style="text-align: center; padding: 20px;">
+          <div class="stat-label">Total Added</div>
+          <div class="stat-value positive" style="font-size: 32px;">${totalAdded}</div>
+          <div style="color: #94a3b8; font-size: 14px; margin-top: 8px;">
+            ${recentActivity.transactionCount} transaction${recentActivity.transactionCount > 1 ? 's' : ''}
           </div>
         </div>
       </div>
@@ -263,13 +249,8 @@ export function generateTransactionEmail(data) {
   const text = `
 New Retirement Contributions - ${formatDate(new Date().toISOString())}
 
-${recentActivity.transactionCount} new transaction(s) detected
-Total added: ${totalAdded}
-
-Portfolio Update:
-- Total Value: ${formatCurrency(portfolio.totalValue)}
-- Gain/Loss: ${formatCurrency(portfolio.gainLoss)} (${portfolio.gainLossPercent}%)
-- YTD Contributions: ${formatCurrency(ytdContributions)}
+Total Added: ${totalAdded}
+${recentActivity.transactionCount} transaction${recentActivity.transactionCount > 1 ? 's' : ''}
 
 View your full dashboard at: https://401k.mreedon.com
 
