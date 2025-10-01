@@ -36,10 +36,7 @@ CREATE TABLE IF NOT EXISTS raw_plaid_transactions (
   raw_json JSONB,
 
   -- Metadata
-  imported_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-
-  -- Indexes for common queries
-  CONSTRAINT raw_plaid_transactions_pkey PRIMARY KEY (id)
+  imported_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- Indexes for performance
