@@ -159,60 +159,57 @@ export async function onRequestPost(context) {
           tx.type === 'cash' && tx.subtype === 'dividend'
         );
         console.log(`🔍 Found ${dividendTxs.length} dividend transactions in Plaid response`);
-        if (dividendTxs.length > 0) {
-          console.log('📊 Sample dividend transaction:', JSON.stringify(dividendTxs[0], null, 2));
-        }
 
+        // Prepare batch of raw transactions to insert
+        const rawTxToInsert = [];
         for (const plaidTx of investment_transactions) {
           const security = securitiesMap.get(plaidTx.security_id);
           const account = accountsMap.get(plaidTx.account_id);
 
           // Skip if no account (always required)
-          if (!account) {
-            console.log(`⚠️ SKIPPING: No account found for tx ${plaidTx.investment_transaction_id}`);
-            continue;
-          }
+          if (!account) continue;
 
           // For dividends, security_id is often null, so we'll extract CUSIP from name field later
           // For non-dividends, require a security
           const isDividend = plaidTx.type === 'cash' && plaidTx.subtype === 'dividend';
-          if (!security && !isDividend) {
-            console.log(`⚠️ SKIPPING: No security found for non-dividend tx ${plaidTx.investment_transaction_id}`);
-            continue;
-          }
+          if (!security && !isDividend) continue;
 
-          // Save raw transaction (upsert to handle duplicates)
+          rawTxToInsert.push({
+            plaid_transaction_id: plaidTx.investment_transaction_id,
+            plaid_account_id: plaidTx.account_id,
+            plaid_security_id: plaidTx.security_id,
+            source_connection_id: connection.item_id,
+            institution_name: connection.institution_name,
+            account_name: account.name,
+            date: plaidTx.date,
+            type: plaidTx.type,
+            subtype: plaidTx.subtype,
+            security_symbol: security?.ticker_symbol || null,
+            security_name: security?.name || null,
+            security_cusip: security?.cusip || null,
+            quantity: plaidTx.quantity,
+            price: plaidTx.price,
+            amount: plaidTx.amount,
+            fees: plaidTx.fees || 0,
+            currency_code: plaidTx.iso_currency_code || 'USD',
+            raw_json: plaidTx,
+            imported_at: new Date().toISOString(),
+          });
+        }
+
+        // Batch insert raw transactions
+        if (rawTxToInsert.length > 0) {
           const { error: rawError } = await supabase
             .from('raw_plaid_transactions')
-            .upsert({
-              plaid_transaction_id: plaidTx.investment_transaction_id,
-              plaid_account_id: plaidTx.account_id,
-              plaid_security_id: plaidTx.security_id,
-              source_connection_id: connection.item_id,
-              institution_name: connection.institution_name,
-              account_name: account.name,
-              date: plaidTx.date,
-              type: plaidTx.type,
-              subtype: plaidTx.subtype,
-              security_symbol: security?.ticker_symbol || null,
-              security_name: security?.name || null,
-              security_cusip: security?.cusip || null,
-              quantity: plaidTx.quantity,
-              price: plaidTx.price,
-              amount: plaidTx.amount,
-              fees: plaidTx.fees || 0,
-              currency_code: plaidTx.iso_currency_code || 'USD',
-              raw_json: plaidTx,
-              imported_at: new Date().toISOString(),
-            }, {
+            .upsert(rawTxToInsert, {
               onConflict: 'plaid_transaction_id',
+              ignoreDuplicates: false,
             });
 
-          if (!rawError) {
-            rawTransactionsSaved++;
-          } else if (rawError.code !== '23505') {
-            // Log error if it's not a duplicate key violation
-            console.warn(`⚠️ Error saving raw transaction ${plaidTx.investment_transaction_id}:`, rawError.message);
+          if (rawError) {
+            console.error(`❌ Error batch inserting raw transactions:`, rawError.message);
+          } else {
+            rawTransactionsSaved = rawTxToInsert.length;
           }
         }
 
@@ -220,6 +217,17 @@ export async function onRequestPost(context) {
 
         // Second pass: Extract and save dividends (separate from buy/sell transactions)
         console.log(`💰 Processing dividends...`);
+
+        // Pre-load security lookup table to avoid subrequest limit
+        const { data: securityLookups } = await supabase
+          .from('security_lookup')
+          .select('cusip, ticker_symbol, security_name');
+
+        const cusipLookupMap = new Map(
+          (securityLookups || []).map(s => [s.cusip, s])
+        );
+        console.log(`📋 Loaded ${cusipLookupMap.size} securities from lookup table`);
+
         const dividendsToInsert = [];
 
         for (const plaidTx of investment_transactions) {
@@ -275,17 +283,10 @@ export async function onRequestPost(context) {
           // If we still can't identify the security from Plaid data, try our lookup table
           let tickerFromLookup = null;
           if (!security && extractedCusip) {
-            const { data: lookupResult } = await supabase
-              .from('security_lookup')
-              .select('ticker_symbol, security_name')
-              .eq('cusip', extractedCusip)
-              .single();
-
+            const lookupResult = cusipLookupMap.get(extractedCusip);
             if (lookupResult) {
               tickerFromLookup = lookupResult.ticker_symbol;
               console.log(`✅ Found ticker from lookup table: ${extractedCusip} -> ${tickerFromLookup}`);
-            } else {
-              console.log(`⚠️ CUSIP ${extractedCusip} not in lookup table`);
             }
           }
 
