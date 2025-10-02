@@ -97,13 +97,12 @@ export default function Transactions() {
         const activity = tx.activity?.toLowerCase() || '';
         return activity === 'sell' || activity === 'sold' || activity.includes('sale');
       })
-      .reduce((sum, tx) => sum + (tx.amount || 0), 0);
+      .reduce((sum, tx) => sum + Math.abs(tx.amount || 0), 0);
 
     return {
       totalTransactions: filteredTransactions.length,
       totalBuys,
-      totalSells,
-      netInvested: totalBuys - totalSells
+      totalSells
     };
   }, [filteredTransactions]);
 
@@ -200,10 +199,6 @@ export default function Transactions() {
           <div className="summary-card">
             <p className="summary-card-label">Total Sells</p>
             <p className="summary-card-value">{formatCurrency(summary.totalSells)}</p>
-          </div>
-          <div className="summary-card">
-            <p className="summary-card-label">Net Invested</p>
-            <p className="summary-card-value">{formatCurrency(summary.netInvested)}</p>
           </div>
         </div>
 
