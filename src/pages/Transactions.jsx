@@ -54,6 +54,34 @@ export default function Transactions() {
     };
   }, [transactions]);
 
+  // Helper function to format account names
+  const formatAccountName = (accountName) => {
+    if (!accountName) return 'Unknown';
+
+    if (accountName.toLowerCase().includes('roth') && accountName.toLowerCase().includes('ira')) {
+      return 'Roth IRA';
+    }
+
+    if (accountName.toLowerCase().includes('pretax')) {
+      return 'Voya 401(k) (PreTax)';
+    }
+    if (accountName.toLowerCase().includes('match')) {
+      return 'Voya 401(k) (Match)';
+    }
+    if (accountName === 'ROTH' || (accountName.toLowerCase().includes('roth') && !accountName.toLowerCase().includes('ira'))) {
+      return 'Voya 401(k) (Roth)';
+    }
+
+    return accountName;
+  };
+
+  // Helper function to format fund names
+  const formatFundName = (fund) => {
+    if (!fund) return '—';
+    if (fund.includes('Vanguard 500')) return 'VAN 500';
+    return fund;
+  };
+
   // Filter transactions
   const filteredTransactions = useMemo(() => {
     return transactions.filter(tx => {
@@ -67,14 +95,23 @@ export default function Transactions() {
         return false;
       }
 
-      // Search query
+      // Search query - search both raw and formatted values
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
-        const fund = (tx.fund || '').toLowerCase();
-        const account = (tx.money_source || '').toLowerCase();
+        const fundRaw = (tx.fund || '').toLowerCase();
+        const fundFormatted = formatFundName(tx.fund).toLowerCase();
+        const accountRaw = (tx.money_source || '').toLowerCase();
+        const accountFormatted = formatAccountName(tx.money_source).toLowerCase();
         const activity = (tx.activity || '').toLowerCase();
 
-        if (!fund.includes(query) && !account.includes(query) && !activity.includes(query)) {
+        const matches =
+          fundRaw.includes(query) ||
+          fundFormatted.includes(query) ||
+          accountRaw.includes(query) ||
+          accountFormatted.includes(query) ||
+          activity.includes(query);
+
+        if (!matches) {
           return false;
         }
       }
@@ -105,34 +142,6 @@ export default function Transactions() {
       totalSells
     };
   }, [filteredTransactions]);
-
-  // Helper function to format account names
-  const formatAccountName = (accountName) => {
-    if (!accountName) return 'Unknown';
-
-    if (accountName.toLowerCase().includes('roth') && accountName.toLowerCase().includes('ira')) {
-      return 'Roth IRA';
-    }
-
-    if (accountName.toLowerCase().includes('pretax')) {
-      return 'Voya 401(k) (PreTax)';
-    }
-    if (accountName.toLowerCase().includes('match')) {
-      return 'Voya 401(k) (Match)';
-    }
-    if (accountName === 'ROTH' || (accountName.toLowerCase().includes('roth') && !accountName.toLowerCase().includes('ira'))) {
-      return 'Voya 401(k) (Roth)';
-    }
-
-    return accountName;
-  };
-
-  // Helper function to format fund names
-  const formatFundName = (fund) => {
-    if (!fund) return '—';
-    if (fund.includes('Vanguard 500')) return 'VAN 500';
-    return fund;
-  };
 
   if (isLoading) {
     return (

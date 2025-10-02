@@ -2905,3 +2905,15 @@ details ul {
   background-position: right var(--space-3) center;
   padding-right: var(--space-8);
 }
+
+/* Dropdown option styling */
+.filter-select option {
+  background: var(--surface-primary);
+  color: var(--text-primary);
+  padding: var(--space-2);
+}
+
+.filter-select option:hover,
+.filter-select option:checked {
+  background: var(--surface-elevated);
+}
