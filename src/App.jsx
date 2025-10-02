@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, NavLink, Navigate } from 'react-router-do
 import Dashboard from './pages/Dashboard.jsx';
 import Accounts from './pages/Accounts.jsx';
 import Dividends from './pages/Dividends.jsx';
+import Transactions from './pages/Transactions.jsx';
 import { formatDate, formatCurrency } from './utils/formatters.js';
 import { PlaidAuthProvider } from './contexts/PlaidAuthContext.jsx';
 import HoldingsService from './services/HoldingsService.js';
@@ -396,6 +397,9 @@ export default function App() {
               <NavLink to="/dividends" className={({ isActive }) => (isActive ? 'active' : '')}>
                 Dividends
               </NavLink>
+              <NavLink to="/transactions" className={({ isActive }) => (isActive ? 'active' : '')}>
+                Transactions
+              </NavLink>
               <button
                 type="button"
                 className="nav-button"
@@ -427,6 +431,7 @@ export default function App() {
               />
               <Route path="/accounts" element={<Accounts />} />
               <Route path="/dividends" element={<Dividends />} />
+              <Route path="/transactions" element={<Transactions />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </main>

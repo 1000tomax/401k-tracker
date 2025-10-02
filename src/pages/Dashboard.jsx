@@ -3,6 +3,9 @@ import { formatCurrency, formatDate } from '../utils/formatters.js';
 import {
   ResponsiveContainer,
   ComposedChart,
+  PieChart,
+  Pie,
+  Cell,
   Area,
   Line,
   XAxis,
@@ -77,6 +80,65 @@ export default function Dashboard({ summary, isLoading }) {
       }
       return newSet;
     });
+  };
+
+  // Asset allocation data
+  const allocationData = useMemo(() => {
+    // Account allocation
+    const accountAllocation = holdingsByAccount.map(account => ({
+      name: account.accountName,
+      value: account.totalValue,
+      percentage: ((account.totalValue / totals.marketValue) * 100).toFixed(1),
+    }));
+
+    // Fund allocation (across all accounts)
+    const fundMap = new Map();
+    for (const holding of holdings) {
+      const fund = holding.fund;
+      const existing = fundMap.get(fund) || 0;
+      fundMap.set(fund, existing + holding.marketValue);
+    }
+
+    const fundAllocation = Array.from(fundMap.entries())
+      .map(([fund, value]) => ({
+        name: fund.includes('Vanguard 500') ? 'VAN 500' : fund,
+        value,
+        percentage: ((value / totals.marketValue) * 100).toFixed(1),
+      }))
+      .sort((a, b) => b.value - a.value);
+
+    return { accountAllocation, fundAllocation };
+  }, [holdingsByAccount, holdings, totals.marketValue]);
+
+  // Color palette for pie charts
+  const COLORS = [
+    'rgba(99, 102, 241, 0.9)',   // Blue
+    'rgba(251, 146, 60, 0.9)',   // Orange
+    'rgba(34, 197, 94, 0.9)',    // Green
+    'rgba(168, 85, 247, 0.9)',   // Purple
+    'rgba(236, 72, 153, 0.9)',   // Pink
+    'rgba(20, 184, 166, 0.9)',   // Teal
+  ];
+
+  const renderPieTooltip = ({ active, payload }) => {
+    if (!active || !payload || !payload.length) return null;
+    const data = payload[0].payload;
+    return (
+      <div className="chart-tooltip">
+        <div className="chart-tooltip-label">{data.name}</div>
+        <ul>
+          <li>
+            <span className="dot" style={{ background: payload[0].fill }} />
+            <span className="name">Value</span>
+            <span className="value">{formatCurrency(data.value)}</span>
+          </li>
+          <li>
+            <span className="name">Allocation</span>
+            <span className="value">{data.percentage}%</span>
+          </li>
+        </ul>
+      </div>
+    );
   };
 
   if (isLoading) {
@@ -200,6 +262,65 @@ export default function Dashboard({ summary, isLoading }) {
           </div>
         </section>
       )}
+
+      {/* Asset Allocation */}
+      <section className="chart-section">
+        <div className="section-header">
+          <h2>Asset Allocation</h2>
+          <p className="meta">Portfolio breakdown by account and fund.</p>
+        </div>
+        <div className="allocation-grid">
+          {/* Account Allocation */}
+          <div className="allocation-chart">
+            <h3 className="allocation-title">By Account</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={allocationData.accountAllocation}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={100}
+                  label={({ name, percentage }) => `${name} (${percentage}%)`}
+                  labelLine={{ stroke: 'rgba(203, 213, 225, 0.5)', strokeWidth: 1 }}
+                  isAnimationActive={false}
+                >
+                  {allocationData.accountAllocation.map((entry, index) => (
+                    <Cell key={`account-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip content={renderPieTooltip} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Fund Allocation */}
+          <div className="allocation-chart">
+            <h3 className="allocation-title">By Fund</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={allocationData.fundAllocation}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={100}
+                  label={({ name, percentage }) => `${name} (${percentage}%)`}
+                  labelLine={{ stroke: 'rgba(203, 213, 225, 0.5)', strokeWidth: 1 }}
+                  isAnimationActive={false}
+                >
+                  {allocationData.fundAllocation.map((entry, index) => (
+                    <Cell key={`fund-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip content={renderPieTooltip} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </section>
 
       {/* Current Holdings by Account */}
       <section>
