@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   formatCurrency,
   formatShares,
@@ -208,7 +209,13 @@ export default function PortfolioTable({
               className={row.isClosed ? 'row-closed' : ''}
             >
               <td>
-                {row.displayFund}
+                {row.symbol ? (
+                  <Link to={`/fund/${row.symbol}`} className="fund-link">
+                    {row.displayFund}
+                  </Link>
+                ) : (
+                  row.displayFund
+                )}
                 {showLivePrices && row.symbol && (
                   <div className="symbol-indicator">({row.symbol})</div>
                 )}
