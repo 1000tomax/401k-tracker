@@ -29,28 +29,44 @@ const formatAccountName = (accountName) => {
 export default function Dividends() {
   const [dividends, setDividends] = useState([]);
   const [livePrices, setLivePrices] = useState({});
+  const [currentHoldings, setCurrentHoldings] = useState(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [timeFilter, setTimeFilter] = useState('all'); // all, ytd, 12m, 6m
+  const [showClosedPositions, setShowClosedPositions] = useState(false);
 
   const dividendService = useMemo(() => new DividendService(API_URL, API_TOKEN), []);
   const holdingsService = useMemo(() => new HoldingsService(API_URL, API_TOKEN), []);
 
-  // Load dividends and prices
+  // Load dividends, prices, and current holdings
   useEffect(() => {
     const loadData = async () => {
       try {
         setIsLoading(true);
         setError(null);
 
-        // Load dividends and prices in parallel
-        const [dividendsData, pricesData] = await Promise.all([
+        // Load dividends, prices, and holdings snapshot in parallel
+        const [dividendsData, pricesData, holdingsSnapshot] = await Promise.all([
           dividendService.getAllDividends(),
-          holdingsService.getLatestPrices()
+          holdingsService.getLatestPrices(),
+          holdingsService.getSnapshots(1) // Get most recent snapshot to determine current holdings
         ]);
 
         setDividends(dividendsData);
         setLivePrices(pricesData || {});
+
+        // Extract current holdings (funds with shares > 0)
+        const activeFunds = new Set();
+        if (holdingsSnapshot?.snapshots?.[0]?.holdings) {
+          for (const holding of holdingsSnapshot.snapshots[0].holdings) {
+            if (holding.shares > 0) {
+              activeFunds.add(holding.fund);
+            }
+          }
+        }
+        setCurrentHoldings(activeFunds);
+
+        console.log('📊 Current holdings:', Array.from(activeFunds));
       } catch (err) {
         console.error('Failed to load dividends:', err);
         setError(err.message);
@@ -91,7 +107,10 @@ export default function Dividends() {
     const total = filteredDividends.reduce((sum, d) => sum + parseFloat(d.amount), 0);
     const ytd = dividendService.calculateYTD(dividends);
     const ttm = dividendService.calculateTTM(dividends);
-    const projected = dividendService.calculateProjectedAnnual(dividends);
+
+    // Filter to only active holdings for projection
+    const activeDividends = dividends.filter(d => currentHoldings.has(d.fund));
+    const projected = dividendService.calculateProjectedAnnual(activeDividends);
 
     const byFund = dividendService.aggregateByFund(filteredDividends);
     const byAccount = dividendService.aggregateByAccount(filteredDividends);
@@ -112,7 +131,7 @@ export default function Dividends() {
       frequencies,
       averagePayment: filteredDividends.length > 0 ? total / filteredDividends.length : 0
     };
-  }, [filteredDividends, dividends, livePrices, dividendService]);
+  }, [filteredDividends, dividends, currentHoldings, livePrices, dividendService]);
 
   // Cumulative dividend timeline
   const cumulativeTimeline = useMemo(() => {
@@ -130,12 +149,19 @@ export default function Dividends() {
     }));
   }, [filteredDividends, dividendService]);
 
-  // Top dividend-paying funds
-  const topFunds = useMemo(() => {
-    return Object.values(summary.byFund)
-      .sort((a, b) => b.totalAmount - a.totalAmount)
-      .slice(0, 10);
-  }, [summary.byFund]);
+  // Top dividend-paying funds - split by active vs closed
+  const { activeFunds, closedFunds } = useMemo(() => {
+    const allFunds = Object.values(summary.byFund)
+      .sort((a, b) => b.totalAmount - a.totalAmount);
+
+    const active = allFunds.filter(fund => currentHoldings.has(fund.fund));
+    const closed = allFunds.filter(fund => !currentHoldings.has(fund.fund));
+
+    return {
+      activeFunds: active,
+      closedFunds: closed
+    };
+  }, [summary.byFund, currentHoldings]);
 
   const tickFormatter = value => {
     if (!Number.isFinite(value)) return '';
@@ -334,56 +360,122 @@ export default function Dividends() {
         </section>
       )}
 
-      {/* Top Dividend Funds */}
+      {/* Active Holdings - Dividend Payers */}
       <section>
         <div className="section-header">
-          <h2>Top Dividend-Paying Holdings</h2>
-          <p className="section-description">Which investments generate the most passive income</p>
+          <h2>Current Dividend-Paying Holdings</h2>
+          <p className="section-description">Positions you currently hold that generate passive income</p>
         </div>
 
-        <div className="dividend-table">
-          <table>
-            <thead>
-              <tr>
-                <th>Fund</th>
-                <th>Total Dividends</th>
-                <th>Payments</th>
-                <th>Frequency</th>
-                <th>Yield %</th>
-                <th>Date Range</th>
-              </tr>
-            </thead>
-            <tbody>
-              {topFunds.map((fund) => {
-                const frequency = summary.frequencies[fund.fund];
-                const yieldPercent = summary.yields[fund.fund];
+        {activeFunds.length > 0 ? (
+          <div className="dividend-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Fund</th>
+                  <th>Total Dividends</th>
+                  <th>Payments</th>
+                  <th>Frequency</th>
+                  <th>Yield %</th>
+                  <th>Date Range</th>
+                </tr>
+              </thead>
+              <tbody>
+                {activeFunds.map((fund) => {
+                  const frequency = summary.frequencies[fund.fund];
+                  const yieldPercent = summary.yields[fund.fund];
 
-                return (
-                  <tr key={fund.fund}>
-                    <td><strong>{fund.fund}</strong></td>
-                    <td>{formatCurrency(fund.totalAmount)}</td>
-                    <td>{fund.count}</td>
-                    <td>
-                      {frequency && (
-                        <span className={`frequency-badge frequency-${frequency.toLowerCase()}`}>
-                          {frequency}
-                        </span>
-                      )}
-                      {!frequency && <span className="meta">—</span>}
-                    </td>
-                    <td>
-                      {yieldPercent != null ? `${yieldPercent.toFixed(2)}%` : <span className="meta">—</span>}
-                    </td>
-                    <td className="meta">
-                      {formatDate(fund.firstPayment)} - {formatDate(fund.lastPayment)}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                  return (
+                    <tr key={fund.fund}>
+                      <td><strong>{fund.fund}</strong></td>
+                      <td>{formatCurrency(fund.totalAmount)}</td>
+                      <td>{fund.count}</td>
+                      <td>
+                        {frequency && (
+                          <span className={`frequency-badge frequency-${frequency.toLowerCase()}`}>
+                            {frequency}
+                          </span>
+                        )}
+                        {!frequency && <span className="meta">—</span>}
+                      </td>
+                      <td>
+                        {yieldPercent != null ? `${yieldPercent.toFixed(2)}%` : <span className="meta">—</span>}
+                      </td>
+                      <td className="meta">
+                        {formatDate(fund.firstPayment)} - {formatDate(fund.lastPayment)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="empty-state">
+            <p className="meta">No current holdings with dividend history</p>
+          </div>
+        )}
       </section>
+
+      {/* Closed Positions - Historical Dividends */}
+      {closedFunds.length > 0 && (
+        <section>
+          <div className="section-header" style={{ cursor: 'pointer' }} onClick={() => setShowClosedPositions(!showClosedPositions)}>
+            <h2>
+              Closed Positions (Historical Dividends)
+              <span style={{ marginLeft: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                {showClosedPositions ? '▼' : '▶'}
+              </span>
+            </h2>
+            <p className="section-description">
+              Dividend history from {closedFunds.length} position{closedFunds.length !== 1 ? 's' : ''} you no longer hold
+            </p>
+          </div>
+
+          {showClosedPositions && (
+            <div className="dividend-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Fund</th>
+                    <th>Total Dividends</th>
+                    <th>Payments</th>
+                    <th>Frequency</th>
+                    <th>Date Range</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {closedFunds.map((fund) => {
+                    const frequency = summary.frequencies[fund.fund];
+
+                    return (
+                      <tr key={fund.fund} style={{ opacity: 0.7 }}>
+                        <td>
+                          <strong>{fund.fund}</strong>
+                          <span className="meta" style={{ marginLeft: '0.5rem', fontSize: '0.75rem' }}>(Closed)</span>
+                        </td>
+                        <td>{formatCurrency(fund.totalAmount)}</td>
+                        <td>{fund.count}</td>
+                        <td>
+                          {frequency && (
+                            <span className={`frequency-badge frequency-${frequency.toLowerCase()}`}>
+                              {frequency}
+                            </span>
+                          )}
+                          {!frequency && <span className="meta">—</span>}
+                        </td>
+                        <td className="meta">
+                          {formatDate(fund.firstPayment)} - {formatDate(fund.lastPayment)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Dividends by Account - Hidden until multiple accounts pay dividends */}
       {/* <section>
