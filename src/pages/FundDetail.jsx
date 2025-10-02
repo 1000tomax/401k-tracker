@@ -95,10 +95,14 @@ export default function FundDetail() {
       const amount = parseFloat(tx.amount) || Math.abs(shares * price);
       const activity = (tx.activity || '').toLowerCase();
 
-      if (activity === 'buy') {
+      // Handle various buy/sell activity names
+      const isBuy = activity.includes('buy') || activity.includes('purchase');
+      const isSell = activity.includes('sell') || activity.includes('sold');
+
+      if (isBuy) {
         totalShares += shares;
         totalCostBasis += amount;
-      } else if (activity === 'sell') {
+      } else if (isSell) {
         totalShares -= shares;
         // Reduce cost basis proportionally
         const sellRatio = shares / (totalShares + shares);
@@ -366,11 +370,12 @@ export default function FundDetail() {
             <tbody>
               {fundTransactions.slice().reverse().map((tx, index) => {
                 const activity = (tx.activity || '').toLowerCase();
+                const isBuy = activity.includes('buy') || activity.includes('purchase');
                 return (
                   <tr key={index}>
                     <td>{formatDate(tx.date)}</td>
                     <td>
-                      <span className={`badge ${activity === 'buy' ? 'badge-buy' : 'badge-sell'}`}>
+                      <span className={`badge ${isBuy ? 'badge-buy' : 'badge-sell'}`}>
                         {tx.activity?.toUpperCase()}
                       </span>
                     </td>
