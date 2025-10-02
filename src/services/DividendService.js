@@ -261,22 +261,55 @@ export class DividendService {
    * @returns {Array} Timeline with cumulative totals
    */
   calculateCumulativeTimeline(dividends) {
+    if (dividends.length === 0) return [];
+
     const sorted = [...dividends].sort((a, b) => a.date.localeCompare(b.date));
+
+    // Determine date range to decide aggregation strategy
+    const firstDate = new Date(sorted[0].date);
+    const lastDate = new Date(sorted[sorted.length - 1].date);
+    const daysDiff = Math.ceil((lastDate - firstDate) / (1000 * 60 * 60 * 24));
+
+    // Decide aggregation: daily (< 90 days), weekly (< 365 days), monthly (>= 365 days)
+    let groupBy = 'day';
+    if (daysDiff >= 365) {
+      groupBy = 'month';
+    } else if (daysDiff >= 90) {
+      groupBy = 'week';
+    }
+
+    // Build cumulative timeline with smart aggregation
     let cumulative = 0;
-    const timeline = [];
+    const grouped = new Map();
 
     for (const dividend of sorted) {
       cumulative += parseFloat(dividend.amount) || 0;
-      timeline.push({
-        date: dividend.date,
-        amount: parseFloat(dividend.amount) || 0,
+
+      let key;
+      const date = new Date(dividend.date);
+
+      if (groupBy === 'month') {
+        // Group by month (YYYY-MM)
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      } else if (groupBy === 'week') {
+        // Group by week (start of week)
+        const weekStart = new Date(date);
+        weekStart.setDate(date.getDate() - date.getDay()); // Sunday
+        key = weekStart.toISOString().split('T')[0];
+      } else {
+        // Group by day
+        key = dividend.date;
+      }
+
+      // Store the latest cumulative value for this period
+      grouped.set(key, {
+        date: key,
         cumulative: cumulative,
-        fund: dividend.fund,
-        account: dividend.account
+        amount: (grouped.get(key)?.amount || 0) + parseFloat(dividend.amount),
       });
     }
 
-    return timeline;
+    return Array.from(grouped.values());
   }
 }
 

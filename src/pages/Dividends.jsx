@@ -252,7 +252,14 @@ export default function Dividends() {
                 stroke="#888"
                 tickFormatter={(date) => {
                   const d = new Date(date);
-                  return `${d.getMonth() + 1}/${d.getFullYear() % 100}`;
+                  // Smart formatting based on date format
+                  if (date.length === 7) {
+                    // Month format (YYYY-MM)
+                    return `${d.getMonth() + 1}/${d.getFullYear() % 100}`;
+                  } else {
+                    // Day or week format (YYYY-MM-DD)
+                    return `${d.getMonth() + 1}/${d.getDate()}`;
+                  }
                 }}
               />
               <YAxis stroke="#888" tickFormatter={tickFormatter} />
