@@ -201,7 +201,9 @@ export class DividendService {
     const byMonth = new Map();
 
     for (const dividend of dividends) {
-      const date = new Date(dividend.date);
+      // Parse date as local date to avoid timezone shifts
+      const [year, month, day] = dividend.date.split('-').map(Number);
+      const date = new Date(year, month - 1, day);
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
       if (!byMonth.has(monthKey)) {
@@ -231,7 +233,7 @@ export class DividendService {
   calculateYTD(dividends) {
     const currentYear = new Date().getFullYear();
     const ytdDividends = dividends.filter(d => {
-      const year = new Date(d.date).getFullYear();
+      const [year] = d.date.split('-').map(Number);
       return year === currentYear;
     });
 
@@ -248,7 +250,8 @@ export class DividendService {
     oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
 
     const ttmDividends = dividends.filter(d => {
-      const date = new Date(d.date);
+      const [year, month, day] = d.date.split('-').map(Number);
+      const date = new Date(year, month - 1, day);
       return date >= oneYearAgo;
     });
 
@@ -286,7 +289,8 @@ export class DividendService {
       cumulative += parseFloat(dividend.amount) || 0;
 
       let key;
-      const date = new Date(dividend.date);
+      const [year, month, day] = dividend.date.split('-').map(Number);
+      const date = new Date(year, month - 1, day);
 
       if (groupBy === 'month') {
         // Group by month (YYYY-MM)

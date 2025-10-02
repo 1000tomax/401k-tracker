@@ -89,7 +89,7 @@ export default function FundDetail() {
         const tickerUpper = ticker.toUpperCase();
         return fundName === tickerUpper || fundName.includes(tickerUpper);
       })
-      .sort((a, b) => new Date(a.date) - new Date(b.date));
+      .sort((a, b) => a.date.localeCompare(b.date));
   }, [transactions, ticker]);
 
   // Filter dividends for this specific fund
@@ -102,7 +102,7 @@ export default function FundDetail() {
         const tickerUpper = ticker.toUpperCase();
         return fundName === tickerUpper || fundName.includes(tickerUpper);
       })
-      .sort((a, b) => new Date(a.date) - new Date(b.date));
+      .sort((a, b) => a.date.localeCompare(b.date));
   }, [dividends, ticker]);
 
   // Calculate running totals and metrics
