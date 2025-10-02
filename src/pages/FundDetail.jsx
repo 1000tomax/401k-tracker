@@ -125,11 +125,14 @@ export default function FundDetail() {
       totalDividends += parseFloat(div.amount) || 0;
     });
 
-    const latestEntry = timeline[timeline.length - 1];
-    const currentShares = latestEntry?.shares || 0;
-    const currentCostBasis = latestEntry?.costBasis || 0;
+    // Use the running totals directly (more reliable than reading from timeline)
+    const currentShares = totalShares;
+    const currentCostBasis = totalCostBasis;
     const avgCost = currentShares > 0 ? currentCostBasis / currentShares : 0;
-    const latestPrice = latestEntry?.price || 0;
+
+    // Get latest price from timeline or transactions
+    const latestEntry = timeline[timeline.length - 1];
+    const latestPrice = latestEntry?.price || fundTransactions[fundTransactions.length - 1]?.unit_price || 0;
 
     // Use live price if available
     const livePrice = livePrices[ticker?.toUpperCase()]?.price || latestPrice;
