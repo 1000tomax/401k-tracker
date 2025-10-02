@@ -103,27 +103,27 @@ export default function Dashboard({ summary, isLoading }) {
 
   // Asset allocation data
   const allocationData = useMemo(() => {
-    // Filter accounts based on portfolio filter
-    let filteredAccounts = holdingsByAccount;
+    // Account allocation (always show all)
+    const accountAllocation = holdingsByAccount.map(account => ({
+      name: account.accountName,
+      value: account.totalValue,
+      percentage: ((account.totalValue / totals.marketValue) * 100).toFixed(1),
+    }));
+
+    // Filter holdings based on portfolio filter for fund breakdown
+    let filteredHoldings = holdings;
     if (portfolioFilter !== 'all') {
-      filteredAccounts = holdingsByAccount.filter(account =>
-        getAccountType(account.accountName) === portfolioFilter
+      filteredHoldings = holdings.filter(holding =>
+        getAccountType(holding.accountName) === portfolioFilter
       );
     }
 
-    // Calculate total value for filtered accounts
-    const filteredTotal = filteredAccounts.reduce((sum, acc) => sum + acc.totalValue, 0);
-
-    // Account allocation
-    const accountAllocation = filteredAccounts.map(account => ({
-      name: account.accountName,
-      value: account.totalValue,
-      percentage: filteredTotal > 0 ? ((account.totalValue / filteredTotal) * 100).toFixed(1) : '0.0',
-    }));
+    // Calculate total for filtered holdings
+    const filteredTotal = filteredHoldings.reduce((sum, h) => sum + h.marketValue, 0);
 
     // Fund allocation by account type (e.g., "VAN 500 (Roth)")
     const fundMap = new Map();
-    for (const holding of holdings) {
+    for (const holding of filteredHoldings) {
       if (!holding.accountName) continue; // Skip if accountName is undefined
       const fundName = holding.fund.includes('Vanguard 500') ? 'VAN 500' : holding.fund;
       const subtype = getAccountSubtype(holding.accountName);
@@ -136,7 +136,7 @@ export default function Dashboard({ summary, isLoading }) {
       .map(([fund, value]) => ({
         name: fund,
         value,
-        percentage: ((value / totals.marketValue) * 100).toFixed(1),
+        percentage: filteredTotal > 0 ? ((value / filteredTotal) * 100).toFixed(1) : '0.0',
       }))
       .sort((a, b) => b.value - a.value);
 
@@ -305,26 +305,7 @@ export default function Dashboard({ summary, isLoading }) {
         <div className="allocation-grid">
           {/* Account Allocation */}
           <div className="allocation-chart">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-3)' }}>
-              <h3 className="allocation-title" style={{ margin: 0 }}>By Account</h3>
-              <select
-                value={portfolioFilter}
-                onChange={(e) => setPortfolioFilter(e.target.value)}
-                style={{
-                  padding: 'var(--space-2) var(--space-3)',
-                  background: 'var(--surface-glass)',
-                  border: '1px solid var(--border-subtle)',
-                  borderRadius: 'var(--radius-md)',
-                  color: 'var(--text-primary)',
-                  fontSize: 'var(--text-sm)',
-                  cursor: 'pointer'
-                }}
-              >
-                <option value="all">All</option>
-                <option value="ira">IRA</option>
-                <option value="401k">401(k)</option>
-              </select>
-            </div>
+            <h3 className="allocation-title">By Account</h3>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
@@ -349,7 +330,26 @@ export default function Dashboard({ summary, isLoading }) {
 
           {/* Fund Allocation */}
           <div className="allocation-chart">
-            <h3 className="allocation-title">By Fund</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-3)' }}>
+              <h3 className="allocation-title" style={{ margin: 0 }}>By Fund</h3>
+              <select
+                value={portfolioFilter}
+                onChange={(e) => setPortfolioFilter(e.target.value)}
+                style={{
+                  padding: 'var(--space-2) var(--space-3)',
+                  background: 'var(--surface-secondary)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: 'var(--radius-md)',
+                  color: 'var(--text-primary)',
+                  fontSize: 'var(--text-sm)',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="all">All</option>
+                <option value="ira">IRA</option>
+                <option value="401k">401(k)</option>
+              </select>
+            </div>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
