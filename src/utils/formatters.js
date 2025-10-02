@@ -34,14 +34,16 @@ export function formatPercent(value) {
 export function formatDate(value) {
   if (!value) return '—';
 
-  // Parse as UTC date, then convert to local timezone for display
+  // Parse date string - treat dates as local, not UTC
   let date;
   if (value.includes('T')) {
     // Already has time component (ISO format)
     date = new Date(value);
   } else {
-    // Date only - parse as UTC midnight then display in local timezone
-    date = new Date(`${value}T00:00:00Z`);
+    // Date only (YYYY-MM-DD) - parse as local date to avoid timezone shifts
+    // Use Date constructor with year, month, day to avoid UTC conversion
+    const [year, month, day] = value.split('-').map(Number);
+    date = new Date(year, month - 1, day); // month is 0-indexed
   }
 
   if (Number.isNaN(date.getTime())) {
