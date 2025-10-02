@@ -311,17 +311,15 @@ export default function Dashboard({ summary, isLoading }) {
           {/* Account Allocation */}
           <div className="allocation-chart">
             <h3 className="allocation-title">By Account</h3>
-            <ResponsiveContainer width="100%" height={350}>
-              <PieChart margin={{ top: 20, right: 80, bottom: 20, left: 80 }}>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
                 <Pie
                   data={allocationData.accountAllocation}
                   dataKey="value"
                   nameKey="name"
                   cx="50%"
                   cy="50%"
-                  outerRadius={80}
-                  label={({ name, percentage }) => `${name} (${percentage}%)`}
-                  labelLine={{ stroke: 'rgba(203, 213, 225, 0.5)', strokeWidth: 1 }}
+                  outerRadius={100}
                   isAnimationActive={false}
                 >
                   {allocationData.accountAllocation.map((entry, index) => (
@@ -329,6 +327,12 @@ export default function Dashboard({ summary, isLoading }) {
                   ))}
                 </Pie>
                 <Tooltip content={renderPieTooltip} />
+                <Legend
+                  verticalAlign="bottom"
+                  height={36}
+                  iconType="circle"
+                  formatter={(value) => <span style={{ color: 'var(--text-primary)', fontSize: 'var(--text-sm)' }}>{value}</span>}
+                />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -356,17 +360,15 @@ export default function Dashboard({ summary, isLoading }) {
               </select>
             </div>
             {allocationData.fundAllocation.length > 0 ? (
-              <ResponsiveContainer width="100%" height={350}>
-                <PieChart margin={{ top: 20, right: 80, bottom: 20, left: 80 }}>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
                   <Pie
                     data={allocationData.fundAllocation}
                     dataKey="value"
                     nameKey="name"
                     cx="50%"
                     cy="50%"
-                    outerRadius={80}
-                    label={({ name, percentage }) => `${name} (${percentage}%)`}
-                    labelLine={{ stroke: 'rgba(203, 213, 225, 0.5)', strokeWidth: 1 }}
+                    outerRadius={100}
                     isAnimationActive={false}
                   >
                     {allocationData.fundAllocation.map((entry, index) => (
@@ -374,10 +376,16 @@ export default function Dashboard({ summary, isLoading }) {
                     ))}
                   </Pie>
                   <Tooltip content={renderPieTooltip} />
+                  <Legend
+                    verticalAlign="bottom"
+                    height={36}
+                    iconType="circle"
+                    formatter={(value) => <span style={{ color: 'var(--text-primary)', fontSize: 'var(--text-sm)' }}>{value}</span>}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '350px', color: 'var(--text-secondary)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '300px', color: 'var(--text-secondary)' }}>
                 No funds found for selected portfolio type
               </div>
             )}
