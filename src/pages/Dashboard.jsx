@@ -311,7 +311,7 @@ export default function Dashboard({ summary, isLoading }) {
           {/* Account Allocation */}
           <div className="allocation-chart">
             <h3 className="allocation-title">By Account</h3>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={350}>
               <PieChart>
                 <Pie
                   data={allocationData.accountAllocation}
@@ -329,9 +329,9 @@ export default function Dashboard({ summary, isLoading }) {
                 <Tooltip content={renderPieTooltip} />
                 <Legend
                   verticalAlign="bottom"
-                  height={36}
                   iconType="circle"
-                  formatter={(value) => <span style={{ color: 'var(--text-primary)', fontSize: 'var(--text-sm)' }}>{value}</span>}
+                  wrapperStyle={{ paddingTop: '10px', fontSize: 'var(--text-sm)' }}
+                  formatter={(value) => <span style={{ color: 'var(--text-primary)' }}>{value}</span>}
                 />
               </PieChart>
             </ResponsiveContainer>
@@ -360,7 +360,7 @@ export default function Dashboard({ summary, isLoading }) {
               </select>
             </div>
             {allocationData.fundAllocation.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={350}>
                 <PieChart>
                   <Pie
                     data={allocationData.fundAllocation}
@@ -378,14 +378,14 @@ export default function Dashboard({ summary, isLoading }) {
                   <Tooltip content={renderPieTooltip} />
                   <Legend
                     verticalAlign="bottom"
-                    height={36}
                     iconType="circle"
-                    formatter={(value) => <span style={{ color: 'var(--text-primary)', fontSize: 'var(--text-sm)' }}>{value}</span>}
+                    wrapperStyle={{ paddingTop: '10px', fontSize: 'var(--text-sm)' }}
+                    formatter={(value) => <span style={{ color: 'var(--text-primary)' }}>{value}</span>}
                   />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '300px', color: 'var(--text-secondary)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '350px', color: 'var(--text-secondary)' }}>
                 No funds found for selected portfolio type
               </div>
             )}
