@@ -90,14 +90,15 @@ export default function FundDetail() {
 
     // Process transactions chronologically
     fundTransactions.forEach(tx => {
-      const shares = parseFloat(tx.shares) || 0;
-      const price = parseFloat(tx.price) || 0;
+      const shares = parseFloat(tx.units) || 0;
+      const price = parseFloat(tx.unit_price) || 0;
       const amount = parseFloat(tx.amount) || Math.abs(shares * price);
+      const activity = (tx.activity || '').toLowerCase();
 
-      if (tx.type === 'buy') {
+      if (activity === 'buy') {
         totalShares += shares;
         totalCostBasis += amount;
-      } else if (tx.type === 'sell') {
+      } else if (activity === 'sell') {
         totalShares -= shares;
         // Reduce cost basis proportionally
         const sellRatio = shares / (totalShares + shares);
@@ -111,7 +112,7 @@ export default function FundDetail() {
         avgCost: totalShares > 0 ? totalCostBasis / totalShares : 0,
         price: price,
         marketValue: totalShares * price,
-        type: tx.type,
+        activity: activity,
       });
     });
 
@@ -363,20 +364,23 @@ export default function FundDetail() {
               </tr>
             </thead>
             <tbody>
-              {fundTransactions.slice().reverse().map((tx, index) => (
-                <tr key={index}>
-                  <td>{formatDate(tx.date)}</td>
-                  <td>
-                    <span className={`badge ${tx.type === 'buy' ? 'badge-buy' : 'badge-sell'}`}>
-                      {tx.type?.toUpperCase()}
-                    </span>
-                  </td>
-                  <td>{formatShares(tx.shares)}</td>
-                  <td>{formatUnitPrice(tx.price)}</td>
-                  <td>{formatCurrency(tx.amount || Math.abs(tx.shares * tx.price))}</td>
-                  <td className="account-name">{tx.account || tx.source || '—'}</td>
-                </tr>
-              ))}
+              {fundTransactions.slice().reverse().map((tx, index) => {
+                const activity = (tx.activity || '').toLowerCase();
+                return (
+                  <tr key={index}>
+                    <td>{formatDate(tx.date)}</td>
+                    <td>
+                      <span className={`badge ${activity === 'buy' ? 'badge-buy' : 'badge-sell'}`}>
+                        {tx.activity?.toUpperCase()}
+                      </span>
+                    </td>
+                    <td>{formatShares(tx.units)}</td>
+                    <td>{formatUnitPrice(tx.unit_price)}</td>
+                    <td>{formatCurrency(tx.amount || Math.abs((tx.units || 0) * (tx.unit_price || 0)))}</td>
+                    <td className="account-name">{tx.money_source || '—'}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
