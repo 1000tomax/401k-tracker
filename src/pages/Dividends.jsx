@@ -45,28 +45,39 @@ export default function Dividends() {
         setIsLoading(true);
         setError(null);
 
-        // Load dividends, prices, and holdings snapshot in parallel
-        const [dividendsData, pricesData, holdingsSnapshot] = await Promise.all([
+        // Load dividends and prices
+        const [dividendsData, pricesData] = await Promise.all([
           dividendService.getAllDividends(),
-          holdingsService.getLatestPrices(),
-          holdingsService.getSnapshots(1) // Get most recent snapshot to determine current holdings
+          holdingsService.getLatestPrices()
         ]);
 
         setDividends(dividendsData);
         setLivePrices(pricesData || {});
 
-        // Extract current holdings (funds with shares > 0)
+        // Determine current holdings from dividends + price data
+        // If a fund has recent dividends and a live price, it's likely still held
+        // This is a fallback approach until we have a proper holdings snapshot
         const activeFunds = new Set();
-        if (holdingsSnapshot?.snapshots?.[0]?.holdings) {
-          for (const holding of holdingsSnapshot.snapshots[0].holdings) {
-            if (holding.shares > 0) {
-              activeFunds.add(holding.fund);
-            }
+
+        // Simple heuristic: if we have a live price for it, we probably hold it
+        for (const ticker of Object.keys(pricesData || {})) {
+          activeFunds.add(ticker);
+        }
+
+        // Also check dividend funds that match tickers with prices
+        const recentDate = new Date();
+        recentDate.setMonth(recentDate.getMonth() - 3); // Last 3 months
+
+        for (const div of dividendsData) {
+          const divDate = new Date(div.date);
+          if (divDate >= recentDate && pricesData?.[div.fund]) {
+            activeFunds.add(div.fund);
           }
         }
+
         setCurrentHoldings(activeFunds);
 
-        console.log('📊 Current holdings:', Array.from(activeFunds));
+        console.log('📊 Current holdings (inferred):', Array.from(activeFunds));
       } catch (err) {
         console.error('Failed to load dividends:', err);
         setError(err.message);
