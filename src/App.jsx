@@ -19,7 +19,6 @@ export default function App() {
   const [timeline, setTimeline] = useState([]);
   const [totals, setTotals] = useState({ marketValue: 0, totalHoldings: 0, lastUpdated: null });
   const [isLoading, setIsLoading] = useState(true);
-  const [isSyncing, setIsSyncing] = useState(false);
   const [status, setStatus] = useState('');
 
   const holdingsService = useMemo(() => new HoldingsService(API_URL, API_TOKEN), []);
@@ -155,32 +154,6 @@ export default function App() {
     return () => clearInterval(interval);
   }, [loadHoldings, isMarketHours]);
 
-  // Manual sync
-  const handleSync = useCallback(async () => {
-    try {
-      console.log('🔄 Triggering manual holdings sync...');
-      setIsSyncing(true);
-      setStatus('Syncing holdings from Plaid...');
-
-      const result = await holdingsService.syncNow();
-
-      if (result.ok) {
-        console.log('✅ Sync complete:', result);
-        setStatus(`Sync complete! ${result.synced} holdings updated.`);
-
-        // Reload holdings after sync
-        await loadHoldings();
-      } else {
-        console.error('❌ Sync failed:', result.error);
-        setStatus(`Sync failed: ${result.error}`);
-      }
-    } catch (error) {
-      console.error('❌ Sync error:', error);
-      setStatus(`Sync error: ${error.message}`);
-    } finally {
-      setIsSyncing(false);
-    }
-  }, [holdingsService, loadHoldings]);
 
   // Account name mapping for display
   const formatAccountName = (name) => {
@@ -401,15 +374,6 @@ export default function App() {
               <NavLink to="/transactions" className={({ isActive }) => (isActive ? 'active' : '')}>
                 Transactions
               </NavLink>
-              <button
-                type="button"
-                className="nav-button"
-                onClick={handleSync}
-                disabled={isSyncing}
-                title="Sync Plaid accounts (Voya must be updated manually)"
-              >
-                {isSyncing ? 'Syncing Plaid...' : 'Sync Plaid'}
-              </button>
             </nav>
           </header>
 
