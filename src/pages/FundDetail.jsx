@@ -126,7 +126,8 @@ export default function FundDetail() {
                     activity.includes('transfer in');
       const isSell = activity.includes('sell') ||
                      activity.includes('sold') ||
-                     activity.includes('transfer out');
+                     activity.includes('transfer out') ||
+                     activity.includes('fee');
 
       if (isBuy) {
         totalShares += shares;
@@ -406,6 +407,10 @@ export default function FundDetail() {
                               activity.includes('purchase') ||
                               activity.includes('contribution') ||
                               activity.includes('transfer in');
+                const isSell = activity.includes('sell') ||
+                               activity.includes('sold') ||
+                               activity.includes('transfer out') ||
+                               activity.includes('fee');
                 return (
                   <tr key={index}>
                     <td>{formatDate(tx.date)}</td>

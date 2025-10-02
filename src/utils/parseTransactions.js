@@ -435,6 +435,13 @@ function classifyFlow(activity) {
 const SHARE_EPSILON = 1e-6;
 
 export function aggregatePortfolio(transactions, livePrices = null) {
+  // Normalize transaction field names (database uses snake_case, code expects camelCase)
+  const normalizedTransactions = transactions.map(tx => ({
+    ...tx,
+    unitPrice: tx.unit_price ?? tx.unitPrice,
+    moneySource: tx.money_source ?? tx.moneySource,
+  }));
+
   const portfolio = {};
   const totals = {
     shares: 0,
@@ -455,7 +462,7 @@ export function aggregatePortfolio(transactions, livePrices = null) {
   const byFundSource = new Map();
   const timelineByDate = new Map();
 
-  const chronological = [...transactions]
+  const chronological = [...normalizedTransactions]
     .filter(tx => tx && tx.date && tx.fund)
     .sort((a, b) => a.date.localeCompare(b.date));
 
