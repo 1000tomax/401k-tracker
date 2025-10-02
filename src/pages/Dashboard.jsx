@@ -18,6 +18,7 @@ import {
 export default function Dashboard({ summary, isLoading }) {
   const { totals, timeline, holdings, holdingsByAccount } = summary;
   const [expandedAccounts, setExpandedAccounts] = useState(new Set());
+  const [portfolioFilter, setPortfolioFilter] = useState('all');
 
   const trendData = useMemo(() => {
     return (timeline || []).map(entry => ({
@@ -82,33 +83,64 @@ export default function Dashboard({ summary, isLoading }) {
     });
   };
 
+  // Helper to determine account type
+  const getAccountType = (accountName) => {
+    const name = accountName.toLowerCase();
+    if (name.includes('ira')) return 'ira';
+    if (name.includes('401') || name.includes('voya')) return '401k';
+    return 'other';
+  };
+
+  // Helper to get account subtype for fund breakdown
+  const getAccountSubtype = (accountName) => {
+    const name = accountName.toLowerCase();
+    if (name.includes('roth') && name.includes('ira')) return 'Roth IRA';
+    if (name.includes('pretax')) return 'PreTax';
+    if (name.includes('match')) return 'Match';
+    if (name.includes('roth') && !name.includes('ira')) return 'Roth';
+    return accountName;
+  };
+
   // Asset allocation data
   const allocationData = useMemo(() => {
+    // Filter accounts based on portfolio filter
+    let filteredAccounts = holdingsByAccount;
+    if (portfolioFilter !== 'all') {
+      filteredAccounts = holdingsByAccount.filter(account =>
+        getAccountType(account.accountName) === portfolioFilter
+      );
+    }
+
+    // Calculate total value for filtered accounts
+    const filteredTotal = filteredAccounts.reduce((sum, acc) => sum + acc.totalValue, 0);
+
     // Account allocation
-    const accountAllocation = holdingsByAccount.map(account => ({
+    const accountAllocation = filteredAccounts.map(account => ({
       name: account.accountName,
       value: account.totalValue,
-      percentage: ((account.totalValue / totals.marketValue) * 100).toFixed(1),
+      percentage: filteredTotal > 0 ? ((account.totalValue / filteredTotal) * 100).toFixed(1) : '0.0',
     }));
 
-    // Fund allocation (across all accounts)
+    // Fund allocation by account type (e.g., "VAN 500 (Roth)")
     const fundMap = new Map();
     for (const holding of holdings) {
-      const fund = holding.fund;
-      const existing = fundMap.get(fund) || 0;
-      fundMap.set(fund, existing + holding.marketValue);
+      const fundName = holding.fund.includes('Vanguard 500') ? 'VAN 500' : holding.fund;
+      const subtype = getAccountSubtype(holding.account);
+      const key = `${fundName} (${subtype})`;
+      const existing = fundMap.get(key) || 0;
+      fundMap.set(key, existing + holding.marketValue);
     }
 
     const fundAllocation = Array.from(fundMap.entries())
       .map(([fund, value]) => ({
-        name: fund.includes('Vanguard 500') ? 'VAN 500' : fund,
+        name: fund,
         value,
         percentage: ((value / totals.marketValue) * 100).toFixed(1),
       }))
       .sort((a, b) => b.value - a.value);
 
-    return { accountAllocation, fundAllocation };
-  }, [holdingsByAccount, holdings, totals.marketValue]);
+    return { accountAllocation, fundAllocation, filteredTotal };
+  }, [holdingsByAccount, holdings, totals.marketValue, portfolioFilter]);
 
   // Color palette for pie charts
   const COLORS = [
@@ -272,7 +304,26 @@ export default function Dashboard({ summary, isLoading }) {
         <div className="allocation-grid">
           {/* Account Allocation */}
           <div className="allocation-chart">
-            <h3 className="allocation-title">By Account</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-3)' }}>
+              <h3 className="allocation-title" style={{ margin: 0 }}>By Account</h3>
+              <select
+                value={portfolioFilter}
+                onChange={(e) => setPortfolioFilter(e.target.value)}
+                style={{
+                  padding: 'var(--space-2) var(--space-3)',
+                  background: 'var(--surface-glass)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: 'var(--radius-md)',
+                  color: 'var(--text-primary)',
+                  fontSize: 'var(--text-sm)',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="all">All</option>
+                <option value="ira">IRA</option>
+                <option value="401k">401(k)</option>
+              </select>
+            </div>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
