@@ -44,7 +44,7 @@ export default function Transactions() {
     const tickerSet = new Set();
 
     transactions.forEach(tx => {
-      if (tx.account) accountSet.add(tx.account);
+      if (tx.money_source) accountSet.add(tx.money_source);
       if (tx.fund) tickerSet.add(tx.fund);
     });
 
@@ -58,7 +58,7 @@ export default function Transactions() {
   const filteredTransactions = useMemo(() => {
     return transactions.filter(tx => {
       // Account filter
-      if (accountFilter !== 'all' && tx.account !== accountFilter) {
+      if (accountFilter !== 'all' && tx.money_source !== accountFilter) {
         return false;
       }
 
@@ -71,10 +71,10 @@ export default function Transactions() {
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         const fund = (tx.fund || '').toLowerCase();
-        const account = (tx.account || '').toLowerCase();
-        const type = (tx.type || '').toLowerCase();
+        const account = (tx.money_source || '').toLowerCase();
+        const activity = (tx.activity || '').toLowerCase();
 
-        if (!fund.includes(query) && !account.includes(query) && !type.includes(query)) {
+        if (!fund.includes(query) && !account.includes(query) && !activity.includes(query)) {
           return false;
         }
       }
@@ -86,12 +86,12 @@ export default function Transactions() {
   // Calculate summary stats
   const summary = useMemo(() => {
     const totalBuys = filteredTransactions
-      .filter(tx => tx.type === 'buy')
-      .reduce((sum, tx) => sum + (tx.total || 0), 0);
+      .filter(tx => tx.activity?.toLowerCase() === 'buy')
+      .reduce((sum, tx) => sum + (tx.amount || 0), 0);
 
     const totalSells = filteredTransactions
-      .filter(tx => tx.type === 'sell')
-      .reduce((sum, tx) => sum + (tx.total || 0), 0);
+      .filter(tx => tx.activity?.toLowerCase() === 'sell')
+      .reduce((sum, tx) => sum + (tx.amount || 0), 0);
 
     return {
       totalTransactions: filteredTransactions.length,
@@ -269,15 +269,15 @@ export default function Transactions() {
                 <tr key={tx.id || index}>
                   <td>{formatDate(tx.date)}</td>
                   <td>
-                    <span className={`transaction-type ${tx.type}`}>
-                      {tx.type === 'buy' ? 'Buy' : 'Sell'}
+                    <span className={`transaction-type ${tx.activity?.toLowerCase()}`}>
+                      {tx.activity}
                     </span>
                   </td>
                   <td>{formatFundName(tx.fund)}</td>
-                  <td>{formatAccountName(tx.account)}</td>
-                  <td className="numeric">{tx.shares?.toFixed(4) || '—'}</td>
-                  <td className="numeric">{tx.price ? formatCurrency(tx.price) : '—'}</td>
-                  <td className="numeric">{formatCurrency(tx.total || 0)}</td>
+                  <td>{formatAccountName(tx.money_source)}</td>
+                  <td className="numeric">{tx.units?.toFixed(4) || '—'}</td>
+                  <td className="numeric">{tx.unit_price ? formatCurrency(tx.unit_price) : '—'}</td>
+                  <td className="numeric">{formatCurrency(tx.amount || 0)}</td>
                 </tr>
               ))}
             </tbody>
