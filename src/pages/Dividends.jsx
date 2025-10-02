@@ -17,6 +17,14 @@ import DividendService from '../services/DividendService.js';
 const API_URL = window.location.origin;
 const API_TOKEN = import.meta.env.VITE_401K_TOKEN || '';
 
+// Helper function to clean up account names
+const formatAccountName = (accountName) => {
+  if (accountName?.toLowerCase().includes('roth') && accountName?.toLowerCase().includes('ira')) {
+    return 'Roth IRA';
+  }
+  return accountName;
+};
+
 export default function Dividends() {
   const [dividends, setDividends] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -181,7 +189,8 @@ export default function Dividends() {
       <section>
         <div className="section-header">
           <h2>Dividend Income Summary</h2>
-          <div className="time-filter-buttons">
+          {/* Temporarily hidden - will be useful once we have more dividend history */}
+          {/* <div className="time-filter-buttons">
             <button
               className={timeFilter === 'all' ? 'active' : ''}
               onClick={() => setTimeFilter('all')}
@@ -206,7 +215,7 @@ export default function Dividends() {
             >
               6 Months
             </button>
-          </div>
+          </div> */}
         </div>
 
         <div className="summary-cards">
@@ -336,8 +345,8 @@ export default function Dividends() {
         </div>
       </section>
 
-      {/* Dividends by Account */}
-      <section>
+      {/* Dividends by Account - Hidden until multiple accounts pay dividends */}
+      {/* <section>
         <div className="section-header">
           <h2>Dividends by Account</h2>
           <p className="section-description">Compare dividend income across accounts</p>
@@ -367,7 +376,7 @@ export default function Dividends() {
             </tbody>
           </table>
         </div>
-      </section>
+      </section> */}
 
       {/* Recent Dividends */}
       <section>
@@ -394,7 +403,7 @@ export default function Dividends() {
                   <tr key={index}>
                     <td>{formatDate(dividend.date)}</td>
                     <td><strong>{dividend.fund}</strong></td>
-                    <td className="meta">{dividend.account}</td>
+                    <td className="meta">{formatAccountName(dividend.account)}</td>
                     <td>{formatCurrency(dividend.amount)}</td>
                   </tr>
                 ))}
