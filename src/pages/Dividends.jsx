@@ -210,28 +210,28 @@ export default function Dividends() {
         </div>
 
         <div className="summary-cards">
-          <div className="summary-card">
-            <div className="card-label">Total Dividends</div>
-            <div className="card-value">{formatCurrency(summary.total)}</div>
-            <div className="card-meta">{summary.count} payments</div>
+          <div className="summary-card positive">
+            <h3 className="summary-card-label">Total Dividends</h3>
+            <p className="summary-card-value">{formatCurrency(summary.total)}</p>
+            <p className="summary-card-helper">{summary.count} payments</p>
+          </div>
+
+          <div className="summary-card positive">
+            <h3 className="summary-card-label">Year-to-Date</h3>
+            <p className="summary-card-value">{formatCurrency(summary.ytd)}</p>
+            <p className="summary-card-helper">{new Date().getFullYear()}</p>
+          </div>
+
+          <div className="summary-card positive">
+            <h3 className="summary-card-label">Trailing 12 Months</h3>
+            <p className="summary-card-value">{formatCurrency(summary.ttm)}</p>
+            <p className="summary-card-helper">Last 12 months</p>
           </div>
 
           <div className="summary-card">
-            <div className="card-label">Year-to-Date</div>
-            <div className="card-value">{formatCurrency(summary.ytd)}</div>
-            <div className="card-meta">{new Date().getFullYear()}</div>
-          </div>
-
-          <div className="summary-card">
-            <div className="card-label">Trailing 12 Months</div>
-            <div className="card-value">{formatCurrency(summary.ttm)}</div>
-            <div className="card-meta">Last 12 months</div>
-          </div>
-
-          <div className="summary-card">
-            <div className="card-label">Average Payment</div>
-            <div className="card-value">{formatCurrency(summary.averagePayment)}</div>
-            <div className="card-meta">Per dividend</div>
+            <h3 className="summary-card-label">Average Payment</h3>
+            <p className="summary-card-value">{formatCurrency(summary.averagePayment)}</p>
+            <p className="summary-card-helper">Per dividend</p>
           </div>
         </div>
       </section>
