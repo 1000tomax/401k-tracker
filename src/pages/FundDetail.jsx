@@ -19,6 +19,30 @@ import HoldingsService from '../services/HoldingsService.js';
 const API_URL = window.location.origin;
 const API_TOKEN = import.meta.env.VITE_401K_TOKEN || '';
 
+// Helper to format account names consistently
+const formatAccountName = (name) => {
+  if (!name) return '—';
+  const lower = name.toLowerCase();
+
+  // Roth IRA
+  if (lower.includes('roth') && lower.includes('ira')) {
+    return 'Roth IRA';
+  }
+
+  // Voya 401(k) sources
+  if (lower.includes('pretax') || lower.includes('pre-tax') || lower === 'employee pretax') {
+    return 'Voya 401(k) (PreTax)';
+  }
+  if (lower.includes('match') || lower === 'safe harbor match') {
+    return 'Voya 401(k) (Match)';
+  }
+  if (lower === 'roth' || (lower.includes('roth') && !lower.includes('ira'))) {
+    return 'Voya 401(k) (Roth)';
+  }
+
+  return name;
+};
+
 export default function FundDetail() {
   const { ticker } = useParams();
   const navigate = useNavigate();
@@ -385,7 +409,7 @@ export default function FundDetail() {
                     <td>{formatShares(tx.units)}</td>
                     <td>{formatUnitPrice(tx.unit_price)}</td>
                     <td>{formatCurrency(tx.amount || Math.abs((tx.units || 0) * (tx.unit_price || 0)))}</td>
-                    <td className="account-name">{tx.money_source || '—'}</td>
+                    <td className="account-name">{formatAccountName(tx.money_source)}</td>
                   </tr>
                 );
               })}
@@ -412,7 +436,7 @@ export default function FundDetail() {
                   <tr key={index}>
                     <td>{formatDate(div.date)}</td>
                     <td className="positive">{formatCurrency(div.amount)}</td>
-                    <td className="account-name">{div.account || '—'}</td>
+                    <td className="account-name">{formatAccountName(div.account)}</td>
                   </tr>
                 ))}
               </tbody>
