@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { formatCurrency, formatDate } from '../utils/formatters.js';
 import TransactionService from '../services/TransactionService.js';
 
@@ -86,11 +86,17 @@ export default function Transactions() {
   // Calculate summary stats
   const summary = useMemo(() => {
     const totalBuys = filteredTransactions
-      .filter(tx => tx.activity?.toLowerCase() === 'buy')
+      .filter(tx => {
+        const activity = tx.activity?.toLowerCase() || '';
+        return activity === 'buy' || activity === 'purchased' || activity.includes('purchase');
+      })
       .reduce((sum, tx) => sum + (tx.amount || 0), 0);
 
     const totalSells = filteredTransactions
-      .filter(tx => tx.activity?.toLowerCase() === 'sell')
+      .filter(tx => {
+        const activity = tx.activity?.toLowerCase() || '';
+        return activity === 'sell' || activity === 'sold' || activity.includes('sale');
+      })
       .reduce((sum, tx) => sum + (tx.amount || 0), 0);
 
     return {
