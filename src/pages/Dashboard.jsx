@@ -132,6 +132,10 @@ export default function Dashboard({ summary, isLoading }) {
       fundMap.set(key, existing + holding.marketValue);
     }
 
+    console.log('Portfolio Filter:', portfolioFilter);
+    console.log('Filtered Holdings:', filteredHoldings.length);
+    console.log('Fund Map:', Array.from(fundMap.entries()));
+
     const fundAllocation = Array.from(fundMap.entries())
       .map(([fund, value]) => ({
         name: fund,
@@ -350,26 +354,32 @@ export default function Dashboard({ summary, isLoading }) {
                 <option value="401k">401(k)</option>
               </select>
             </div>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={allocationData.fundAllocation}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={100}
-                  label={({ name, percentage }) => `${name} (${percentage}%)`}
-                  labelLine={{ stroke: 'rgba(203, 213, 225, 0.5)', strokeWidth: 1 }}
-                  isAnimationActive={false}
-                >
-                  {allocationData.fundAllocation.map((entry, index) => (
-                    <Cell key={`fund-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip content={renderPieTooltip} />
-              </PieChart>
-            </ResponsiveContainer>
+            {allocationData.fundAllocation.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={allocationData.fundAllocation}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    label={({ name, percentage }) => `${name} (${percentage}%)`}
+                    labelLine={{ stroke: 'rgba(203, 213, 225, 0.5)', strokeWidth: 1 }}
+                    isAnimationActive={false}
+                  >
+                    {allocationData.fundAllocation.map((entry, index) => (
+                      <Cell key={`fund-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={renderPieTooltip} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '300px', color: 'var(--text-secondary)' }}>
+                No funds found for selected portfolio type
+              </div>
+            )}
           </div>
         </div>
       </section>
