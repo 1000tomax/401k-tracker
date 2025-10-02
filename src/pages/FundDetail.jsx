@@ -120,8 +120,13 @@ export default function FundDetail() {
       const activity = (tx.activity || '').toLowerCase();
 
       // Handle various buy/sell activity names
-      const isBuy = activity.includes('buy') || activity.includes('purchase');
-      const isSell = activity.includes('sell') || activity.includes('sold');
+      const isBuy = activity.includes('buy') ||
+                    activity.includes('purchase') ||
+                    activity.includes('contribution') ||
+                    activity.includes('transfer in');
+      const isSell = activity.includes('sell') ||
+                     activity.includes('sold') ||
+                     activity.includes('transfer out');
 
       if (isBuy) {
         totalShares += shares;
@@ -397,7 +402,10 @@ export default function FundDetail() {
             <tbody>
               {fundTransactions.slice().reverse().map((tx, index) => {
                 const activity = (tx.activity || '').toLowerCase();
-                const isBuy = activity.includes('buy') || activity.includes('purchase');
+                const isBuy = activity.includes('buy') ||
+                              activity.includes('purchase') ||
+                              activity.includes('contribution') ||
+                              activity.includes('transfer in');
                 return (
                   <tr key={index}>
                     <td>{formatDate(tx.date)}</td>
