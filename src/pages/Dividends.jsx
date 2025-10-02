@@ -13,6 +13,7 @@ import {
   Legend,
 } from 'recharts';
 import DividendService from '../services/DividendService.js';
+import HoldingsService from '../services/HoldingsService.js';
 
 const API_URL = window.location.origin;
 const API_TOKEN = import.meta.env.VITE_401K_TOKEN || '';
@@ -27,20 +28,29 @@ const formatAccountName = (accountName) => {
 
 export default function Dividends() {
   const [dividends, setDividends] = useState([]);
+  const [livePrices, setLivePrices] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [timeFilter, setTimeFilter] = useState('all'); // all, ytd, 12m, 6m
 
   const dividendService = useMemo(() => new DividendService(API_URL, API_TOKEN), []);
+  const holdingsService = useMemo(() => new HoldingsService(API_URL, API_TOKEN), []);
 
-  // Load dividends
+  // Load dividends and prices
   useEffect(() => {
-    const loadDividends = async () => {
+    const loadData = async () => {
       try {
         setIsLoading(true);
         setError(null);
-        const data = await dividendService.getAllDividends();
-        setDividends(data);
+
+        // Load dividends and prices in parallel
+        const [dividendsData, pricesData] = await Promise.all([
+          dividendService.getAllDividends(),
+          holdingsService.getLatestPrices()
+        ]);
+
+        setDividends(dividendsData);
+        setLivePrices(pricesData || {});
       } catch (err) {
         console.error('Failed to load dividends:', err);
         setError(err.message);
@@ -49,8 +59,8 @@ export default function Dividends() {
       }
     };
 
-    loadDividends();
-  }, [dividendService]);
+    loadData();
+  }, [dividendService, holdingsService]);
 
   // Filter dividends by time period
   const filteredDividends = useMemo(() => {
@@ -81,20 +91,28 @@ export default function Dividends() {
     const total = filteredDividends.reduce((sum, d) => sum + parseFloat(d.amount), 0);
     const ytd = dividendService.calculateYTD(dividends);
     const ttm = dividendService.calculateTTM(dividends);
+    const projected = dividendService.calculateProjectedAnnual(dividends);
 
     const byFund = dividendService.aggregateByFund(filteredDividends);
     const byAccount = dividendService.aggregateByAccount(filteredDividends);
+
+    // Calculate yields and frequencies
+    const yields = dividendService.calculateYields(dividends, livePrices);
+    const frequencies = dividendService.detectPaymentFrequencies(dividends);
 
     return {
       total,
       ytd,
       ttm,
+      projected,
       count: filteredDividends.length,
       byFund,
       byAccount,
+      yields,
+      frequencies,
       averagePayment: filteredDividends.length > 0 ? total / filteredDividends.length : 0
     };
-  }, [filteredDividends, dividends, dividendService]);
+  }, [filteredDividends, dividends, livePrices, dividendService]);
 
   // Cumulative dividend timeline
   const cumulativeTimeline = useMemo(() => {
@@ -242,6 +260,12 @@ export default function Dividends() {
             <p className="summary-card-value">{formatCurrency(summary.averagePayment)}</p>
             <p className="summary-card-helper">Per dividend</p>
           </div>
+
+          <div className="summary-card positive">
+            <h3 className="summary-card-label">Projected Annual</h3>
+            <p className="summary-card-value">{formatCurrency(summary.projected)}</p>
+            <p className="summary-card-helper">Based on TTM</p>
+          </div>
         </div>
       </section>
 
@@ -324,22 +348,38 @@ export default function Dividends() {
                 <th>Fund</th>
                 <th>Total Dividends</th>
                 <th>Payments</th>
-                <th>Avg Payment</th>
+                <th>Frequency</th>
+                <th>Yield %</th>
                 <th>Date Range</th>
               </tr>
             </thead>
             <tbody>
-              {topFunds.map((fund) => (
-                <tr key={fund.fund}>
-                  <td><strong>{fund.fund}</strong></td>
-                  <td>{formatCurrency(fund.totalAmount)}</td>
-                  <td>{fund.count}</td>
-                  <td>{formatCurrency(fund.totalAmount / fund.count)}</td>
-                  <td className="meta">
-                    {formatDate(fund.firstPayment)} - {formatDate(fund.lastPayment)}
-                  </td>
-                </tr>
-              ))}
+              {topFunds.map((fund) => {
+                const frequency = summary.frequencies[fund.fund];
+                const yieldPercent = summary.yields[fund.fund];
+
+                return (
+                  <tr key={fund.fund}>
+                    <td><strong>{fund.fund}</strong></td>
+                    <td>{formatCurrency(fund.totalAmount)}</td>
+                    <td>{fund.count}</td>
+                    <td>
+                      {frequency && (
+                        <span className={`frequency-badge frequency-${frequency.toLowerCase()}`}>
+                          {frequency}
+                        </span>
+                      )}
+                      {!frequency && <span className="meta">—</span>}
+                    </td>
+                    <td>
+                      {yieldPercent != null ? `${yieldPercent.toFixed(2)}%` : <span className="meta">—</span>}
+                    </td>
+                    <td className="meta">
+                      {formatDate(fund.firstPayment)} - {formatDate(fund.lastPayment)}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

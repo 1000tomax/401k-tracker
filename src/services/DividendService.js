@@ -315,6 +315,109 @@ export class DividendService {
 
     return Array.from(grouped.values());
   }
+
+  /**
+   * Detect payment frequency for each fund based on historical patterns
+   * @param {Array} dividends - Array of dividend records
+   * @returns {Object} Map of fund -> frequency ('Monthly', 'Quarterly', 'Annual', or null)
+   */
+  detectPaymentFrequencies(dividends) {
+    const byFund = this.aggregateByFund(dividends);
+    const frequencies = {};
+
+    for (const [fund, data] of Object.entries(byFund)) {
+      if (data.count < 2) {
+        frequencies[fund] = null; // Not enough data
+        continue;
+      }
+
+      // Sort payments by date
+      const sorted = [...data.payments].sort((a, b) => a.date.localeCompare(b.date));
+
+      // Calculate average days between payments
+      const gaps = [];
+      for (let i = 1; i < sorted.length; i++) {
+        const date1 = new Date(sorted[i - 1].date);
+        const date2 = new Date(sorted[i].date);
+        const daysDiff = Math.ceil((date2 - date1) / (1000 * 60 * 60 * 24));
+        gaps.push(daysDiff);
+      }
+
+      if (gaps.length === 0) {
+        frequencies[fund] = null;
+        continue;
+      }
+
+      const avgGap = gaps.reduce((sum, gap) => sum + gap, 0) / gaps.length;
+
+      // Classify based on average gap
+      if (avgGap < 45) {
+        frequencies[fund] = 'Monthly';
+      } else if (avgGap < 180) {
+        frequencies[fund] = 'Quarterly';
+      } else {
+        frequencies[fund] = 'Annual';
+      }
+    }
+
+    return frequencies;
+  }
+
+  /**
+   * Calculate dividend yield for each fund
+   * @param {Array} dividends - Array of dividend records
+   * @param {Object} prices - Map of ticker -> {price, changePercent, updatedAt}
+   * @returns {Object} Map of fund -> yield percentage (or null if price unavailable)
+   */
+  calculateYields(dividends, prices = {}) {
+    const byFund = this.aggregateByFund(dividends);
+    const ttm = this.calculateTTM(dividends);
+    const ttmByFund = {};
+
+    // Calculate TTM for each fund
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+
+    for (const dividend of dividends) {
+      const [year, month, day] = dividend.date.split('-').map(Number);
+      const date = new Date(year, month - 1, day);
+
+      if (date >= oneYearAgo) {
+        const fund = dividend.fund;
+        ttmByFund[fund] = (ttmByFund[fund] || 0) + (parseFloat(dividend.amount) || 0);
+      }
+    }
+
+    const yields = {};
+
+    for (const [fund, data] of Object.entries(byFund)) {
+      const ticker = fund.toUpperCase().trim();
+      const priceData = prices[ticker];
+
+      if (!priceData || !priceData.price || priceData.price <= 0) {
+        yields[fund] = null;
+        continue;
+      }
+
+      const annualDividend = ttmByFund[fund] || 0;
+      const price = priceData.price;
+
+      // Yield = (Annual Dividend / Price) × 100
+      yields[fund] = annualDividend > 0 ? (annualDividend / price) * 100 : 0;
+    }
+
+    return yields;
+  }
+
+  /**
+   * Calculate projected annual dividend income
+   * @param {Array} dividends - Array of dividend records
+   * @returns {number} Projected annual income based on TTM
+   */
+  calculateProjectedAnnual(dividends) {
+    // Use TTM as baseline projection (conservative estimate)
+    return this.calculateTTM(dividends);
+  }
 }
 
 export default DividendService;
