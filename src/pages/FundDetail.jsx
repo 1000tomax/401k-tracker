@@ -36,8 +36,9 @@ export default function FundDetail() {
     const loadData = async () => {
       try {
         setLoading(true);
+        // Fetch all data and filter on frontend (more flexible matching)
         const [txData, divData, priceData] = await Promise.all([
-          transactionService.getAllTransactions({ fund: ticker }),
+          transactionService.getAllTransactions(),
           dividendService.getAllDividends(),
           holdingsService.getLatestPrices(),
         ]);

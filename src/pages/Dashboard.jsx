@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { formatCurrency, formatDate } from '../utils/formatters.js';
 import {
   ResponsiveContainer,
@@ -19,6 +20,28 @@ export default function Dashboard({ summary, isLoading }) {
   const { totals, timeline, holdings, holdingsByAccount } = summary;
   const [expandedAccounts, setExpandedAccounts] = useState(new Set());
   const [portfolioFilter, setPortfolioFilter] = useState('all');
+
+  // Helper to extract ticker symbol from fund name
+  const extractTicker = (fundName) => {
+    if (!fundName) return null;
+    const cleaned = fundName.trim().toUpperCase();
+
+    // Common ticker patterns
+    if (/^[A-Z]{2,5}$/.test(cleaned)) return cleaned;
+
+    const patterns = [
+      /\(([A-Z]{2,5})\)/,
+      /^([A-Z]{2,5})\s*[-:]/,
+      /\b([A-Z]{2,5})\b/
+    ];
+
+    for (const pattern of patterns) {
+      const match = cleaned.match(pattern);
+      if (match) return match[1];
+    }
+
+    return null;
+  };
 
   const trendData = useMemo(() => {
     return (timeline || []).map(entry => ({
@@ -478,9 +501,19 @@ export default function Dashboard({ summary, isLoading }) {
                         return name;
                       };
 
+                      const ticker = extractTicker(holding.fund);
+
                       return (
                         <tr key={`${holding.fund}-${idx}`}>
-                          <td>{formatFundName(holding.fund)}</td>
+                          <td>
+                            {ticker ? (
+                              <Link to={`/fund/${ticker}`} className="fund-link">
+                                {formatFundName(holding.fund)}
+                              </Link>
+                            ) : (
+                              formatFundName(holding.fund)
+                            )}
+                          </td>
                           <td className="numeric">{holding.shares.toFixed(4)}</td>
                           <td className="numeric">{formatCurrency(holding.avgCost)}</td>
                           <td className="numeric">{formatCurrency(holding.costBasis)}</td>
