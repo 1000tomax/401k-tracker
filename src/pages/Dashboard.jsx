@@ -87,7 +87,12 @@ export default function Dashboard({ summary, isLoading }) {
   const getAccountType = (accountName) => {
     const name = accountName.toLowerCase();
     if (name.includes('ira')) return 'ira';
-    if (name.includes('401') || name.includes('voya')) return '401k';
+    // 401k accounts: Voya, or if it's PreTax/Match/Roth without IRA
+    if (name.includes('401') || name.includes('voya') ||
+        name.includes('pretax') || name.includes('match') ||
+        (name.includes('roth') && !name.includes('ira'))) {
+      return '401k';
+    }
     return 'other';
   };
 
@@ -131,10 +136,6 @@ export default function Dashboard({ summary, isLoading }) {
       const existing = fundMap.get(key) || 0;
       fundMap.set(key, existing + holding.marketValue);
     }
-
-    console.log('Portfolio Filter:', portfolioFilter);
-    console.log('Filtered Holdings:', filteredHoldings.length);
-    console.log('Fund Map:', Array.from(fundMap.entries()));
 
     const fundAllocation = Array.from(fundMap.entries())
       .map(([fund, value]) => ({
