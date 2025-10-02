@@ -124,8 +124,9 @@ export default function Dashboard({ summary, isLoading }) {
     // Fund allocation by account type (e.g., "VAN 500 (Roth)")
     const fundMap = new Map();
     for (const holding of holdings) {
+      if (!holding.accountName) continue; // Skip if accountName is undefined
       const fundName = holding.fund.includes('Vanguard 500') ? 'VAN 500' : holding.fund;
-      const subtype = getAccountSubtype(holding.account);
+      const subtype = getAccountSubtype(holding.accountName);
       const key = `${fundName} (${subtype})`;
       const existing = fundMap.get(key) || 0;
       fundMap.set(key, existing + holding.marketValue);
