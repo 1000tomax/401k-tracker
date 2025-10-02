@@ -311,15 +311,15 @@ export default function Dashboard({ summary, isLoading }) {
           {/* Account Allocation */}
           <div className="allocation-chart">
             <h3 className="allocation-title">By Account</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
+            <ResponsiveContainer width="100%" height={350}>
+              <PieChart margin={{ top: 20, right: 80, bottom: 20, left: 80 }}>
                 <Pie
                   data={allocationData.accountAllocation}
                   dataKey="value"
                   nameKey="name"
                   cx="50%"
                   cy="50%"
-                  outerRadius={100}
+                  outerRadius={80}
                   label={({ name, percentage }) => `${name} (${percentage}%)`}
                   labelLine={{ stroke: 'rgba(203, 213, 225, 0.5)', strokeWidth: 1 }}
                   isAnimationActive={false}
@@ -356,15 +356,15 @@ export default function Dashboard({ summary, isLoading }) {
               </select>
             </div>
             {allocationData.fundAllocation.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
+              <ResponsiveContainer width="100%" height={350}>
+                <PieChart margin={{ top: 20, right: 80, bottom: 20, left: 80 }}>
                   <Pie
                     data={allocationData.fundAllocation}
                     dataKey="value"
                     nameKey="name"
                     cx="50%"
                     cy="50%"
-                    outerRadius={100}
+                    outerRadius={80}
                     label={({ name, percentage }) => `${name} (${percentage}%)`}
                     labelLine={{ stroke: 'rgba(203, 213, 225, 0.5)', strokeWidth: 1 }}
                     isAnimationActive={false}
@@ -377,7 +377,7 @@ export default function Dashboard({ summary, isLoading }) {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '300px', color: 'var(--text-secondary)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '350px', color: 'var(--text-secondary)' }}>
                 No funds found for selected portfolio type
               </div>
             )}
