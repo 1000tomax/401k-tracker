@@ -307,6 +307,7 @@ textarea {
   min-height: 220px;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
   color: var(--slate-900);
+  font-size: 16px; /* Prevents iOS zoom */
 }
 
 textarea:focus {
@@ -318,6 +319,13 @@ textarea:focus {
 
 textarea::placeholder {
   color: rgba(148, 163, 184, 0.6);
+}
+
+@media (max-width: 430px) {
+  textarea {
+    padding: 0.875rem 1rem;
+    min-height: 180px;
+  }
 }
 
 .actions {
@@ -730,6 +738,22 @@ td.negative {
   }
 }
 
+@media (max-width: 430px) {
+  .summary-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
+
+  .summary-card {
+    padding: var(--space-4);
+    min-height: auto;
+  }
+
+  .summary-card-value {
+    font-size: 1.35rem;
+  }
+}
+
 .summary-card {
   padding: var(--space-6);
   border: 1px solid var(--border-subtle);
@@ -812,6 +836,19 @@ td.negative {
   .summary-cards {
     grid-template-columns: 1fr;
   }
+
+  /* Transaction filters mobile */
+  .transaction-filters {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+    padding: var(--space-4);
+  }
+
+  .filter-group select,
+  .filter-group input {
+    font-size: 16px; /* Prevents iOS zoom on focus */
+    min-height: 48px;
+  }
 }
 
 .summary-section {
@@ -870,36 +907,139 @@ details ul {
   font-size: 0.95rem;
 }
 
+/* Mobile Optimizations - Galaxy S25 Ultra (412px portrait) */
 @media (max-width: 768px) {
   .app {
-    padding: var(--space-6) var(--space-4);
+    padding: var(--space-4) var(--space-3);
   }
 
   section {
-    padding: var(--space-6);
+    padding: var(--space-5);
   }
 
   .top-bar {
     flex-direction: column;
-    gap: var(--space-6);
-    padding: var(--space-6);
+    gap: var(--space-4);
+    padding: var(--space-5);
   }
 
   .nav {
     align-self: stretch;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-2);
+    padding: var(--space-2);
+  }
+
+  .nav a {
+    flex: 1 1 auto;
+    min-width: 100px;
+    text-align: center;
+    padding: var(--space-3) var(--space-4);
+    /* Ensure minimum touch target of 48px */
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .hero-metrics {
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    grid-template-columns: 1fr 1fr;
     gap: var(--space-3);
   }
 
   .brand h1 {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
   }
 
   .brand p {
-    font-size: 0.9rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  /* Touch-friendly buttons */
+  button {
+    min-height: 48px;
+    padding: var(--space-3) var(--space-5);
+    font-size: 1rem;
+  }
+
+  button.primary {
+    min-height: 52px;
+    font-size: 1.05rem;
+  }
+
+  /* Better table scrolling on mobile */
+  .table-wrapper {
+    margin: 0 calc(-1 * var(--space-5));
+    padding: 0 var(--space-5);
+  }
+}
+
+/* Extra small devices - optimize for S25 Ultra portrait */
+@media (max-width: 430px) {
+  .app {
+    padding: var(--space-3) var(--space-2);
+  }
+
+  section {
+    padding: var(--space-4);
+    margin-bottom: var(--space-4);
+  }
+
+  section h2 {
+    font-size: 1.1rem;
+    margin-bottom: var(--space-4);
+  }
+
+  .top-bar {
+    padding: var(--space-4);
+    gap: var(--space-3);
+  }
+
+  .brand h1 {
+    font-size: 1.35rem;
+  }
+
+  .nav {
+    padding: var(--space-1);
+  }
+
+  .nav a {
+    font-size: 0.875rem;
+    min-width: 90px;
+  }
+
+  .hero-metrics {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+  }
+
+  .brand-indicators {
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .status-chip {
+    min-width: auto;
+    width: 100%;
+  }
+
+  /* Stack action buttons vertically */
+  .actions,
+  .section-actions {
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .actions button,
+  .section-actions button {
+    width: 100%;
+  }
+
+  /* Optimize chart height for mobile */
+  .chart-wrapper {
+    height: 220px;
   }
 }
 
@@ -1656,6 +1796,38 @@ details ul {
 
   .market-status-content {
     justify-content: center;
+  }
+}
+
+@media (max-width: 430px) {
+  .connection-modal {
+    margin: var(--space-2);
+    max-height: calc(100vh - 1rem);
+    border-radius: var(--radius-md);
+  }
+
+  .modal-header {
+    padding: var(--space-4);
+  }
+
+  .account-connection {
+    padding: var(--space-3);
+  }
+
+  .progress-steps {
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .account-type-card {
+    padding: var(--space-4);
+  }
+
+  .plaid-link-button,
+  .connect-button {
+    width: 100%;
+    min-height: 52px;
+    font-size: 1.05rem;
   }
 }
 
@@ -2519,6 +2691,45 @@ details ul {
   .holdings-table {
     min-width: 500px;
   }
+
+  /* Mobile table cards - hide on larger screens */
+  .mobile-table-card {
+    display: none;
+  }
+}
+
+@media (max-width: 430px) {
+  /* Hide desktop table on mobile */
+  .holdings-table-wrapper {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .holdings-table {
+    min-width: 640px; /* Force horizontal scroll */
+    font-size: 0.875rem;
+  }
+
+  .holdings-table thead th,
+  .holdings-table tbody td {
+    padding: var(--space-2) var(--space-3);
+  }
+
+  /* Reduce table text for better fit */
+  table {
+    font-size: 0.85rem;
+  }
+
+  thead th {
+    padding: var(--space-3);
+    font-size: 0.7rem;
+  }
+
+  tbody td,
+  tfoot td {
+    padding: var(--space-3);
+  }
 }
 
 /* Asset Allocation Grid */
@@ -2651,13 +2862,28 @@ details ul {
   .allocation-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .transaction-filters {
     grid-template-columns: 1fr;
   }
-  
+
   .summary-cards {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 430px) {
+  .allocation-grid {
+    gap: var(--space-4);
+  }
+
+  .allocation-chart {
+    padding: var(--space-4);
+  }
+
+  /* Pie charts slightly smaller on mobile */
+  .allocation-chart .recharts-wrapper {
+    font-size: 0.8rem;
   }
 }
 
