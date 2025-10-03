@@ -178,6 +178,8 @@ export function generateTransactionEmail(data) {
   }
 
   const totalAdded = formatCurrency(recentActivity.totalAmount);
+  const hasDividends = recentActivity.totalDividends > 0;
+  const hasTransactions = Object.keys(recentActivity.byAccount).length > 0;
 
   // Build transaction list HTML
   let transactionsHTML = '';
@@ -199,36 +201,74 @@ export function generateTransactionEmail(data) {
     }
   }
 
+  // Build dividends list HTML
+  let dividendsHTML = '';
+  if (hasDividends) {
+    for (const [account, dividends] of Object.entries(recentActivity.dividendsByAccount)) {
+      for (const div of dividends) {
+        const amount = formatCurrency(Math.abs(div.amount));
+
+        dividendsHTML += `
+          <li class="transaction-item">
+            <div class="transaction-account">${account}</div>
+            <div class="transaction-details">
+              ${div.fund} • ${formatShortDate(div.date)}
+            </div>
+            <div class="transaction-amount">+${amount}</div>
+          </li>
+        `;
+      }
+    }
+  }
+
   const html = `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>New Retirement Contributions</title>
+  <title>New Retirement Activity</title>
   ${emailStyles}
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h1>💰 New Retirement Contributions</h1>
+      <h1>💰 New Retirement Activity</h1>
       <p>${formatDate(new Date().toISOString())}</p>
     </div>
     <div class="content">
+      ${hasTransactions ? `
       <div class="section">
-        <h2 class="section-title">Recent Transactions</h2>
+        <h2 class="section-title">Recent Contributions</h2>
         <ul class="transaction-list">
           ${transactionsHTML}
         </ul>
       </div>
+      ` : ''}
+
+      ${hasDividends ? `
+      <div class="section">
+        <h2 class="section-title">💵 Dividends Received</h2>
+        <ul class="transaction-list">
+          ${dividendsHTML}
+        </ul>
+      </div>
+      ` : ''}
 
       <div class="section">
-        <div class="stat-card" style="text-align: center; padding: 20px;">
-          <div class="stat-label">Total Added</div>
-          <div class="stat-value positive" style="font-size: 32px;">${totalAdded}</div>
-          <div style="color: #94a3b8; font-size: 14px; margin-top: 8px;">
-            ${recentActivity.transactionCount} transaction${recentActivity.transactionCount > 1 ? 's' : ''}
+        <div class="stats-grid">
+          ${hasTransactions ? `
+          <div class="stat-card">
+            <div class="stat-label">Contributions</div>
+            <div class="stat-value positive">${totalAdded}</div>
           </div>
+          ` : ''}
+          ${hasDividends ? `
+          <div class="stat-card">
+            <div class="stat-label">Dividends</div>
+            <div class="stat-value positive">${formatCurrency(recentActivity.totalDividends)}</div>
+          </div>
+          ` : ''}
         </div>
       </div>
 
@@ -238,7 +278,7 @@ export function generateTransactionEmail(data) {
 
       <div class="footer">
         <p>401k Tracker • Automated Portfolio Monitoring</p>
-        <p>You're receiving this because new transactions were detected in your retirement accounts.</p>
+        <p>You're receiving this because new activity was detected in your retirement accounts.</p>
       </div>
     </div>
   </div>
@@ -246,22 +286,33 @@ export function generateTransactionEmail(data) {
 </html>
   `;
 
-  const text = `
-New Retirement Contributions - ${formatDate(new Date().toISOString())}
+  // Build plain text version
+  let plainText = `New Retirement Activity - ${formatDate(new Date().toISOString())}\n\n`;
 
-Total Added: ${totalAdded}
-${recentActivity.transactionCount} transaction${recentActivity.transactionCount > 1 ? 's' : ''}
+  if (hasTransactions) {
+    plainText += `Contributions: ${totalAdded}\n`;
+  }
+  if (hasDividends) {
+    plainText += `Dividends: ${formatCurrency(recentActivity.totalDividends)}\n`;
+  }
 
-View your full dashboard at: https://401k.mreedon.com
+  plainText += `\nView your full dashboard at: https://401k.mreedon.com\n\n`;
+  plainText += `---\n401k Tracker • Automated Portfolio Monitoring`;
 
----
-401k Tracker • Automated Portfolio Monitoring
-  `;
+  // Build subject line
+  let subject = 'New retirement activity';
+  if (hasTransactions && hasDividends) {
+    subject += ` - ${totalAdded} contributions + ${formatCurrency(recentActivity.totalDividends)} dividends`;
+  } else if (hasTransactions) {
+    subject += ` - ${totalAdded} contributions`;
+  } else if (hasDividends) {
+    subject += ` - ${formatCurrency(recentActivity.totalDividends)} dividends`;
+  }
 
   return {
     html,
-    text,
-    subject: `New retirement contributions - ${totalAdded} added`,
+    text: plainText,
+    subject,
   };
 }
 

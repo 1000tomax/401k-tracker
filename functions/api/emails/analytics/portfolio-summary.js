@@ -77,27 +77,45 @@ export async function onRequestGet(context) {
       return sum;
     }, 0);
 
-    // Group recent transactions by account
+    // Group recent transactions by account and separate dividends
     const transactionsByAccount = {};
+    const dividendsByAccount = {};
+
     for (const tx of recentTransactions) {
       const account = tx.money_source || 'Unknown';
-      if (!transactionsByAccount[account]) {
-        transactionsByAccount[account] = [];
-      }
-      transactionsByAccount[account].push({
+      const activity = (tx.activity || '').toLowerCase();
+      const isDividend = activity.includes('dividend') || activity.includes('distribution');
+
+      const txData = {
         date: tx.date,
         activity: tx.activity,
         fund: tx.fund,
         amount: parseFloat(tx.amount),
         units: tx.units ? parseFloat(tx.units) : null,
         unitPrice: tx.unit_price ? parseFloat(tx.unit_price) : null,
-      });
+      };
+
+      if (isDividend) {
+        if (!dividendsByAccount[account]) {
+          dividendsByAccount[account] = [];
+        }
+        dividendsByAccount[account].push(txData);
+      } else {
+        if (!transactionsByAccount[account]) {
+          transactionsByAccount[account] = [];
+        }
+        transactionsByAccount[account].push(txData);
+      }
     }
 
-    // Calculate total amount from recent transactions
-    const totalRecentAmount = recentTransactions.reduce((sum, tx) => {
-      return sum + Math.abs(parseFloat(tx.amount) || 0);
-    }, 0);
+    // Calculate totals
+    const totalRecentAmount = recentTransactions
+      .filter(tx => !(tx.activity || '').toLowerCase().includes('dividend'))
+      .reduce((sum, tx) => sum + Math.abs(parseFloat(tx.amount) || 0), 0);
+
+    const totalDividends = recentTransactions
+      .filter(tx => (tx.activity || '').toLowerCase().includes('dividend'))
+      .reduce((sum, tx) => sum + Math.abs(parseFloat(tx.amount) || 0), 0);
 
     const response = {
       ok: true,
@@ -114,7 +132,9 @@ export async function onRequestGet(context) {
         daysBack,
         transactionCount: recentTransactions.length,
         totalAmount: totalRecentAmount,
+        totalDividends,
         byAccount: transactionsByAccount,
+        dividendsByAccount,
       } : null,
       asOf: new Date().toISOString(),
     };
