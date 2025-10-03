@@ -2885,6 +2885,47 @@ details ul {
   .allocation-chart .recharts-wrapper {
     font-size: 0.8rem;
   }
+
+  /* Dividend tables mobile optimization */
+  .dividend-table {
+    margin: 0 calc(-1 * var(--space-4));
+    padding: 0 var(--space-4);
+  }
+
+  .dividend-table table {
+    min-width: 700px; /* Ensure horizontal scroll */
+    font-size: 0.8rem;
+  }
+
+  .dividend-table thead th {
+    padding: var(--space-2) var(--space-3);
+    font-size: 0.65rem;
+  }
+
+  .dividend-table tbody td {
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .frequency-badge {
+    font-size: 0.65rem;
+    padding: 0.2rem 0.5rem;
+  }
+
+  /* Reduce font in date ranges */
+  .dividend-table .meta {
+    font-size: 0.75rem;
+  }
+
+  /* Section descriptions on mobile */
+  .section-description {
+    font-size: 0.85rem;
+    line-height: 1.4;
+  }
+
+  /* Summary cards spacing on dividends page */
+  .dividends-page .summary-cards {
+    gap: var(--space-3);
+  }
 }
 
 /* Fund Detail Page */
@@ -3060,6 +3101,13 @@ details ul {
   background: rgba(251, 146, 60, 0.2);
   color: #fb923c;
   border: 1px solid rgba(251, 146, 60, 0.3);
+}
+
+/* Dividend Table Container */
+.dividend-table {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--radius-md);
 }
 
 /* Transaction Filters */
