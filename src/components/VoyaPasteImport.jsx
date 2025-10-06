@@ -6,7 +6,24 @@ import './VoyaPasteImport.css';
 
 /**
  * Voya Transaction Import Component
- * Allows users to copy-paste transaction data from Voya website
+ *
+ * This component provides the user interface for importing 401(k) transaction
+ * data from Voya's website. Since Voya does not offer a public API, this
+ * component allows users to manually copy and paste their transaction history
+ * into a text area.
+ *
+ * The workflow is as follows:
+ * 1. The user pastes their transaction data into the text area.
+ * 2. The `handleParse` function is triggered, which uses the `VoyaParser`
+ *    service to process the raw text into a structured format.
+ * 3. A preview of the parsed transactions is displayed, allowing the user to
+ *    verify the data before saving.
+ * 4. If the preview is correct, the user clicks "Import Transactions".
+ * 5. The `handleSave` function sends the structured data to the
+ *    `VoyaDatabaseService`, which saves the transactions to the database.
+ *
+ * This manual import process is a key feature for tracking accounts that
+ * are not supported by the Plaid API.
  */
 function VoyaPasteImport({ onImportSuccess, onImportError }) {
   const [pastedText, setPastedText] = useState('');

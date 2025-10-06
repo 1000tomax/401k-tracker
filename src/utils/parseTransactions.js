@@ -70,7 +70,10 @@ function parseCsvRow(line) {
 }
 
 function smartSplit(line) {
+  // This function intelligently splits a line of text into columns,
+  // trying different delimiters to handle various formats.
   if (line.includes('\t')) {
+    // Handles tab-separated values.
     return line.split('\t').map(part => part.trim()).filter(Boolean);
   }
 
@@ -79,9 +82,13 @@ function smartSplit(line) {
     .map(part => part.trim())
     .filter(Boolean);
   if (multiSpaceParts.length >= 6) {
+    // Handles data separated by multiple spaces, which is common in
+    // fixed-width or formatted text.
     return multiSpaceParts;
   }
 
+  // As a fallback, splits by any whitespace. This is less reliable for
+  // fund names with spaces but works for simple cases.
   return line
     .split(/\s+/)
     .map(part => part.trim())
@@ -272,6 +279,10 @@ function isDateToken(value) {
 }
 
 export function parseTransactions(rawText) {
+  // This is the main parsing function that handles raw text pasted from Voya.
+  // It first attempts to parse the text as a CSV, which is a more structured
+  // format. If that fails, it falls back to a line-by-line parsing method
+  // using smart splitting.
   if (!rawText) return [];
 
   const csvTransactions = parseCsvExport(rawText);

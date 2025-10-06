@@ -264,6 +264,9 @@ export class DividendService {
    * @returns {Array} Timeline with cumulative totals
    */
   calculateCumulativeTimeline(dividends) {
+    // This function calculates a cumulative timeline of dividend payments.
+    // It intelligently groups data by day, week, or month based on the
+    // total time span of the data to keep the chart readable.
     if (dividends.length === 0) return [];
 
     const sorted = [...dividends].sort((a, b) => a.date.localeCompare(b.date));
@@ -322,6 +325,8 @@ export class DividendService {
    * @returns {Object} Map of fund -> frequency ('Monthly', 'Quarterly', 'Annual', or null)
    */
   detectPaymentFrequencies(dividends) {
+    // This function attempts to detect the payment frequency of each fund
+    // (e.g., Monthly, Quarterly) by analyzing the time gaps between payments.
     const byFund = this.aggregateByFund(dividends);
     const frequencies = {};
 
