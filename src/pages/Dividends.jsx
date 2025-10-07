@@ -4,6 +4,7 @@ import {
   ResponsiveContainer,
   LineChart,
   BarChart,
+  ComposedChart,
   Bar,
   Line,
   XAxis,
@@ -150,13 +151,14 @@ export default function Dividends() {
     return timeline;
   }, [filteredDividends, dividendService]);
 
-  // Monthly aggregated dividends for bar chart
+  // Monthly aggregated dividends for bar chart with running average
   const monthlyData = useMemo(() => {
     const byMonth = dividendService.aggregateByMonth(filteredDividends);
     return byMonth.map(m => ({
       month: m.month,
       amount: m.totalAmount,
-      count: m.count
+      count: m.count,
+      runningAvg: m.runningAvg
     }));
   }, [filteredDividends, dividendService]);
 
@@ -358,14 +360,22 @@ export default function Dividends() {
 
           <div className="chart-container">
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={monthlyData}>
+              <ComposedChart data={monthlyData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#333" />
                 <XAxis dataKey="month" stroke="#888" />
                 <YAxis stroke="#888" tickFormatter={tickFormatter} />
                 <Tooltip content={renderTooltip} />
                 <Legend />
                 <Bar dataKey="amount" name="Monthly Dividends" fill="#60a5fa" />
-              </BarChart>
+                <Line
+                  type="monotone"
+                  dataKey="runningAvg"
+                  name="Monthly Average"
+                  stroke="#4ade80"
+                  strokeWidth={2}
+                  dot={false}
+                />
+              </ComposedChart>
             </ResponsiveContainer>
           </div>
         </section>

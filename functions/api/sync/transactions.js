@@ -6,6 +6,7 @@
 import { initializePlaidClient } from '../../../src/lib/plaidConfig.js';
 import { createSupabaseAdmin } from '../../../src/lib/supabaseAdmin.js';
 import { handleCors, requireSharedToken, jsonResponse } from '../../../src/utils/cors-workers.js';
+import { decryptJson } from '../../../src/lib/encryption.js';
 
 // Import filtering logic
 function shouldImportTransaction(transaction, accountName) {
@@ -118,9 +119,13 @@ export async function onRequestPost(context) {
       try {
         console.log(`🔍 Fetching transactions for ${connection.institution_name}`);
 
+        // SECURITY: Decrypt the access token before using it
+        const decryptedData = decryptJson(connection.access_token, env);
+        const accessToken = decryptedData.token;
+
         // Fetch investment transactions from Plaid
         const response = await plaidClient.investmentsTransactionsGet({
-          access_token: connection.access_token,
+          access_token: accessToken,
           start_date: startDate,
           end_date: endDate,
         });

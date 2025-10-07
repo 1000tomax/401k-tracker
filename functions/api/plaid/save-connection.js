@@ -1,5 +1,6 @@
 import { createSupabaseAdmin } from '../../../src/lib/supabaseAdmin.js';
 import { jsonResponse, requireSharedToken, handleCors } from '../../../src/utils/cors-workers.js';
+import { encryptJson } from '../../../src/lib/encryption.js';
 
 export async function onRequestPost(context) {
   const { request, env } = context;
@@ -22,14 +23,17 @@ export async function onRequestPost(context) {
       return jsonResponse({ ok: false, error: 'Missing required fields: access_token, item_id' }, 400, env);
     }
 
+    // SECURITY: Encrypt the access token before storing it
+    const encryptedToken = encryptJson({ token: access_token }, env);
+
     const supabase = createSupabaseAdmin(env);
 
-    // Insert or update connection in database
+    // Insert or update connection in database with encrypted token
     const { data, error } = await supabase
       .from('plaid_connections')
       .upsert({
         item_id,
-        access_token,
+        access_token: encryptedToken,
         institution_name: institution_name || 'Unknown Institution',
         institution_id: institution_id || null,
         created_at: new Date().toISOString(),
@@ -45,7 +49,7 @@ export async function onRequestPost(context) {
       return jsonResponse({ ok: false, error: error.message }, 500, env);
     }
 
-    console.log(`✅ Saved Plaid connection for ${institution_name || 'Unknown Institution'}`);
+    console.log(`✅ Saved Plaid connection for ${institution_name || 'Unknown Institution'} (encrypted)`);
 
     return jsonResponse({
       ok: true,

@@ -195,7 +195,7 @@ export class DividendService {
   /**
    * Calculate dividend totals by month
    * @param {Array} dividends - Array of dividend records
-   * @returns {Array} Monthly totals
+   * @returns {Array} Monthly totals with running average
    */
   aggregateByMonth(dividends) {
     const byMonth = new Map();
@@ -222,7 +222,22 @@ export class DividendService {
     }
 
     // Convert to array and sort by month
-    return Array.from(byMonth.values()).sort((a, b) => a.month.localeCompare(b.month));
+    const sorted = Array.from(byMonth.values()).sort((a, b) => a.month.localeCompare(b.month));
+
+    // Calculate running average for each month
+    let cumulativeTotal = 0;
+    return sorted.map((monthData, index) => {
+      cumulativeTotal += monthData.totalAmount;
+      const runningAvg = cumulativeTotal / (index + 1);
+
+      return {
+        month: monthData.month,
+        totalAmount: monthData.totalAmount,
+        count: monthData.count,
+        runningAvg: runningAvg,
+        payments: monthData.payments
+      };
+    });
   }
 
   /**

@@ -5,6 +5,7 @@
  */
 import { createSupabaseAdmin } from '../../../src/lib/supabaseAdmin.js';
 import { handleCors, requireSharedToken, jsonResponse } from '../../../src/utils/cors-workers.js';
+import { encryptJson } from '../../../src/lib/encryption.js';
 
 // GET handler
 export async function onRequestGet(context) {
@@ -72,6 +73,9 @@ export async function onRequestPost(context) {
       }, 400, env);
     }
 
+    // SECURITY: Encrypt the access token before storing it
+    const encryptedToken = encryptJson({ token: access_token }, env);
+
     const supabase = createSupabaseAdmin(env);
 
     // Check if connection already exists
@@ -86,7 +90,7 @@ export async function onRequestPost(context) {
       const { data: updated, error: updateError } = await supabase
         .from('plaid_connections')
         .update({
-          access_token,
+          access_token: encryptedToken,
           institution_id,
           institution_name,
           accounts,
@@ -108,7 +112,7 @@ export async function onRequestPost(context) {
       const { data: inserted, error: insertError } = await supabase
         .from('plaid_connections')
         .insert({
-          access_token,
+          access_token: encryptedToken,
           item_id,
           institution_id,
           institution_name,
