@@ -87,6 +87,12 @@ export default function FundDetail() {
       .filter(tx => {
         const fundName = tx.fund?.toUpperCase() || '';
         const tickerUpper = ticker.toUpperCase();
+
+        // Special handling for VFIAX - also match Voya fund 0899
+        if (tickerUpper === 'VFIAX' && fundName.includes('0899')) {
+          return true;
+        }
+
         return fundName === tickerUpper || fundName.includes(tickerUpper);
       })
       .sort((a, b) => a.date.localeCompare(b.date));
