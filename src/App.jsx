@@ -9,6 +9,7 @@ import { formatDate, formatCurrency } from './utils/formatters.js';
 import { PlaidAuthProvider } from './contexts/PlaidAuthContext.jsx';
 import HoldingsService from './services/HoldingsService.js';
 import TransactionService from './services/TransactionService.js';
+import VoyaService from './services/VoyaService.js';
 import { aggregatePortfolio } from './utils/parseTransactions.js';
 
 const API_URL = window.location.origin;
@@ -23,6 +24,7 @@ export default function App() {
 
   const holdingsService = useMemo(() => new HoldingsService(API_URL, API_TOKEN), []);
   const transactionService = useMemo(() => new TransactionService(API_URL, API_TOKEN), []);
+  const voyaService = useMemo(() => new VoyaService(API_URL, API_TOKEN), []);
 
   // Helper: Convert portfolio to holdings array
   const convertPortfolioToHoldings = useCallback((portfolio) => {
@@ -90,6 +92,28 @@ export default function App() {
       // Convert portfolio format to holdings format for dashboard
       const holdingsArray = convertPortfolioToHoldings(portfolio);
 
+      // Fetch and add Voya holdings with live pricing
+      const voyaTransactions = transactions.filter(tx =>
+        tx.source_type === 'voya' ||
+        tx.sourceType === 'voya' ||
+        (tx.fund && tx.fund.includes('0899'))
+      );
+
+      if (voyaTransactions.length > 0) {
+        console.log(`💼 Found ${voyaTransactions.length} Voya transactions, enriching with live pricing...`);
+        const voyaHolding = await voyaService.enrichVoyaHoldings(voyaTransactions);
+
+        if (voyaHolding) {
+          console.log('✅ Added Voya holding with live pricing:', voyaHolding);
+          holdingsArray.push(voyaHolding);
+
+          // Update totals to include Voya position
+          portfolio.totals.marketValue += voyaHolding.marketValue;
+          portfolio.totals.costBasis += voyaHolding.costBasis;
+          portfolio.totals.gainLoss += voyaHolding.gainLoss;
+        }
+      }
+
       setHoldings(holdingsArray);
       setTimeline(portfolio.timeline || []);
       setTotals({
@@ -108,7 +132,7 @@ export default function App() {
     } finally {
       setIsLoading(false);
     }
-  }, [transactionService, convertPortfolioToHoldings, holdingsService]);
+  }, [transactionService, convertPortfolioToHoldings, holdingsService, voyaService]);
 
   // Check if currently during US market hours (9:30 AM - 4:00 PM ET, Mon-Fri)
   const isMarketHours = useCallback(() => {

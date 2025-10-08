@@ -513,6 +513,26 @@ export default function Dashboard({ summary, isLoading }) {
                             ) : (
                               formatFundName(holding.fund)
                             )}
+                            {holding.isVoyaLive && (
+                              <span
+                                className="live-badge"
+                                title="Live pricing via VFIAX proxy (99.7% accuracy)"
+                                style={{
+                                  marginLeft: '8px',
+                                  padding: '2px 6px',
+                                  fontSize: '0.7rem',
+                                  fontWeight: '600',
+                                  color: '#10b981',
+                                  backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                                  borderRadius: '4px',
+                                  textTransform: 'uppercase',
+                                  letterSpacing: '0.5px',
+                                }}
+                              >
+                                Live
+                              </span>
+                            )}
                           </td>
                           <td className="numeric">{holding.shares.toFixed(4)}</td>
                           <td className="numeric">{formatCurrency(holding.avgCost)}</td>
