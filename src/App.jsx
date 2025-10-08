@@ -336,7 +336,7 @@ export default function App() {
     }
 
     return Array.from(grouped.values());
-  }, [holdings, totals.priceTimestamps]);
+  }, [holdings, totals]);
 
   // Portfolio summary for dashboard
   const summary = useMemo(() => {
