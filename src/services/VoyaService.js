@@ -1,12 +1,27 @@
 /**
- * VoyaService.js
- * Handles live pricing for Voya 401k using VFIAX as proxy
- * Uses existing price fetching infrastructure via VOYA_0899 ticker
+ * @file src/services/VoyaService.js
+ * @description Service for handling live pricing of Voya 401k fund 0899 using VFIAX as a proxy.
+ * Implements client-side caching and position calculation from transaction history.
+ * Uses existing price fetching infrastructure via VOYA_0899 ticker stored in database.
  */
 
+/**
+ * Ticker symbol for Voya 401k fund in the database.
+ * Represents the converted price from VFIAX (÷ 15.73 ratio).
+ * @type {string}
+ */
 const VOYA_TICKER = 'VOYA_0899';
 
+/**
+ * Service class for Voya 401k live pricing and position tracking.
+ * Fetches live prices from the database and calculates current positions from transaction history.
+ */
 export class VoyaService {
+  /**
+   * Creates a new VoyaService instance.
+   * @param {string} apiUrl - Base API URL for fetching prices
+   * @param {string} token - Authentication token for API requests
+   */
   constructor(apiUrl, token) {
     this.apiUrl = apiUrl;
     this.token = token;
@@ -18,8 +33,10 @@ export class VoyaService {
   }
 
   /**
-   * Get current Voya fund price from database (via VOYA_0899 ticker)
-   * @returns {Promise<number>} Current Voya fund price
+   * Fetches the current Voya fund price from the database.
+   * Implements 5-minute client-side caching to reduce API calls.
+   * Falls back to cached price if API request fails.
+   * @returns {Promise<number|null>} Current Voya fund price, or null if unavailable
    */
   async getCurrentVoyaPrice() {
     // Check cache first
@@ -65,9 +82,20 @@ export class VoyaService {
   }
 
   /**
-   * Get Voya holdings with live pricing
-   * @param {Array} transactions - Voya transactions from database
-   * @returns {Promise<Object>} Voya portfolio with live pricing
+   * Enriches Voya transaction data with live pricing to create a holding object.
+   * Calculates current position (shares, cost basis) from transaction history and
+   * applies the latest live price to compute market value and gains/losses.
+   * @param {Array<Object>} transactions - Array of Voya transaction objects from database
+   * @returns {Promise<Object|null>} Enriched holding object with live pricing, or null if no active position
+   * @property {string} fund - Fund display name
+   * @property {string} accountName - Account identifier
+   * @property {number} shares - Current share count
+   * @property {number} latestNAV - Current price per share
+   * @property {number} marketValue - Current market value (shares × price)
+   * @property {number} costBasis - Total cost basis
+   * @property {number} gainLoss - Unrealized gain/loss
+   * @property {number} avgCost - Average cost per share
+   * @property {boolean} isVoyaLive - Flag indicating live pricing is active
    */
   async enrichVoyaHoldings(transactions) {
     if (!transactions || transactions.length === 0) {
@@ -109,10 +137,14 @@ export class VoyaService {
   }
 
   /**
-   * Calculate position from Voya transactions
+   * Calculates the current position (shares and cost basis) from transaction history.
+   * Processes buys and sells chronologically with proportional cost basis reduction for sales.
    * @private
-   * @param {Array} transactions - Voya transactions
-   * @returns {Object} Position with shares and cost basis
+   * @param {Array<Object>} transactions - Array of Voya transaction objects
+   * @param {number} transactions[].units - Number of shares (positive for buy, negative for sell)
+   * @param {number} transactions[].amount - Transaction amount in dollars
+   * @param {string} transactions[].date - Transaction date (YYYY-MM-DD format)
+   * @returns {{shares: number, costBasis: number}} Current position summary
    */
   calculatePosition(transactions) {
     let shares = 0;
