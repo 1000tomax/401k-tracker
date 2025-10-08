@@ -1,3 +1,9 @@
+/**
+ * @file PortfolioTable.jsx
+ * @description Renders the main table of portfolio holdings, displaying a detailed
+ * breakdown of each position. It supports both active and closed positions,
+ * legacy and new data formats, and optional live price updates.
+ */
 import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -11,6 +17,14 @@ import {
 
 const EPSILON = 1e-6;
 
+/**
+ * A small component to display the live price of a security, including its change for the day.
+ * @param {object} props - The component's props.
+ * @param {string} props.symbol - The stock symbol for the security.
+ * @param {object} props.livePrices - An object containing live price data.
+ * @param {boolean} props.showLivePrices - A flag to control visibility.
+ * @returns {React.Component|null}
+ */
 function LivePriceDisplay({ symbol, livePrices, showLivePrices }) {
   if (!showLivePrices || !livePrices[symbol]) {
     return null;
@@ -34,6 +48,22 @@ function LivePriceDisplay({ symbol, livePrices, showLivePrices }) {
   );
 }
 
+/**
+ * The main PortfolioTable component. It renders a detailed table of all portfolio holdings,
+ * separated into active and closed positions. It is designed to be flexible, supporting
+ * both a legacy data structure and a newer, more explicit open/closed position structure.
+ *
+ * @param {object} props - The component's props.
+ * @param {object} props.portfolio - The portfolio data in the legacy format.
+ * @param {object} props.openPositions - A map of open positions (new format).
+ * @param {object} props.closedPositions - A map of closed positions (new format).
+ * @param {object} props.openPositionsTotals - Pre-calculated totals for open positions.
+ * @param {object} props.closedPositionsTotals - Pre-calculated totals for closed positions.
+ * @param {object} props.totals - The overall portfolio totals.
+ * @param {object} props.livePrices - An object containing live price data, keyed by symbol.
+ * @param {boolean} props.showLivePrices - A flag to control the display of the live price column.
+ * @returns {React.Component}
+ */
 export default function PortfolioTable({
   portfolio,
   openPositions,

@@ -1,3 +1,13 @@
+/**
+ * @fileoverview This file defines constants and utility functions related to
+ * different types of financial accounts, such as 401(k)s and IRAs. It provides
+ * a centralized place for managing account-related definitions and logic.
+ */
+
+/**
+ * An enumeration of the different types of investment accounts supported by the application.
+ * @type {Object<string, string>}
+ */
 export const ACCOUNT_TYPES = {
   TRADITIONAL_401K: 'traditional_401k',
   ROTH_IRA: 'roth_ira',
@@ -6,12 +16,20 @@ export const ACCOUNT_TYPES = {
   HSA: 'hsa'
 };
 
+/**
+ * An enumeration of the financial institutions or providers for the accounts.
+ * @type {Object<string, string>}
+ */
 export const ACCOUNT_PROVIDERS = {
   VOYA: 'voya',
   M1_FINANCE: 'm1_finance',
   OTHER: 'other'
 };
 
+/**
+ * A map of account types to their properties, such as their display name and tax treatment.
+ * @type {Object<string, {name: string, taxTreatment: string}>}
+ */
 export const ACCOUNT_RULES = {
   [ACCOUNT_TYPES.TRADITIONAL_401K]: {
     name: 'Traditional 401(k)',

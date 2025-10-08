@@ -53,16 +53,9 @@ Total:$ 7,224.90$ 7,224.90
 
 ## Data Storage
 
-Your Voya data is stored in the same `holdings_snapshots` table as your Plaid/Roth IRA data, but split into **3 separate holdings** for granular tracking:
+Your Voya data is parsed into individual transactions and stored in the main `transactions` table alongside your other investment data. Each row you paste from the Voya website becomes a distinct transaction record in the database.
 
-1. **VFIAX (Employee PreTax)** - `account_id: voya_401k_pretax`
-2. **VFIAX (ROTH)** - `account_id: voya_401k_roth`
-3. **VFIAX (Safe Harbor Match)** - `account_id: voya_401k_match`
-
-This allows you to:
-- Track each contribution source separately over time
-- See PreTax vs Roth growth independently
-- Maintain detailed historical data for analysis
+The `moneySource` for each transaction (e.g., "Employee PreTax", "ROTH", "Safe Harbor Match") is preserved, allowing for granular tracking and analysis of your different contribution types.
 
 ## Files
 
@@ -74,10 +67,7 @@ This allows you to:
 - `src/services/VoyaStorageService.js` - localStorage backup/cache
 
 ### Backend
-- `functions/api/voya/save-snapshot.js` - Cloudflare Worker to save snapshots to Supabase
-
-### Database
-- `supabase/holdings_snapshots_table.sql` - Table schema (shared with Plaid data)
+The Voya import feature uses the main database API endpoint (`/api/db/transactions`) to save data. There is no longer a dedicated backend function for Voya imports.
 
 ## Update Frequency
 
@@ -87,43 +77,6 @@ Update your Voya balance as often as you'd like:
 - **Market events** - See how your 401(k) responds
 
 The import process takes about 15 seconds.
-
-## Data Structure
-
-### Parsed Snapshot Format
-```javascript
-{
-  timestamp: "2025-09-30T12:34:56Z",
-  account: {
-    name: "AUTOMATED HEALTH SYSTEMS 401(K) RETIREMENT PLAN",
-    type: "401k",
-    balance: 7224.90
-  },
-  holdings: [{
-    fundCode: "0899",
-    name: "Vanguard 500 Index Fund Adm",
-    ticker: "VFIAX",
-    shares: 184.44,
-    price: 39.17,
-    value: 7224.90,
-    percentage: 100
-  }],
-  sources: [
-    { name: "Employee PreTax", balance: 4161.19 },
-    { name: "ROTH", balance: 74.14 },
-    { name: "Safe Harbor Match", balance: 2989.57 }
-  ]
-}
-```
-
-### Database Storage Format
-```sql
--- holdings_snapshots table
-INSERT INTO holdings_snapshots VALUES
-  ('2025-09-30', 'voya_401k_pretax', 'AHS 401(K) (Employee PreTax)', 'VFIAX', 106.23, 39.17, 4161.19),
-  ('2025-09-30', 'voya_401k_roth',   'AHS 401(K) (ROTH)',            'VFIAX', 1.89,   39.17, 74.14),
-  ('2025-09-30', 'voya_401k_match',  'AHS 401(K) (Safe Harbor Match)', 'VFIAX', 76.32,  39.17, 2989.57);
-```
 
 ## Troubleshooting
 

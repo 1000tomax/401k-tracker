@@ -8,9 +8,9 @@ A modern portfolio tracking application for retirement accounts. Automatically s
 
 ## Features
 
-- 🔗 **Plaid Integration** - Secure connection to investment accounts (M1 Finance Roth IRA)
+- 🔗 **Plaid Integration** - Securely connect to investment accounts for automatic transaction syncing.
 - 📊 **Transaction Tracking** - Full transaction history with cost basis calculation
-- 💰 **Live ETF Prices** - Auto-refresh Roth IRA prices every 15 min during market hours (Finnhub API)
+- 💰 **Live ETF Prices** - Auto-refresh ETF prices every 15 min during market hours (Finnhub API)
 - 📈 **Account Growth Chart** - Visualize portfolio value and cost basis over time
 - 💵 **Gain/Loss Tracking** - Real-time profit/loss calculation per holding and total portfolio
 - 📧 **Email Notifications** - Daily transaction summaries via Resend API
@@ -125,8 +125,7 @@ The daily sync workflow runs at 6 AM UTC automatically.
 │   │   ├── emails/         # Email notification system
 │   │   ├── plaid/          # Plaid integration (connect, exchange)
 │   │   ├── prices/         # Live ETF price endpoints
-│   │   ├── sync/           # Transaction sync triggers
-│   │   └── voya/           # Voya 401(k) manual import
+│   │   └── sync/           # Transaction sync triggers
 ├── src/
 │   ├── components/         # React components
 │   ├── contexts/           # React context providers

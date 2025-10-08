@@ -1,16 +1,21 @@
 /**
- * Refresh ETF Prices from Finnhub
- * Fetches current prices for Roth IRA ETFs and updates database
- * Only runs during market hours (Mon-Fri, 9:30 AM - 4:00 PM ET)
+ * @file functions/api/prices/refresh.js
+ * @description Cloudflare Worker function to refresh live ETF prices from the Finnhub API.
+ * This is intended to be run on a schedule during market hours to keep portfolio values up-to-date.
  */
 import { createSupabaseAdmin } from '../../../src/lib/supabaseAdmin.js';
 import { handleCors, requireSharedToken, jsonResponse } from '../../../src/utils/cors-workers.js';
 
+/**
+ * A predefined list of ETF tickers for which to fetch live prices.
+ * @type {string[]}
+ */
 const ROTH_IRA_TICKERS = ['VTI', 'SCHD', 'QQQM', 'DES'];
 
 /**
- * Check if US stock market is currently open
- * Market hours: Mon-Fri, 9:30 AM - 4:00 PM ET (13:30 - 20:00 UTC)
+ * Checks if the US stock market is currently open based on UTC time.
+ * Market hours are considered to be Monday-Friday, 9:30 AM - 4:00 PM ET.
+ * @returns {boolean} `true` if the market is open, `false` otherwise.
  */
 function isMarketOpen() {
   const now = new Date();
@@ -32,7 +37,11 @@ function isMarketOpen() {
 }
 
 /**
- * Fetch current price for a single ticker from Finnhub
+ * Fetches the current price for a single stock ticker from the Finnhub API.
+ * @param {string} ticker - The stock ticker symbol to fetch.
+ * @param {string} apiKey - The Finnhub API key.
+ * @returns {Promise<object>} An object containing the ticker, price, and percent change.
+ * @throws {Error} If the API call fails or returns invalid data.
  */
 async function fetchTickerPrice(ticker, apiKey) {
   const url = `https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${apiKey}`;
@@ -46,11 +55,7 @@ async function fetchTickerPrice(ticker, apiKey) {
 
     const data = await response.json();
 
-    // Finnhub returns:
-    // c = current price
-    // d = change
-    // dp = percent change
-    // If c is 0, the API call failed or ticker is invalid
+    // Finnhub API returns 'c' for current price. If it's 0, the data is invalid.
     if (!data.c || data.c === 0) {
       throw new Error(`Invalid price data for ${ticker}`);
     }
@@ -67,7 +72,10 @@ async function fetchTickerPrice(ticker, apiKey) {
 }
 
 /**
- * Main handler
+ * Handles POST requests to refresh the ETF prices. It checks if the market is open,
+ * fetches the latest prices for all configured tickers, and updates them in the database.
+ * @param {object} context - The Cloudflare Worker context object.
+ * @returns {Response} A JSON response summarizing the result of the refresh operation.
  */
 export async function onRequestPost(context) {
   const { request, env } = context;

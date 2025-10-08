@@ -1,9 +1,28 @@
+/**
+ * @file PlaidDebugger.jsx
+ * @description A debugging panel component for inspecting raw Plaid API data
+ * and the application's converted transaction data. This is a developer-facing tool
+ * to help verify and troubleshoot the data integration with Plaid.
+ */
 import React, { useState } from 'react';
 
+/**
+ * The PlaidDebugger component.
+ * @param {object} props - The component's props.
+ * @param {object} props.plaidData - The raw data object returned from the Plaid API.
+ * @param {Array<object>} props.convertedTransactions - The array of transactions after being converted to the application's format.
+ * @param {function} props.onToggle - A callback function to toggle the visibility of the debug panel.
+ * @param {boolean} props.isVisible - A flag indicating whether the panel is currently visible.
+ * @returns {React.Component}
+ */
 const PlaidDebugger = ({ plaidData, convertedTransactions, onToggle, isVisible = false }) => {
+  // State to manage the currently active tab in the debug panel.
   const [activeTab, setActiveTab] = useState('overview');
+  // State to track which transaction is currently expanded.
   const [expandedTransaction, setExpandedTransaction] = useState(null);
+  // State to track which security is currently expanded.
   const [expandedSecurity, setExpandedSecurity] = useState(null);
+  // State to track which account is currently expanded.
   const [expandedAccount, setExpandedAccount] = useState(null);
 
   if (!plaidData) {

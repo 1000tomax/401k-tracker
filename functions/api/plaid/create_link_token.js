@@ -1,11 +1,18 @@
 /**
- * Create Plaid Link Token endpoint
- * Cloudflare Workers function
+ * @file functions/api/plaid/create_link_token.js
+ * @description Cloudflare Worker function to create a Plaid `link_token`.
+ * This token is required by the frontend to initialize the Plaid Link flow,
+ * which allows users to connect their financial accounts.
  */
 import { Configuration, PlaidApi, PlaidEnvironments } from 'plaid';
 import { handleCors, jsonResponse } from '../../../src/utils/cors-workers.js';
 
-// Initialize Plaid client
+/**
+ * Initializes the Plaid API client with credentials and configuration from environment variables.
+ * @param {object} env - The Cloudflare Worker environment object containing secrets and variables.
+ * @returns {{plaidClient: PlaidApi, config: object}} An object containing the initialized Plaid client and its configuration.
+ * @throws {Error} If Plaid credentials are not configured in the environment.
+ */
 function initializePlaidClient(env) {
   const PLAID_CLIENT_ID = env.PLAID_CLIENT_ID;
   const PLAID_SECRET = env.PLAID_SECRET;
@@ -40,6 +47,14 @@ function initializePlaidClient(env) {
   return { plaidClient, config };
 }
 
+/**
+ * Handles POST requests to create a Plaid link_token.
+ * This is the main entry point for the Cloudflare Worker.
+ * @param {object} context - The Cloudflare Worker context object.
+ * @param {Request} context.request - The incoming request.
+ * @param {object} context.env - The environment variables.
+ * @returns {Response} A JSON response containing the `link_token` or an error.
+ */
 export async function onRequestPost(context) {
   const { request, env } = context;
 

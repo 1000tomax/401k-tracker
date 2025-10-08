@@ -1,15 +1,30 @@
+/**
+ * @file AccountManager.jsx
+ * @description A component for managing Plaid account connections.
+ * It allows users to connect new accounts via Plaid Link, view their
+ * currently connected accounts, and disconnect them.
+ */
 import React, { useState, useEffect } from 'react';
 import PlaidLink from './PlaidLink.jsx';
 
 const API_URL = window.location.origin;
 const API_TOKEN = import.meta.env.VITE_401K_TOKEN || '';
 
+/**
+ * The AccountManager component.
+ * @returns {React.Component}
+ */
 const AccountManager = () => {
+  // State for storing the list of connected Plaid accounts.
   const [accounts, setAccounts] = useState([]);
+  // State to manage the loading status while fetching accounts.
   const [loading, setLoading] = useState(true);
+  // State to track which accounts are currently being removed to disable buttons.
   const [removing, setRemoving] = useState(new Set());
 
-  // Fetch connected accounts from database
+  /**
+   * Fetches the list of connected Plaid accounts from the server.
+   */
   const fetchAccounts = async () => {
     try {
       setLoading(true);
@@ -36,6 +51,11 @@ const AccountManager = () => {
     fetchAccounts();
   }, []);
 
+  /**
+   * Handles the successful connection of a new account via Plaid Link.
+   * It sends the new connection data to the server to be saved.
+   * @param {object} data - The data returned from a successful Plaid Link connection.
+   */
   const handlePlaidSuccess = async (data) => {
     console.log('✅ Plaid connection successful!', data);
 
@@ -70,6 +90,12 @@ const AccountManager = () => {
     }
   };
 
+  /**
+   * Handles the disconnection of a Plaid account.
+   * It prompts the user for confirmation and then sends a request to the server
+   * to remove the connection.
+   * @param {object} account - The account object to be disconnected.
+   */
   const handleDisconnectAccount = async (account) => {
     if (!account.access_token && !account.item_id) {
       console.error('No access token or item_id available');

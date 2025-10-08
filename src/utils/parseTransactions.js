@@ -1,3 +1,21 @@
+/**
+ * @fileoverview
+ * This file contains the core logic for parsing, processing, and aggregating financial transaction data.
+ * It is designed to handle transaction data pasted from Voya's website, either in a CSV-like format
+ * or a more loosely structured text format.
+ *
+ * The main functions are:
+ * - `parseTransactions`: The main entry point that orchestrates the parsing of raw text.
+ * - `aggregatePortfolio`: The primary function for calculating portfolio metrics from a list of transactions.
+ *
+ * The file also includes numerous helper functions for data normalization, parsing, and calculation.
+ */
+
+/**
+ * A list of known transaction activities. This is used to help correctly parse
+ * transaction descriptions that combine the activity and fund name.
+ * @type {string[]}
+ */
 const KNOWN_ACTIVITIES = [
   'Automatic Rebalance',
   'Dividend',
@@ -18,6 +36,14 @@ const KNOWN_ACTIVITIES = [
   'Transfer Out',
 ];
 
+/**
+ * Converts a string-like value into a number. It can handle common currency
+ * formats, such as those with '$', ',', and negative numbers represented
+ * with parentheses, e.g., (1,234.56).
+ *
+ * @param {string|number|null|undefined} numLike The value to convert to a number.
+ * @returns {number} The parsed number, or 0 if the input is invalid.
+ */
 function toNumber(numLike) {
   if (numLike == null) return 0;
   const str = String(numLike).trim();
@@ -33,6 +59,13 @@ function toNumber(numLike) {
   return isParensNegative ? -value : value;
 }
 
+/**
+ * Parses a single line of a CSV file, accounting for quoted fields.
+ * This is a simplified CSV parser that handles quotes and commas.
+ *
+ * @param {string} line A single line from a CSV file.
+ * @returns {string[]} An array of the parsed values from the line.
+ */
 function parseCsvRow(line) {
   if (!line) return [];
 
@@ -69,6 +102,14 @@ function parseCsvRow(line) {
   return values.map(value => value.replace(/\r/g, ''));
 }
 
+/**
+ * Splits a line of text into parts, attempting to handle different delimiters.
+ * It prioritizes splitting by tabs, then by multiple spaces, and finally by single spaces.
+ * This is useful for parsing text that is not strictly formatted.
+ *
+ * @param {string} line The line of text to split.
+ * @returns {string[]} An array of the split parts.
+ */
 function smartSplit(line) {
   if (line.includes('\t')) {
     return line.split('\t').map(part => part.trim()).filter(Boolean);
@@ -88,6 +129,13 @@ function smartSplit(line) {
     .filter(Boolean);
 }
 
+/**
+ * Converts a date string from various formats to the ISO 8601 format (YYYY-MM-DD).
+ * It can handle US-style dates (MM/DD/YYYY) and other formats recognized by `new Date()`.
+ *
+ * @param {string} dateStr The date string to convert.
+ * @returns {string} The date in YYYY-MM-DD format, or the original string if parsing fails.
+ */
 function toISO(dateStr) {
   const raw = String(dateStr || '').trim();
   if (!raw) return '';
@@ -108,6 +156,15 @@ function toISO(dateStr) {
   return raw;
 }
 
+/**
+ * Normalizes the name of a transaction activity to a consistent format.
+ * For example, it ensures "Transfer" activities are correctly labeled as "Transfer In" or "Transfer Out"
+ * based on the transaction amount.
+ *
+ * @param {string} rawActivity The raw activity name from the parsed data.
+ * @param {number} amount The transaction amount, used to infer direction for transfers.
+ * @returns {string} The normalized activity name.
+ */
 function normalizeActivityName(rawActivity, amount) {
   const raw = (rawActivity || '').trim();
   if (!raw) {
@@ -135,6 +192,14 @@ function normalizeActivityName(rawActivity, amount) {
     .join(' ');
 }
 
+/**
+ * Parses transaction data from a CSV-formatted string.
+ * This function is designed to handle CSV exports from financial institutions,
+ * locating the header row and extracting transaction details from the subsequent rows.
+ *
+ * @param {string} rawText The raw CSV data as a single string.
+ * @returns {Array<object>} An array of transaction objects, or an empty array if parsing fails.
+ */
 function parseCsvExport(rawText) {
   if (!rawText) return [];
 
@@ -227,6 +292,13 @@ function parseCsvExport(rawText) {
   return transactions;
 }
 
+/**
+ * Extracts the activity and fund name from an array of text parts.
+ * It uses the `KNOWN_ACTIVITIES` list to intelligently separate the activity from the fund name.
+ *
+ * @param {string[]} parts An array of strings, typically from a split line of text.
+ * @returns {{activity: string, fund: string}} An object containing the extracted activity and fund.
+ */
 function extractActivityAndFund(parts) {
   if (!parts.length) {
     return { activity: '', fund: '' };
@@ -264,6 +336,11 @@ function extractActivityAndFund(parts) {
   };
 }
 
+/**
+ * Checks if a given string token appears to be a date.
+ * @param {string} value The string to check.
+ * @returns {boolean} True if the string matches a date format.
+ */
 function isDateToken(value) {
   if (!value) return false;
   const token = String(value).trim();
@@ -271,6 +348,14 @@ function isDateToken(value) {
   return /^(\d{4}-\d{1,2}-\d{1,2})$/.test(token) || /^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$/.test(token);
 }
 
+/**
+ * Parses raw text containing transaction data into a structured array of transaction objects.
+ * This function first attempts to parse the text as a CSV, and if that fails, it falls back
+ * to a more flexible line-by-line parsing method that can handle less structured data.
+ *
+ * @param {string} rawText The raw text input from the user.
+ * @returns {Array<object>} An array of transaction objects.
+ */
 export function parseTransactions(rawText) {
   if (!rawText) return [];
 
@@ -391,6 +476,13 @@ export function parseTransactions(rawText) {
   return transactions;
 }
 
+/**
+ * Finds the latest Net Asset Value (NAV) or unit price from a list of transactions.
+ * It sorts the transactions by date and finds the most recent one with a valid unit price.
+ *
+ * @param {Array<object>} entries An array of transaction objects.
+ * @returns {number} The latest unit price, or 0 if none is found.
+ */
 export function latestNavFor(entries) {
   if (!entries || !entries.length) {
     return 0;
@@ -401,10 +493,22 @@ export function latestNavFor(entries) {
   return navEntry ? navEntry.unitPrice : 0;
 }
 
+/**
+ * Ensures that a value is a finite number, returning 0 otherwise.
+ * @param {*} value The value to check.
+ * @returns {number} The value if it is a finite number, otherwise 0.
+ */
 function ensureNumber(value) {
   return Number.isFinite(value) ? value : 0;
 }
 
+/**
+ * Ensures that a totals object for a given fund exists in a target object.
+ * If it doesn't exist, it initializes it with zeroed values.
+ * @param {object} target The object containing fund totals.
+ * @param {string} fund The name of the fund.
+ * @returns {object} The totals object for the fund.
+ */
 function ensureFundTotals(target, fund) {
   if (!target[fund]) {
     target[fund] = {
@@ -417,12 +521,22 @@ function ensureFundTotals(target, fund) {
   return target[fund];
 }
 
+/**
+ * Rules for classifying transaction activities into cash flow categories.
+ * This helps in calculating metrics like total contributions and withdrawals.
+ * @type {{deposit: RegExp[], withdrawal: RegExp[], neutral: RegExp[]}}
+ */
 const FLOW_RULES = {
   deposit: [/contribution/i, /dividend/i, /interest/i, /match/i, /loan repayment/i, /deposit/i, /transfer.*from/i, /acat/i],
   withdrawal: [/loan issue/i, /withdrawal/i, /distribution/i, /fee/i, /service fee/i],
   neutral: [/exchange/i, /rebalance/i, /reallocation/i, /buy/i, /sell/i, /fund transfer in/i, /fund transfer out/i], // Buys/Sells/Fund transfers are neutral - we only track current holdings
 };
 
+/**
+ * Classifies a transaction activity into a cash flow category (deposit, withdrawal, or neutral).
+ * @param {string} activity The name of the transaction activity.
+ * @returns {string} The cash flow category.
+ */
 function classifyFlow(activity) {
   const name = (activity || '').toLowerCase();
   if (!name) return 'neutral';
@@ -432,8 +546,30 @@ function classifyFlow(activity) {
   return 'deposit';
 }
 
+/**
+ * A small number used to compare floating-point numbers for equality.
+ * This is useful for avoiding precision issues with share counts.
+ * @type {number}
+ */
 const SHARE_EPSILON = 1e-6;
 
+/**
+ * Aggregates a list of transactions to calculate portfolio holdings, totals, and historical performance.
+ * This is the main calculation engine of the application.
+ *
+ * @param {Array<object>} transactions An array of transaction objects.
+ * @param {object|null} livePrices An object containing live prices for funds, keyed by fund ticker.
+ * @returns {object} An object containing the aggregated portfolio data, including:
+ * - `portfolio`: Detailed holdings, broken down by fund and money source.
+ * - `openPositions`: A subset of `portfolio` containing only open positions.
+ * - `closedPositions`: A subset of `portfolio` containing only closed positions.
+ * - `totals`: Overall portfolio totals (e.g., market value, cost basis, gain/loss).
+ * - `fundTotals`: Aggregated totals for each fund.
+ * - `sourceTotals`: Aggregated totals for each money source.
+ * - `timeline`: A chronological history of portfolio value and contributions.
+ * - `firstTransaction`: The date of the first transaction.
+ * - `lastUpdated`: The date of the last transaction.
+ */
 export function aggregatePortfolio(transactions, livePrices = null) {
   // Normalize transaction field names (database uses snake_case, code expects camelCase)
   const normalizedTransactions = transactions.map(tx => ({
@@ -470,6 +606,8 @@ export function aggregatePortfolio(transactions, livePrices = null) {
   let firstTransaction = null;
   const priceTimestamps = {}; // Track price update timestamps by moneySource
 
+  // First pass: Iterate through all transactions to calculate running positions,
+  // cash flows, and build data structures for further processing.
   for (const tx of chronological) {
     const key = `${tx.fund}||${tx.moneySource}`;
     if (!byFundSource.has(key)) {
@@ -519,8 +657,8 @@ export function aggregatePortfolio(transactions, livePrices = null) {
     const timelineEntry = timelineByDate.get(tx.date);
     timelineEntry.transactions.push(tx);
 
-    // Track cash flows for all transactions
-    // Note: Buy/Sell are now neutral - we focus on current holdings, not contribution tracking
+    // Track cash flows for all transactions. Buys, sells, and internal transfers are considered
+    // 'neutral' as they don't represent cash entering or leaving the overall portfolio.
     if (flowType === 'deposit' && magnitude > 0) {
       totals.contributions += magnitude;
       sourceCashFlows[sourceKey].contributions += magnitude;

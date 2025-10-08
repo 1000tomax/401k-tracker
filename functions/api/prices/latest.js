@@ -1,10 +1,16 @@
 /**
- * Get Latest ETF Prices
- * Returns cached prices from database for frontend display
+ * @file functions/api/prices/latest.js
+ * @description Cloudflare Worker function to fetch the latest cached ETF prices from the database.
+ * This provides the frontend with the most recent price data without needing to hit an external API on every load.
  */
 import { createSupabaseAdmin } from '../../../src/lib/supabaseAdmin.js';
 import { handleCors, requireSharedToken, jsonResponse } from '../../../src/utils/cors-workers.js';
 
+/**
+ * Handles GET requests to fetch the latest ETF prices from the database.
+ * @param {object} context - The Cloudflare Worker context object.
+ * @returns {Response} A JSON response containing a map of tickers to their latest price data.
+ */
 export async function onRequestGet(context) {
   const { request, env } = context;
 

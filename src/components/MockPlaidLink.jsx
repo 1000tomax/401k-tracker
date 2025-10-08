@@ -1,10 +1,27 @@
+/**
+ * @file MockPlaidLink.jsx
+ * @description A component that simulates the Plaid Link connection flow for development purposes.
+ * It uses a mock service to generate sample data, allowing for testing of the
+ * Plaid integration without needing real credentials or hitting Plaid's API.
+ */
 import React, { useState } from 'react';
 import MockPlaidService, { mockConnectionData, mockPlaidData } from '../services/MockPlaidService';
 
+/**
+ * The MockPlaidLink component.
+ * @param {object} props - The component's props.
+ * @param {function} props.onSuccess - Callback function for a successful mock connection.
+ * @param {function} props.onError - Callback function for a failed mock connection.
+ * @param {boolean} props.disabled - Flag to disable the button.
+ * @returns {React.Component}
+ */
 const MockPlaidLink = ({ onSuccess, onError, disabled = false }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  /**
+   * Handles the mock Plaid connection flow, simulating user interaction and API calls.
+   */
   const handleMockConnection = async () => {
     try {
       setLoading(true);
@@ -12,17 +29,17 @@ const MockPlaidLink = ({ onSuccess, onError, disabled = false }) => {
 
       console.log('🎭 MockPlaidLink: Starting mock connection flow');
 
-      // Simulate the Plaid Link flow
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate user interaction
+      // Simulate the Plaid Link UI and user interaction time.
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Mock the token exchange
+      // Simulate the backend token exchange process.
       const linkToken = await MockPlaidService.createLinkToken();
       const tokenData = await MockPlaidService.exchangePublicToken('mock-public-token');
       const accountsData = await MockPlaidService.getAccounts(tokenData.access_token);
 
       console.log('🎭 MockPlaidLink: Mock connection successful');
 
-      // Call parent success handler with mock data
+      // Pass the mock connection data to the parent component.
       if (onSuccess) {
         onSuccess({
           ...mockConnectionData,

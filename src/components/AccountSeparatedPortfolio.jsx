@@ -1,3 +1,9 @@
+/**
+ * @file AccountSeparatedPortfolio.jsx
+ * @description This component renders the user's portfolio, separated into
+ * distinct tables based on account type (e.g., 401k, Brokerage, IRA).
+ * It calculates and displays totals for each account type and for the overall portfolio.
+ */
 import React, { useMemo, useState } from 'react';
 import {
   formatCurrency,
@@ -10,7 +16,12 @@ import {
 
 const EPSILON = 1e-6;
 
-// Helper function to classify account type based on source name
+/**
+ * Classifies the account type (e.g., '401k', 'brokerage') based on keywords in the money source name.
+ * This helps in grouping holdings into the correct tables.
+ * @param {string} source - The money source name (e.g., "Voya 401k", "M1 Finance Brokerage").
+ * @returns {string} The classified account type.
+ */
 function classifyAccountType(source) {
   const lowerSource = source.toLowerCase();
 
@@ -50,7 +61,12 @@ function classifyAccountType(source) {
   return 'brokerage';
 }
 
-// Helper function to extract ETF symbol from fund name
+/**
+ * Extracts a stock or ETF symbol from a fund name string.
+ * It uses several regex patterns to find a symbol-like string (2-5 uppercase letters).
+ * @param {string} fundName - The full name of the fund.
+ * @returns {string|null} The extracted symbol, or null if not found.
+ */
 function extractSymbol(fundName) {
   if (!fundName) return null;
 
@@ -78,6 +94,19 @@ function extractSymbol(fundName) {
   return null;
 }
 
+/**
+ * A reusable component that renders a table of holdings for a specific account type.
+ * It includes logic for displaying active and closed positions, calculating totals,
+ * and handling variations in display columns (e.g., showing 'Latest NAV' for 401k).
+ * @param {object} props - The component's props.
+ * @param {string} props.accountType - The type of account ('401k', 'brokerage', etc.).
+ * @param {Array<object>} props.holdings - The array of holdings to display.
+ * @param {object} props.livePrices - An object with live price data.
+ * @param {boolean} props.showLivePrices - A flag to control the display of live prices.
+ * @param {string} props.title - The title to display for the table section.
+ * @param {string} props.description - A description to display below the title.
+ * @returns {React.Component}
+ */
 function AccountHoldingsTable({
   accountType,
   holdings,
@@ -293,6 +322,16 @@ function AccountHoldingsTable({
   );
 }
 
+/**
+ * The main component that orchestrates the rendering of the separated portfolio views.
+ * It takes the portfolio data, groups it by account type, and renders an `AccountHoldingsTable` for each group.
+ * @param {object} props - The component's props.
+ * @param {object} props.portfolio - The portfolio data object (legacy format).
+ * @param {object} props.openPositions - A map of open positions.
+ * @param {object} props.closedPositions - A map of closed positions.
+ * @param {object} props.totals - An object with overall portfolio totals.
+ * @returns {React.Component}
+ */
 export default function AccountSeparatedPortfolio({
   portfolio,
   openPositions,

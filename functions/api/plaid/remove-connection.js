@@ -1,6 +1,18 @@
+/**
+ * @file functions/api/plaid/remove-connection.js
+ * @description Cloudflare Worker function to remove a Plaid connection from the database.
+ * This is used when a user chooses to disconnect their account from the application.
+ */
 import { createSupabaseAdmin } from '../../../src/lib/supabaseAdmin.js';
 import { jsonResponse, requireSharedToken, handleCors } from '../../../src/utils/cors-workers.js';
 
+/**
+ * Handles POST requests to remove a Plaid connection.
+ * @param {object} context - The Cloudflare Worker context object.
+ * @param {Request} context.request - The incoming request, containing the `item_id` of the connection to remove.
+ * @param {object} context.env - The environment variables.
+ * @returns {Response} A JSON response indicating success or failure.
+ */
 export async function onRequestPost(context) {
   const { request, env } = context;
 

@@ -1,14 +1,23 @@
 /**
- * Plaid Transaction Sync Endpoint
- * Triggers an immediate sync of Plaid investment transactions
- * Updated to use transaction-based tracking instead of snapshots
+ * @file functions/api/sync/transactions.js
+ * @description This Cloudflare Worker is the main endpoint for synchronizing investment
+ * transactions from Plaid. It is triggered to fetch recent transactions for all connected
+ * accounts, process them, and store them in the database.
  */
 import { initializePlaidClient } from '../../../src/lib/plaidConfig.js';
 import { createSupabaseAdmin } from '../../../src/lib/supabaseAdmin.js';
 import { handleCors, requireSharedToken, jsonResponse } from '../../../src/utils/cors-workers.js';
 import { decryptJson } from '../../../src/lib/encryption.js';
 
-// Import filtering logic
+/**
+ * Determines whether a transaction should be imported into the main `transactions` table.
+ * This function contains specific business logic, such as only importing certain symbols
+ * for Roth IRA accounts and filtering out dividends and cash transfers.
+ *
+ * @param {object} transaction - The transaction object in the application's standard format.
+ * @param {string} accountName - The name of the account the transaction belongs to.
+ * @returns {boolean} `true` if the transaction should be imported, `false` otherwise.
+ */
 function shouldImportTransaction(transaction, accountName) {
   // Match Roth IRA accounts
   const lowerName = (accountName || '').toLowerCase();
@@ -50,6 +59,12 @@ function shouldImportTransaction(transaction, accountName) {
   return true;
 }
 
+/**
+ * Generates a simple hash from a transaction's key fields for deduplication purposes.
+ * This helps prevent importing the same transaction multiple times.
+ * @param {object} tx - The transaction object.
+ * @returns {string} A short hexadecimal hash string.
+ */
 function generateTransactionHash(tx) {
   const data = `${tx.date}|${tx.amount}|${tx.fund?.toLowerCase() || ''}|${tx.activity?.toLowerCase() || ''}`;
   let hash = 0;
@@ -61,6 +76,11 @@ function generateTransactionHash(tx) {
   return Math.abs(hash).toString(16).slice(0, 8);
 }
 
+/**
+ * Generates a simple hash from a dividend's key fields for deduplication.
+ * @param {object} dividend - The dividend object.
+ * @returns {string} A short hexadecimal hash string.
+ */
 function generateDividendHash(dividend) {
   const data = `${dividend.date}|${dividend.fund?.toLowerCase() || ''}|${dividend.account?.toLowerCase() || ''}|${dividend.amount}`;
   let hash = 0;
@@ -72,6 +92,17 @@ function generateDividendHash(dividend) {
   return Math.abs(hash).toString(16).slice(0, 8);
 }
 
+/**
+ * Handles POST requests to trigger a transaction sync. This function iterates through all
+ * connected Plaid accounts, fetches new transactions, and saves them to the database.
+ * The process involves three main passes:
+ * 1. Save all raw, unfiltered transactions from Plaid.
+ * 2. Specifically identify and save dividend transactions.
+ * 3. Save filtered buy/sell transactions for portfolio tracking.
+ *
+ * @param {object} context - The Cloudflare Worker context object.
+ * @returns {Response} A JSON response summarizing the sync operation.
+ */
 export async function onRequestPost(context) {
   const { request, env } = context;
 

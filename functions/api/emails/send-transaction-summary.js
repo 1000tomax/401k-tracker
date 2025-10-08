@@ -1,13 +1,18 @@
 /**
- * Send Transaction Summary Email
- * Triggered after daily sync to notify about new transactions
+ * @file functions/api/emails/send-transaction-summary.js
+ * @description Cloudflare Worker function to generate and send a transaction summary email.
+ * This is typically triggered after the daily transaction sync to notify the user of new activity.
  */
 import { createSupabaseAdmin } from '../../../src/lib/supabaseAdmin.js';
 import { handleCors, requireSharedToken, jsonResponse } from '../../../src/utils/cors-workers.js';
 import { generateTransactionEmail } from '../../../src/utils/emailTemplates.js';
 
 /**
- * Send email via Resend API
+ * Sends an email using the Resend API.
+ * @param {object} env - The Cloudflare Worker environment object.
+ * @param {object} emailData - The email data, including subject, html, and text content.
+ * @returns {Promise<object>} The response from the Resend API.
+ * @throws {Error} If the Resend API returns an error.
  */
 async function sendEmail(env, emailData) {
   const response = await fetch('https://api.resend.com/emails', {
@@ -37,7 +42,14 @@ async function sendEmail(env, emailData) {
 }
 
 /**
- * Log email notification to database
+ * Logs the result of an email notification attempt to the database.
+ * @param {object} supabase - The Supabase client instance.
+ * @param {string} emailType - The type of email being sent (e.g., 'transaction').
+ * @param {string} recipient - The email address of the recipient.
+ * @param {string} subject - The subject of the email.
+ * @param {boolean} success - Whether the email was sent successfully.
+ * @param {string|null} [errorMessage=null] - The error message, if any.
+ * @param {object} [metadata={}] - Additional metadata to store with the log entry.
  */
 async function logNotification(supabase, emailType, recipient, subject, success, errorMessage = null, metadata = {}) {
   const { error } = await supabase
@@ -58,7 +70,11 @@ async function logNotification(supabase, emailType, recipient, subject, success,
 }
 
 /**
- * Check if email was already sent today
+ * Checks if a successful email of a specific type has already been sent today.
+ * This prevents sending duplicate notifications.
+ * @param {object} supabase - The Supabase client instance.
+ * @param {string} emailType - The type of email to check for.
+ * @returns {Promise<boolean>} `true` if an email was already sent today, `false` otherwise.
  */
 async function wasEmailSentToday(supabase, emailType) {
   const today = new Date().toISOString().split('T')[0];
@@ -79,6 +95,13 @@ async function wasEmailSentToday(supabase, emailType) {
   return data && data.length > 0;
 }
 
+/**
+ * Handles POST requests to trigger the sending of a transaction summary email.
+ * It checks for recent transactions, generates the email content, and sends it,
+ * while ensuring that duplicate emails are not sent on the same day.
+ * @param {object} context - The Cloudflare Worker context object.
+ * @returns {Response} A JSON response summarizing the outcome of the email sending process.
+ */
 export async function onRequestPost(context) {
   const { request, env } = context;
 

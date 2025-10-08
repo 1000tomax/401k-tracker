@@ -1,13 +1,30 @@
+/**
+ * @file ImportMethodSelector.jsx
+ * @description A component that provides options for importing data, primarily through
+ * connecting a financial account via Plaid. It includes a development mode that allows
+ * for using mock Plaid data for testing purposes.
+ */
 import React, { useState } from 'react';
 import PlaidLink from './PlaidLink';
 import MockPlaidLink from './MockPlaidLink';
 import PlaidAuth from './PlaidAuth';
 import { usePlaidAuth } from '../contexts/PlaidAuthContext.jsx';
 
+/**
+ * The ImportMethodSelector component.
+ * @param {object} props - The component's props.
+ * @param {function} props.onMethodSelect - Callback function for when a method is selected (currently unused).
+ * @param {function} props.onPlaidSuccess - Callback function for when a Plaid connection is successful.
+ * @returns {React.Component}
+ */
 const ImportMethodSelector = ({ onMethodSelect, onPlaidSuccess }) => {
   const { isAuthenticated, isLoading } = usePlaidAuth();
   const isDevelopment = import.meta.env.DEV;
 
+  /**
+   * Handles a successful Plaid connection by logging it and calling the parent's success handler.
+   * @param {object} plaidData - The data returned from a successful Plaid connection.
+   */
   const handlePlaidSuccess = (plaidData) => {
     console.log('Plaid connection successful:', plaidData);
     if (onPlaidSuccess) {
