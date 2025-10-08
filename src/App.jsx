@@ -135,27 +135,31 @@ export default function App() {
       // Convert portfolio format to holdings format for dashboard
       const holdingsArray = convertPortfolioToHoldings(portfolioNonVoya);
 
-      // Fetch and add Voya holdings with live pricing
+      // Fetch and add Voya holdings with live pricing (grouped by source)
       if (voyaTransactions.length > 0) {
         console.log(`💼 Found ${voyaTransactions.length} Voya transactions, enriching with live pricing...`);
-        const voyaHolding = await voyaService.enrichVoyaHoldings(voyaTransactions);
+        const voyaHoldings = await voyaService.enrichVoyaHoldings(voyaTransactions);
 
-        if (voyaHolding) {
-          console.log('✅ Added Voya holding with live pricing:', voyaHolding);
-          holdingsArray.push(voyaHolding);
+        if (voyaHoldings && voyaHoldings.length > 0) {
+          console.log(`✅ Added ${voyaHoldings.length} Voya holdings with live pricing`);
 
-          // Update totals to include Voya position
-          portfolioNonVoya.totals.marketValue += voyaHolding.marketValue;
-          portfolioNonVoya.totals.costBasis += voyaHolding.costBasis;
-          portfolioNonVoya.totals.gainLoss += voyaHolding.gainLoss;
+          // Add each Voya holding (by source) to the holdings array
+          for (const voyaHolding of voyaHoldings) {
+            holdingsArray.push(voyaHolding);
 
-          // Add Voya price timestamp to priceTimestamps
-          if (voyaHolding.priceTimestamp) {
-            portfolioNonVoya.priceTimestamps = portfolioNonVoya.priceTimestamps || {};
-            portfolioNonVoya.priceTimestamps['Voya 401(k)'] = {
-              timestamp: voyaHolding.priceTimestamp,
-              source: 'live'
-            };
+            // Update totals to include this Voya position
+            portfolioNonVoya.totals.marketValue += voyaHolding.marketValue;
+            portfolioNonVoya.totals.costBasis += voyaHolding.costBasis;
+            portfolioNonVoya.totals.gainLoss += voyaHolding.gainLoss;
+
+            // Add Voya price timestamp to priceTimestamps (use accountName as key)
+            if (voyaHolding.priceTimestamp) {
+              portfolioNonVoya.priceTimestamps = portfolioNonVoya.priceTimestamps || {};
+              portfolioNonVoya.priceTimestamps[voyaHolding.accountName] = {
+                timestamp: voyaHolding.priceTimestamp,
+                source: 'live'
+              };
+            }
           }
         }
       }
@@ -282,15 +286,6 @@ export default function App() {
 
       // Get price timestamp info for this account
       const priceInfo = priceTimestamps[rawAccountName] || null;
-
-      // Debug logging for Voya timestamp
-      if (rawAccountName === 'Voya 401(k)') {
-        console.log('🔍 Voya timestamp lookup:', {
-          rawAccountName,
-          priceInfo,
-          allTimestamps: priceTimestamps
-        });
-      }
 
       // Check if this is a Voya account with a source
       const isVoya = accountName.startsWith('Voya 401(k)');

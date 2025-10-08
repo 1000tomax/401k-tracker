@@ -84,13 +84,13 @@ export class VoyaService {
   }
 
   /**
-   * Enriches Voya transaction data with live pricing to create a holding object.
-   * Calculates current position (shares, cost basis) from transaction history and
+   * Enriches Voya transaction data with live pricing to create holding objects.
+   * Calculates positions per money source (PreTax, Roth, Match) from transaction history and
    * applies the latest live price to compute market value and gains/losses.
    * @param {Array<Object>} transactions - Array of Voya transaction objects from database
-   * @returns {Promise<Object|null>} Enriched holding object with live pricing, or null if no active position
+   * @returns {Promise<Array<Object>>} Array of enriched holding objects with live pricing, one per money source
    * @property {string} fund - Fund display name
-   * @property {string} accountName - Account identifier
+   * @property {string} accountName - Account identifier (e.g., "Voya 401(k) (PreTax)")
    * @property {number} shares - Current share count
    * @property {number} latestNAV - Current price per share
    * @property {number} marketValue - Current market value (shares × price)
@@ -102,41 +102,60 @@ export class VoyaService {
   async enrichVoyaHoldings(transactions) {
     if (!transactions || transactions.length === 0) {
       console.log('⚠️ No Voya transactions provided');
-      return null;
+      return [];
     }
 
     const voyaPrice = await this.getCurrentVoyaPrice();
 
-    // If no price available, return null
+    // If no price available, return empty array
     if (!voyaPrice || voyaPrice === 0) {
       console.warn('⚠️ No Voya price available, skipping Voya holdings');
-      return null;
+      return [];
     }
 
-    // Calculate position from transactions
-    const position = this.calculatePosition(transactions);
-
-    // Only return holding if there are active shares
-    if (position.shares <= 0) {
-      console.log('⚠️ No active Voya shares');
-      return null;
+    // Group transactions by money source
+    const bySource = {};
+    for (const tx of transactions) {
+      const source = tx.money_source || tx.moneySource || 'Unknown';
+      if (!bySource[source]) {
+        bySource[source] = [];
+      }
+      bySource[source].push(tx);
     }
 
-    const marketValue = position.shares * voyaPrice;
-    const gainLoss = marketValue - position.costBasis;
+    const holdings = [];
 
-    return {
-      fund: 'VFIAX (Voya 0899)',
-      accountName: 'Voya 401(k)',
-      shares: position.shares,
-      latestNAV: voyaPrice,
-      marketValue: marketValue,
-      costBasis: position.costBasis,
-      gainLoss: gainLoss,
-      avgCost: position.shares > 0 ? position.costBasis / position.shares : 0,
-      isVoyaLive: true, // Flag to indicate this is live Voya pricing
-      priceTimestamp: this.cache.priceUpdatedAt, // When the price was last updated
-    };
+    // Calculate position for each money source
+    for (const [source, sourceTxs] of Object.entries(bySource)) {
+      const position = this.calculatePosition(sourceTxs);
+
+      // Only include if there are active shares
+      if (position.shares > 0) {
+        const marketValue = position.shares * voyaPrice;
+        const gainLoss = marketValue - position.costBasis;
+
+        holdings.push({
+          fund: 'VFIAX (Voya 0899)',
+          accountName: `Voya 401(k) (${source})`,
+          shares: position.shares,
+          latestNAV: voyaPrice,
+          marketValue: marketValue,
+          costBasis: position.costBasis,
+          gainLoss: gainLoss,
+          avgCost: position.shares > 0 ? position.costBasis / position.shares : 0,
+          isVoyaLive: true, // Flag to indicate this is live Voya pricing
+          priceTimestamp: this.cache.priceUpdatedAt, // When the price was last updated
+        });
+      }
+    }
+
+    if (holdings.length === 0) {
+      console.log('⚠️ No active Voya shares across any source');
+    } else {
+      console.log(`✅ Created ${holdings.length} Voya holdings (by source):`, holdings.map(h => h.accountName));
+    }
+
+    return holdings;
   }
 
   /**
