@@ -111,6 +111,15 @@ export default function App() {
           portfolio.totals.marketValue += voyaHolding.marketValue;
           portfolio.totals.costBasis += voyaHolding.costBasis;
           portfolio.totals.gainLoss += voyaHolding.gainLoss;
+
+          // Add Voya price timestamp to priceTimestamps
+          if (voyaHolding.priceTimestamp) {
+            portfolio.priceTimestamps = portfolio.priceTimestamps || {};
+            portfolio.priceTimestamps['Voya 401(k)'] = {
+              timestamp: voyaHolding.priceTimestamp,
+              source: 'live'
+            };
+          }
         }
       }
 

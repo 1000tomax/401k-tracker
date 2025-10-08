@@ -68,12 +68,14 @@ export class VoyaService {
       }
 
       const voyaPrice = data.prices[VOYA_TICKER].price;
+      const priceUpdatedAt = data.prices[VOYA_TICKER].updatedAt;
 
       // Update cache
       this.cache.price = voyaPrice;
       this.cache.timestamp = Date.now();
+      this.cache.priceUpdatedAt = priceUpdatedAt; // Store when the price was actually updated
 
-      console.log(`📈 Fetched live Voya price: $${voyaPrice.toFixed(4)}`);
+      console.log(`📈 Fetched live Voya price: $${voyaPrice.toFixed(4)} (updated at ${priceUpdatedAt})`);
       return voyaPrice;
     } catch (error) {
       console.error('Error fetching Voya price:', error);
@@ -133,6 +135,7 @@ export class VoyaService {
       gainLoss: gainLoss,
       avgCost: position.shares > 0 ? position.costBasis / position.shares : 0,
       isVoyaLive: true, // Flag to indicate this is live Voya pricing
+      priceTimestamp: this.cache.priceUpdatedAt, // When the price was last updated
     };
   }
 
