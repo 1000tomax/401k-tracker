@@ -91,18 +91,49 @@ export default function App() {
         console.log('⚠️ Live prices unavailable, using transaction prices');
       }
 
-      // Aggregate into portfolio with live prices (excluding Voya)
-      const portfolio = aggregatePortfolio(nonVoyaTransactions, livePrices);
+      // Find the earliest Voya transaction date
+      let voyaStartDate = null;
+      if (voyaTransactions.length > 0) {
+        const sortedVoyaDates = voyaTransactions
+          .map(tx => tx.date || tx.activity_date)
+          .filter(Boolean)
+          .sort();
+        voyaStartDate = sortedVoyaDates[0];
+        console.log(`📅 Voya start date: ${voyaStartDate}`);
+      }
+
+      // Filter transactions to only include those from Voya start date onwards
+      const filteredTransactions = voyaStartDate
+        ? transactions.filter(tx => {
+            const txDate = tx.date || tx.activity_date;
+            return txDate >= voyaStartDate;
+          })
+        : transactions;
+
+      console.log(`📊 Using ${filteredTransactions.length} transactions for timeline (from ${voyaStartDate || 'beginning'})`);
+
+      // Aggregate ALL transactions (from Voya start date) for timeline
+      const fullPortfolio = aggregatePortfolio(filteredTransactions, livePrices);
+
+      // Aggregate non-Voya transactions for current holdings
+      const portfolioNonVoya = aggregatePortfolio(
+        nonVoyaTransactions.filter(tx => {
+          if (!voyaStartDate) return true;
+          const txDate = tx.date || tx.activity_date;
+          return txDate >= voyaStartDate;
+        }),
+        livePrices
+      );
 
       console.log('📊 Portfolio calculated:', {
-        holdings: Object.keys(portfolio.portfolio).length,
-        marketValue: portfolio.totals.marketValue,
-        costBasis: portfolio.totals.costBasis,
-        gainLoss: portfolio.totals.gainLoss
+        holdings: Object.keys(portfolioNonVoya.portfolio).length,
+        marketValue: portfolioNonVoya.totals.marketValue,
+        costBasis: portfolioNonVoya.totals.costBasis,
+        gainLoss: portfolioNonVoya.totals.gainLoss
       });
 
       // Convert portfolio format to holdings format for dashboard
-      const holdingsArray = convertPortfolioToHoldings(portfolio);
+      const holdingsArray = convertPortfolioToHoldings(portfolioNonVoya);
 
       // Fetch and add Voya holdings with live pricing
       if (voyaTransactions.length > 0) {
@@ -114,14 +145,14 @@ export default function App() {
           holdingsArray.push(voyaHolding);
 
           // Update totals to include Voya position
-          portfolio.totals.marketValue += voyaHolding.marketValue;
-          portfolio.totals.costBasis += voyaHolding.costBasis;
-          portfolio.totals.gainLoss += voyaHolding.gainLoss;
+          portfolioNonVoya.totals.marketValue += voyaHolding.marketValue;
+          portfolioNonVoya.totals.costBasis += voyaHolding.costBasis;
+          portfolioNonVoya.totals.gainLoss += voyaHolding.gainLoss;
 
           // Add Voya price timestamp to priceTimestamps
           if (voyaHolding.priceTimestamp) {
-            portfolio.priceTimestamps = portfolio.priceTimestamps || {};
-            portfolio.priceTimestamps['Voya 401(k)'] = {
+            portfolioNonVoya.priceTimestamps = portfolioNonVoya.priceTimestamps || {};
+            portfolioNonVoya.priceTimestamps['Voya 401(k)'] = {
               timestamp: voyaHolding.priceTimestamp,
               source: 'live'
             };
@@ -130,14 +161,15 @@ export default function App() {
       }
 
       setHoldings(holdingsArray);
-      setTimeline(portfolio.timeline || []);
+      // Use full portfolio timeline which includes all accounts from Voya start date
+      setTimeline(fullPortfolio.timeline || []);
       setTotals({
-        marketValue: portfolio.totals.marketValue,
-        costBasis: portfolio.totals.costBasis,
-        gainLoss: portfolio.totals.gainLoss,
+        marketValue: portfolioNonVoya.totals.marketValue,
+        costBasis: portfolioNonVoya.totals.costBasis,
+        gainLoss: portfolioNonVoya.totals.gainLoss,
         totalHoldings: holdingsArray.length,
-        lastUpdated: portfolio.lastUpdated,
-        priceTimestamps: portfolio.priceTimestamps || {},
+        lastUpdated: portfolioNonVoya.lastUpdated,
+        priceTimestamps: portfolioNonVoya.priceTimestamps || {},
       });
 
       setStatus('');
