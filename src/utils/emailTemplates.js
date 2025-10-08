@@ -1,8 +1,14 @@
 /**
- * Email Template Generators
- * Creates HTML and plain text email content for all notification types
+ * @fileoverview This file contains functions for generating HTML and plain text email content
+ * for various types of notifications, such as transaction summaries. It includes templates,
+ * styling, and data formatting specific to email clients.
  */
 
+/**
+ * Formats a number as a USD currency string for use in emails.
+ * @param {number} amount The number to format.
+ * @returns {string} The formatted currency string.
+ */
 const formatCurrency = (amount) => {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -11,6 +17,11 @@ const formatCurrency = (amount) => {
   }).format(amount);
 };
 
+/**
+ * Formats a date string into a long, human-readable format (e.g., "Monday, October 7, 2025").
+ * @param {string} dateStr The date string to format.
+ * @returns {string} The formatted date string.
+ */
 const formatDate = (dateStr) => {
   const date = new Date(dateStr);
   return date.toLocaleDateString('en-US', {
@@ -21,6 +32,11 @@ const formatDate = (dateStr) => {
   });
 };
 
+/**
+ * Formats a date string into a short, human-readable format (e.g., "Oct 7, 2025").
+ * @param {string} dateStr The date string to format.
+ * @returns {string} The formatted date string.
+ */
 const formatShortDate = (dateStr) => {
   const date = new Date(dateStr);
   return date.toLocaleDateString('en-US', {
@@ -30,7 +46,11 @@ const formatShortDate = (dateStr) => {
   });
 };
 
-// Base email styles (dark mode friendly)
+/**
+ * A string containing the CSS styles for the HTML email templates.
+ * It includes styles for a responsive, dark-mode-friendly design.
+ * @type {string}
+ */
 const emailStyles = `
 <style>
   body {
@@ -168,7 +188,14 @@ const emailStyles = `
 `;
 
 /**
- * Transaction Summary Email
+ * Generates the HTML, plain text, and subject for a transaction summary email.
+ * If there is no recent activity, it returns null.
+ *
+ * @param {object} data The data required to build the email, including recent activity and portfolio totals.
+ * @param {object} data.recentActivity An object summarizing recent transactions and dividends.
+ * @param {object} data.portfolio An object with overall portfolio metrics.
+ * @param {number} data.ytdContributions The year-to-date contributions.
+ * @returns {{html: string, text: string, subject: string}|null} An object with the email content, or null if no email should be sent.
  */
 export function generateTransactionEmail(data) {
   const { recentActivity, portfolio, ytdContributions } = data;

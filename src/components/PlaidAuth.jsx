@@ -1,12 +1,29 @@
+/**
+ * @file PlaidAuth.jsx
+ * @description A component that handles the authentication flow required to use the
+ * real Plaid Link component. It prompts for a password and uses the PlaidAuthContext
+ * to manage the authentication state.
+ */
 import React, { useState } from 'react';
 import { usePlaidAuth } from '../contexts/PlaidAuthContext.jsx';
 
+/**
+ * The PlaidAuth component.
+ * @param {object} props - The component's props.
+ * @param {function} props.onAuthenticated - A callback function that is called when the user successfully authenticates.
+ * @returns {React.Component}
+ */
 const PlaidAuth = ({ onAuthenticated }) => {
   const { isAuthenticated, login, logout } = usePlaidAuth();
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  /**
+   * Handles the form submission for authentication.
+   * It calls the login function from the context and handles success or failure.
+   * @param {React.FormEvent} e - The form submission event.
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!password.trim()) return;

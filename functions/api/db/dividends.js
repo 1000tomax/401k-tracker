@@ -1,11 +1,17 @@
 /**
- * Dividends endpoint
- * Handles GET (list), POST (import) operations for dividend income tracking
- * Cloudflare Workers function
+ * @file functions/api/db/dividends.js
+ * @description Cloudflare Worker function to provide a direct API for the `dividends` database table.
+ * It handles GET requests for fetching dividend records with filtering and pagination, and POST
+ * requests for importing new dividends with deduplication logic.
  */
 import { createSupabaseAdmin } from '../../../src/lib/supabaseAdmin.js';
 import { handleCors, requireSharedToken, jsonResponse } from '../../../src/utils/cors-workers.js';
 
+/**
+ * A simple, non-cryptographic hashing function.
+ * @param {string} str - The input string.
+ * @returns {string} A short hexadecimal hash string.
+ */
 function simpleHash(str) {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -16,13 +22,23 @@ function simpleHash(str) {
   return Math.abs(hash).toString(16).slice(0, 8);
 }
 
+/**
+ * Generates a hash for a dividend object based on its key properties for deduplication.
+ * @param {object} dividend - The dividend object.
+ * @returns {string} A short hexadecimal hash string.
+ */
 function generateDividendHash(dividend) {
   const { date, fund, account, amount } = dividend;
   const hashData = `${date}|${fund?.toLowerCase() || ''}|${account?.toLowerCase() || ''}|${amount}`;
   return simpleHash(hashData);
 }
 
-// GET handler - List dividends with filters
+/**
+ * Handles GET requests to fetch dividend records from the database.
+ * Supports filtering by fund, account, date range, and source type, as well as pagination.
+ * @param {object} context - The Cloudflare Worker context object.
+ * @returns {Response} A JSON response containing the list of dividends and pagination info.
+ */
 export async function onRequestGet(context) {
   const { request, env } = context;
 
@@ -107,7 +123,12 @@ export async function onRequestGet(context) {
   }
 }
 
-// POST handler - Import dividends from Plaid or manual entry
+/**
+ * Handles POST requests to import new dividends into the database.
+ * It performs deduplication using a hash to prevent duplicate entries.
+ * @param {object} context - The Cloudflare Worker context object.
+ * @returns {Response} A JSON response summarizing the result of the import operation.
+ */
 export async function onRequestPost(context) {
   const { request, env } = context;
 

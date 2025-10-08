@@ -1,11 +1,18 @@
 /**
- * Exchange Plaid public token for access token
- * Cloudflare Workers function
+ * @file functions/api/plaid/exchange_public_token.js
+ * @description Cloudflare Worker function to exchange a Plaid `public_token` for an `access_token`.
+ * After a user successfully connects their account via Plaid Link, the frontend receives a
+ * short-lived `public_token`, which must be exchanged for a permanent `access_token` on the server.
  */
 import { Configuration, PlaidApi, PlaidEnvironments } from 'plaid';
 import { handleCors, jsonResponse } from '../../../src/utils/cors-workers.js';
 
-// Initialize Plaid client
+/**
+ * Initializes the Plaid API client with credentials from environment variables.
+ * @param {object} env - The Cloudflare Worker environment object.
+ * @returns {{plaidClient: PlaidApi, config: object}} An object with the initialized Plaid client and config.
+ * @throws {Error} If Plaid credentials are not configured.
+ */
 function initializePlaidClient(env) {
   const PLAID_CLIENT_ID = env.PLAID_CLIENT_ID;
   const PLAID_SECRET = env.PLAID_SECRET;
@@ -36,6 +43,13 @@ function initializePlaidClient(env) {
   return { plaidClient, config };
 }
 
+/**
+ * Handles POST requests to exchange a Plaid public_token for an access_token.
+ * @param {object} context - The Cloudflare Worker context object.
+ * @param {Request} context.request - The incoming request, which should contain the public_token in its JSON body.
+ * @param {object} context.env - The environment variables.
+ * @returns {Response} A JSON response containing the `access_token` and `item_id`, or an error.
+ */
 export async function onRequestPost(context) {
   const { request, env } = context;
 

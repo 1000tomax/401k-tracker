@@ -1,11 +1,21 @@
 /**
- * Consolidated transactions endpoint
- * Handles GET (list), POST (import), and sync operations
- * Cloudflare Workers function
+ * @file functions/api/db/transactions.js
+ * @description Cloudflare Worker function that serves as a direct API for the `transactions`
+ * database table. It handles GET requests for fetching transactions with filtering and
+ * pagination, and POST requests for importing and updating transactions with deduplication logic.
  */
 import { createSupabaseAdmin } from '../../../src/lib/supabaseAdmin.js';
 import { handleCors, requireSharedToken, jsonResponse } from '../../../src/utils/cors-workers.js';
 
+/**
+ * Generates multiple hashes for a transaction to be used for deduplication.
+ * - `transaction_hash`: A primary hash based on key transaction details.
+ * - `fuzzy_hash`: A less strict hash, useful for finding potential duplicates.
+ * - `enhanced_hash`: A more detailed hash including units and price.
+ *
+ * @param {object} transaction - The transaction object.
+ * @returns {{transaction_hash: string, fuzzy_hash: string, enhanced_hash: string}} An object containing the generated hashes.
+ */
 function generateHashes(transaction) {
   const { date, amount, fund, activity, units, unit_price } = transaction;
 
@@ -25,6 +35,11 @@ function generateHashes(transaction) {
   };
 }
 
+/**
+ * A simple, non-cryptographic hashing function for generating short hashes from strings.
+ * @param {string} str - The input string.
+ * @returns {string} A short hexadecimal hash string.
+ */
 function simpleHash(str) {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -35,7 +50,12 @@ function simpleHash(str) {
   return Math.abs(hash).toString(16).slice(0, 8);
 }
 
-// GET handler
+/**
+ * Handles GET requests to fetch transactions from the database.
+ * Supports filtering by fund, date range, source type, and money source, as well as pagination.
+ * @param {object} context - The Cloudflare Worker context object.
+ * @returns {Response} A JSON response containing the list of transactions and pagination info.
+ */
 export async function onRequestGet(context) {
   const { request, env } = context;
 
@@ -116,7 +136,12 @@ export async function onRequestGet(context) {
   }
 }
 
-// POST handler
+/**
+ * Handles POST requests to import or update transactions in the database.
+ * It performs deduplication using a hashing mechanism to avoid creating duplicate entries.
+ * @param {object} context - The Cloudflare Worker context object.
+ * @returns {Response} A JSON response summarizing the result of the import operation.
+ */
 export async function onRequestPost(context) {
   const { request, env } = context;
 

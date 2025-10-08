@@ -1,13 +1,18 @@
 /**
- * Consolidated Plaid connection endpoint
- * Handles GET (connections) and POST (save connection)
- * Cloudflare Workers function
+ * @file functions/api/db/plaid.js
+ * @description Cloudflare Worker function to manage Plaid connections in the database.
+ * It handles GET requests to list all connections and POST requests to save or update
+ * a connection, including access token encryption.
  */
 import { createSupabaseAdmin } from '../../../src/lib/supabaseAdmin.js';
 import { handleCors, requireSharedToken, jsonResponse } from '../../../src/utils/cors-workers.js';
 import { encryptJson } from '../../../src/lib/encryption.js';
 
-// GET handler
+/**
+ * Handles GET requests to fetch all Plaid connections from the database.
+ * @param {object} context - The Cloudflare Worker context object.
+ * @returns {Response} A JSON response containing the list of Plaid connections.
+ */
 export async function onRequestGet(context) {
   const { request, env } = context;
 
@@ -44,7 +49,13 @@ export async function onRequestGet(context) {
   }
 }
 
-// POST handler
+/**
+ * Handles POST requests to save or update a Plaid connection.
+ * It encrypts the access token and then creates or updates the corresponding
+ * record in the database.
+ * @param {object} context - The Cloudflare Worker context object.
+ * @returns {Response} A JSON response indicating whether the connection was created or updated.
+ */
 export async function onRequestPost(context) {
   const { request, env } = context;
 

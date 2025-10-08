@@ -1,10 +1,19 @@
 /**
- * Debug endpoint to see raw Plaid investment transactions response
+ * @file functions/api/debug/plaid-raw.js
+ * @description A Cloudflare Worker function that serves as a debugging endpoint.
+ * It fetches the raw investment transaction data from Plaid for the first available
+ * connected account, providing a snapshot of the data for troubleshooting purposes.
  */
 import { initializePlaidClient } from '../../../src/lib/plaidConfig.js';
 import { createSupabaseAdmin } from '../../../src/lib/supabaseAdmin.js';
 import { handleCors, requireSharedToken, jsonResponse } from '../../../src/utils/cors-workers.js';
 
+/**
+ * Handles GET requests to fetch raw Plaid investment transaction data.
+ * This is intended for debugging and development use only.
+ * @param {object} context - The Cloudflare Worker context object.
+ * @returns {Response} A JSON response containing a summary and sample of the raw Plaid data.
+ */
 export async function onRequestGet(context) {
   const { request, env } = context;
 

@@ -1,7 +1,19 @@
+/**
+ * @file functions/api/plaid/save-connection.js
+ * @description Cloudflare Worker function to securely save Plaid connection details
+ * to the database. It encrypts the `access_token` before storing it.
+ */
 import { createSupabaseAdmin } from '../../../src/lib/supabaseAdmin.js';
 import { jsonResponse, requireSharedToken, handleCors } from '../../../src/utils/cors-workers.js';
 import { encryptJson } from '../../../src/lib/encryption.js';
 
+/**
+ * Handles POST requests to save a new or updated Plaid connection.
+ * @param {object} context - The Cloudflare Worker context object.
+ * @param {Request} context.request - The incoming request, containing the Plaid connection data.
+ * @param {object} context.env - The environment variables.
+ * @returns {Response} A JSON response indicating success or failure.
+ */
 export async function onRequestPost(context) {
   const { request, env } = context;
 

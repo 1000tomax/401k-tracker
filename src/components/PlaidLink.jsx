@@ -1,22 +1,39 @@
+/**
+ * @file PlaidLink.jsx
+ * @description A component that wraps the `react-plaid-link` hook to provide a
+ * button for initiating the Plaid Link flow. It handles the creation of a `link_token`,
+ * manages loading and error states, and processes the success and exit callbacks from Plaid.
+ */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { usePlaidLink } from 'react-plaid-link';
 import PlaidService from '../services/PlaidService';
 
-// Global singleton pattern to prevent multiple instances from creating tokens
+// Global variables to implement a singleton pattern for the Plaid link_token.
+// This prevents multiple instances of the component from creating redundant tokens.
 let globalLinkToken = null;
 let globalInitializationInProgress = false;
 let globalInitializationPromise = null;
 
+/**
+ * The PlaidLink component.
+ * @param {object} props - The component's props.
+ * @param {function} props.onSuccess - Callback for a successful Plaid connection.
+ * @param {function} props.onError - Callback for a failed Plaid connection.
+ * @param {boolean} props.disabled - Flag to disable the button.
+ * @returns {React.Component}
+ */
 const PlaidLink = ({ onSuccess, onError, disabled = false }) => {
   const [linkToken, setLinkToken] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const initializingRef = useRef(false); // Prevent multiple simultaneous calls
-  const initializedRef = useRef(false); // Track if we've ever initialized
+  const initializingRef = useRef(false); // Prevent multiple simultaneous calls within a single instance.
+  const initializedRef = useRef(false); // Track if this instance has ever initialized.
 
+  // Effect hook to initialize Plaid Link by creating a link_token.
+  // This uses a singleton pattern to ensure the token is created only once per session.
   useEffect(() => {
     const initializePlaidLink = async () => {
-      // Use global token if already available
+      // If a global token already exists, use it immediately.
       if (globalLinkToken) {
         console.log('🔄 Using existing global link token');
         setLinkToken(globalLinkToken);

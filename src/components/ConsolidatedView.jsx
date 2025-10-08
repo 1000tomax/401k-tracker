@@ -1,9 +1,23 @@
+/**
+ * @file ConsolidatedView.jsx
+ * @description This component renders a consolidated, high-level overview of the entire portfolio.
+ * It includes a summary section, a tax diversification chart, and tables for all active and closed holdings,
+ * aggregated across all accounts.
+ */
 import React, { useMemo, useState } from 'react';
 import SummaryOverview from './SummaryOverview.jsx';
 import PortfolioTable from './PortfolioTable.jsx';
 import TaxDiversificationChart from './TaxDiversificationChart.jsx';
 import { formatCurrency, formatPercent } from '../utils/formatters.js';
 
+/**
+ * Renders a table of all active holdings, consolidated across all accounts.
+ * @param {object} props - The component's props.
+ * @param {Array<object>} props.holdings - The array of consolidated active holdings.
+ * @param {object} props.livePrices - An object with live price data.
+ * @param {boolean} props.showLivePrices - A flag to control the display of live prices.
+ * @returns {React.Component}
+ */
 function AllHoldingsTable({ holdings, livePrices, showLivePrices }) {
   const sortedHoldings = holdings.sort((a, b) => b.totalValue - a.totalValue);
 
@@ -77,6 +91,12 @@ function AllHoldingsTable({ holdings, livePrices, showLivePrices }) {
   );
 }
 
+/**
+ * Renders a table of all closed positions, consolidated across all accounts.
+ * @param {object} props - The component's props.
+ * @param {Array<object>} props.holdings - The array of consolidated closed holdings.
+ * @returns {React.Component}
+ */
 function ClosedHoldingsTable({ holdings }) {
   const sortedHoldings = holdings.sort((a, b) => {
     const aGain = a.totalRealizedGainLoss ?? ((a.totalValue || 0) - (a.totalCostBasis || 0));
@@ -139,6 +159,17 @@ function ClosedHoldingsTable({ holdings }) {
   );
 }
 
+/**
+ * The main component for the consolidated portfolio view. It orchestrates the display of various
+ * summary sections, charts, and tables to give a complete overview of the user's portfolio.
+ * @param {object} props - The component's props.
+ * @param {object} props.portfolioData - The main data object for the portfolio.
+ * @param {object} props.livePrices - An object with live price data.
+ * @param {object} props.marketStatus - An object containing information about the market's status (open/closed).
+ * @param {function} props.onRefreshMarket - A callback function to trigger a refresh of market data.
+ * @param {boolean} props.isRefreshingMarket - A flag indicating if the market data is currently being refreshed.
+ * @returns {React.Component}
+ */
 export default function ConsolidatedView({
   portfolioData,
   livePrices = {},
@@ -150,6 +181,7 @@ export default function ConsolidatedView({
 
   const [showClosedHoldings, setShowClosedHoldings] = useState(false);
 
+  // Memoized separation of active and closed holdings.
   const { activeHoldings, closedHoldings } = useMemo(() => {
     const holdings = portfolioData.allHoldingsArray || [];
     const active = holdings.filter(holding => !holding.isClosed);
@@ -157,7 +189,8 @@ export default function ConsolidatedView({
     return { activeHoldings: active, closedHoldings: closed };
   }, [portfolioData.allHoldingsArray]);
 
-  // Convert to legacy format for existing SummaryOverview component
+  // Converts new portfolio data format to the legacy format required by the SummaryOverview component.
+  // This is a temporary measure for backward compatibility.
   const legacyTotals = useMemo(() => ({
     marketValue: portfolioData.consolidatedTotals.totalValue,
     netInvested: portfolioData.consolidatedTotals.totalContributions,
@@ -169,7 +202,7 @@ export default function ConsolidatedView({
     shares: portfolioData.allHoldingsArray?.reduce((sum, h) => sum + h.totalQuantity, 0) || 0
   }), [portfolioData]);
 
-  // Convert holdings for PortfolioTable (simplified aggregated view)
+  // Converts holdings data into a format compatible with the legacy PortfolioTable component.
   const aggregatedPortfolio = useMemo(() => {
     const portfolio = {};
 
@@ -375,7 +408,15 @@ export default function ConsolidatedView({
   );
 }
 
-// Market Status Banner Component (reused from Dashboard)
+/**
+ * Renders a banner displaying the current status of the stock market (open or closed).
+ * It also provides a button to refresh the market data.
+ * @param {object} props - The component's props.
+ * @param {object} props.marketStatus - An object with market status information.
+ * @param {function} props.onRefreshMarket - A callback to refresh market data.
+ * @param {boolean} props.isRefreshingMarket - A flag indicating if a refresh is in progress.
+ * @returns {React.Component|null}
+ */
 function MarketStatusBanner({ marketStatus, onRefreshMarket, isRefreshingMarket }) {
   if (!marketStatus) return null;
 
@@ -383,7 +424,7 @@ function MarketStatusBanner({ marketStatus, onRefreshMarket, isRefreshingMarket 
   const statusText = marketStatus.isOpen ? 'Market Open' : 'Market Closed';
   const timeText = marketStatus.isOpen
     ? `Closes at ${marketStatus.localCloseTime} ${marketStatus.timezone}`
-    : `Opens at ${marketStatus.localOpenTime} ${marketStatus.timezone}`;
+    : `Opens at ${market.localOpenTime} ${marketStatus.timezone}`;
 
   return (
     <div className={`market-status-banner status-banner--${statusColor}`}>

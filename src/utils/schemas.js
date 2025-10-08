@@ -1,3 +1,9 @@
+/**
+ * @fileoverview This file defines the Zod schemas for the application's data structures.
+ * These schemas are used for validating data at runtime, ensuring that data conforms to
+ * the expected shape. This is particularly important for data coming from external APIs
+ * or user input.
+ */
 import { z } from 'zod';
 
 // Hardcoded account types to avoid serverless import issues
@@ -10,6 +16,10 @@ const ACCOUNT_TYPE_VALUES = [
   'hsa'
 ];
 
+/**
+ * An array of possible account provider values, used for schema validation.
+ * @type {string[]}
+ */
 const ACCOUNT_PROVIDER_VALUES = [
   'voya',
   'm1_finance',
@@ -17,7 +27,11 @@ const ACCOUNT_PROVIDER_VALUES = [
   'other'
 ];
 
-// Enhanced transaction schema for multi-account support (backward compatible)
+/**
+ * Zod schema for a single transaction.
+ * This schema is backward compatible with older transaction formats while also
+ * supporting new fields for multi-account portfolios.
+ */
 export const TransactionSchema = z
   .object({
     // Existing fields (preserve compatibility)
@@ -47,7 +61,10 @@ export const TransactionSchema = z
   })
   .passthrough();
 
-// Security/Holding schema
+/**
+ * Zod schema for a security (e.g., a stock or ETF).
+ * This schema defines the properties of a financial security.
+ */
 export const SecuritySchema = z.object({
   securityId: z.string(),
   symbol: z.string().optional(),
@@ -58,6 +75,9 @@ export const SecuritySchema = z.object({
   lastUpdated: z.string().optional()
 });
 
+/**
+ * Zod schema for a holding, which represents a user's ownership of a particular security in an account.
+ */
 export const HoldingSchema = z.object({
   accountId: z.string(),
   securityId: z.string(),
@@ -80,7 +100,10 @@ export const HoldingSchema = z.object({
   unrealizedGainLossPercent: z.number().optional()
 });
 
-// Account schema
+/**
+ * Zod schema for a financial account.
+ * This schema defines the structure of an account, including its metadata, balances, holdings, and transactions.
+ */
 export const AccountSchema = z.object({
   accountId: z.string(),
   itemId: z.string().optional(),
@@ -120,7 +143,10 @@ export const AccountSchema = z.object({
   errors: z.array(z.string()).optional()
 });
 
-// Multi-account portfolio schema
+/**
+ * Zod schema for the entire multi-account portfolio.
+ * This is the top-level schema that consolidates all accounts, securities, and summary data.
+ */
 export const MultiAccountPortfolioSchema = z.object({
   version: z.string().default('2.1'),
 
@@ -229,14 +255,38 @@ export const SnapshotSchema = z
   })
   .passthrough();
 
-// Union schema for handling both legacy and new formats
+/**
+ * Zod schema for the legacy portfolio snapshot format.
+ * This is kept for backward compatibility and to enable migration of old data.
+ */
+export const SnapshotSchema = z
+  .object({
+    transactions: z.array(z.any()), // Simplified to avoid enum validation issues
+    portfolio: z.any().optional(),
+    totals: z.any().optional(),
+    fundTotals: z.any().optional(),
+    sourceTotals: z.any().optional(),
+    timeline: z.any().optional(),
+    lastUpdated: z.string().optional(),
+    generatedAt: z.string().optional(),
+    syncedAt: z.string().optional(),
+  })
+  .passthrough();
+
+/**
+ * A union schema that can validate both the new multi-account portfolio format and the legacy snapshot format.
+ */
 export const PortfolioSchema = z.union([
   MultiAccountPortfolioSchema,
   SnapshotSchema
 ]);
 
-// Helper functions for schema validation and migration
-
+/**
+ * Validates portfolio data against the `PortfolioSchema`.
+ * @param {object} data The portfolio data to validate.
+ * @returns {object} The validated data.
+ * @throws {Error} If validation fails.
+ */
 export function validatePortfolioData(data) {
   try {
     return PortfolioSchema.parse(data);
@@ -246,10 +296,20 @@ export function validatePortfolioData(data) {
   }
 }
 
+/**
+ * Checks if the given data is in the legacy portfolio format.
+ * @param {object} data The portfolio data to check.
+ * @returns {boolean} True if the data is in the legacy format.
+ */
 export function isLegacyFormat(data) {
   return data.version === '1.0' || (!data.version && data.transactions && Array.isArray(data.transactions));
 }
 
+/**
+ * Migrates data from the legacy format to the new multi-account portfolio format.
+ * @param {object} legacyData The portfolio data in the legacy format.
+ * @returns {object} The portfolio data in the new multi-account format.
+ */
 export function migrateLegacyToMultiAccount(legacyData) {
   if (!isLegacyFormat(legacyData)) {
     return legacyData;

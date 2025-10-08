@@ -1,12 +1,21 @@
 /**
- * Portfolio Summary Analytics
- * Reusable endpoint for email generation
- * Returns current portfolio stats, recent transactions, and performance metrics
+ * @file functions/api/emails/analytics/portfolio-summary.js
+ * @description A reusable Cloudflare Worker endpoint that provides analytics for the portfolio.
+ * It is used by other services, such as the email notification service, to get a summary
+ * of the current portfolio state, recent transactions, and performance metrics.
  */
 import { createSupabaseAdmin } from '../../../../src/lib/supabaseAdmin.js';
 import { handleCors, requireSharedToken, jsonResponse } from '../../../../src/utils/cors-workers.js';
 import { aggregatePortfolio } from '../../../../src/utils/parseTransactions.js';
 
+/**
+ * Handles GET requests to fetch portfolio summary analytics.
+ * It calculates the current portfolio value, identifies recent transactions, and computes
+ * year-to-date contributions to provide a comprehensive summary.
+ *
+ * @param {object} context - The Cloudflare Worker context object.
+ * @returns {Response} A JSON response containing the portfolio summary analytics.
+ */
 export async function onRequestGet(context) {
   const { request, env } = context;
 

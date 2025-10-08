@@ -1,3 +1,9 @@
+/**
+ * @file DividendSummaryWidget.jsx
+ * @description A widget that displays a summary of dividend income, including key metrics
+ * like year-to-date and trailing twelve-month totals. It fetches dividend data and
+ * presents it in a compact, easy-to-read format.
+ */
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { formatCurrency } from '../utils/formatters.js';
@@ -6,13 +12,18 @@ import DividendService from '../services/DividendService.js';
 const API_URL = window.location.origin;
 const API_TOKEN = import.meta.env.VITE_401K_TOKEN || '';
 
+/**
+ * The DividendSummaryWidget component.
+ * @returns {React.Component|null} Renders the widget, or null if there are no dividends.
+ */
 export default function DividendSummaryWidget() {
   const [dividends, setDividends] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Memoize the DividendService instance to avoid re-creation on every render.
   const dividendService = useMemo(() => new DividendService(API_URL, API_TOKEN), []);
 
-  // Load dividends
+  // Effect hook to load dividend data when the component mounts.
   useEffect(() => {
     const loadDividends = async () => {
       try {
@@ -30,7 +41,7 @@ export default function DividendSummaryWidget() {
     loadDividends();
   }, [dividendService]);
 
-  // Calculate summary statistics
+  // Memoized calculation of summary statistics to avoid re-computing on every render.
   const summary = useMemo(() => {
     const total = dividends.reduce((sum, d) => sum + parseFloat(d.amount), 0);
     const ytd = dividendService.calculateYTD(dividends);

@@ -1,3 +1,9 @@
+/**
+ * @file VoyaPasteImport.jsx
+ * @description A component that allows users to import their Voya 401(k) transaction
+ * data by pasting it from the Voya website. It handles parsing, previewing,
+ * and saving the data.
+ */
 import { useState, useEffect } from 'react';
 import VoyaParser from '../services/VoyaParser';
 import VoyaDatabaseService from '../services/VoyaDatabaseService';
@@ -5,8 +11,11 @@ import { formatCurrency, formatShares, formatUnitPrice, formatDate, formatFundNa
 import './VoyaPasteImport.css';
 
 /**
- * Voya Transaction Import Component
- * Allows users to copy-paste transaction data from Voya website
+ * The VoyaPasteImport component.
+ * @param {object} props - The component's props.
+ * @param {function} props.onImportSuccess - Callback function for a successful import.
+ * @param {function} props.onImportError - Callback function for a failed import.
+ * @returns {React.Component}
  */
 function VoyaPasteImport({ onImportSuccess, onImportError }) {
   const [pastedText, setPastedText] = useState('');
@@ -15,11 +24,14 @@ function VoyaPasteImport({ onImportSuccess, onImportError }) {
   const [latestTransactions, setLatestTransactions] = useState([]);
   const [showPreview, setShowPreview] = useState(false);
 
+  // Effect hook to load the latest Voya transactions on component mount.
   useEffect(() => {
-    // Load latest transactions on mount
     loadLatestTransactions();
   }, []);
 
+  /**
+   * Fetches the most recent Voya transactions from the database to display to the user.
+   */
   const loadLatestTransactions = async () => {
     try {
       const transactions = await VoyaDatabaseService.getLatestTransactions(10);
@@ -32,6 +44,10 @@ function VoyaPasteImport({ onImportSuccess, onImportError }) {
     }
   };
 
+  /**
+   * Handles the parsing of the pasted text. It uses the VoyaParser service
+   * and displays a preview if successful, or an error if not.
+   */
   const handleParse = () => {
     if (!pastedText.trim()) {
       alert('Please paste some transaction data first!');
