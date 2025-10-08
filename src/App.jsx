@@ -70,6 +70,18 @@ export default function App() {
         return;
       }
 
+      // Separate Voya transactions for special handling with live pricing
+      const voyaTransactions = transactions.filter(tx =>
+        tx.source_type === 'voya' ||
+        tx.sourceType === 'voya' ||
+        (tx.fund && tx.fund.includes('0899'))
+      );
+
+      // Exclude Voya transactions from main portfolio aggregation
+      const nonVoyaTransactions = transactions.filter(tx =>
+        !(tx.source_type === 'voya' || tx.sourceType === 'voya' || (tx.fund && tx.fund.includes('0899')))
+      );
+
       // Fetch live ETF prices (for Roth IRA holdings)
       console.log('💰 Fetching live ETF prices...');
       const livePrices = await holdingsService.getLatestPrices();
@@ -79,8 +91,8 @@ export default function App() {
         console.log('⚠️ Live prices unavailable, using transaction prices');
       }
 
-      // Aggregate into portfolio with live prices
-      const portfolio = aggregatePortfolio(transactions, livePrices);
+      // Aggregate into portfolio with live prices (excluding Voya)
+      const portfolio = aggregatePortfolio(nonVoyaTransactions, livePrices);
 
       console.log('📊 Portfolio calculated:', {
         holdings: Object.keys(portfolio.portfolio).length,
@@ -93,12 +105,6 @@ export default function App() {
       const holdingsArray = convertPortfolioToHoldings(portfolio);
 
       // Fetch and add Voya holdings with live pricing
-      const voyaTransactions = transactions.filter(tx =>
-        tx.source_type === 'voya' ||
-        tx.sourceType === 'voya' ||
-        (tx.fund && tx.fund.includes('0899'))
-      );
-
       if (voyaTransactions.length > 0) {
         console.log(`💼 Found ${voyaTransactions.length} Voya transactions, enriching with live pricing...`);
         const voyaHolding = await voyaService.enrichVoyaHoldings(voyaTransactions);
@@ -244,6 +250,15 @@ export default function App() {
 
       // Get price timestamp info for this account
       const priceInfo = priceTimestamps[rawAccountName] || null;
+
+      // Debug logging for Voya timestamp
+      if (rawAccountName === 'Voya 401(k)') {
+        console.log('🔍 Voya timestamp lookup:', {
+          rawAccountName,
+          priceInfo,
+          allTimestamps: priceTimestamps
+        });
+      }
 
       // Check if this is a Voya account with a source
       const isVoya = accountName.startsWith('Voya 401(k)');
