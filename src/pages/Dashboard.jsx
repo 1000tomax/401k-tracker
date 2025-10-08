@@ -502,11 +502,13 @@ export default function Dashboard({ summary, isLoading }) {
                       };
 
                       const ticker = extractTicker(holding.fund);
+                      // Don't create links for Voya holdings (they use special fund names)
+                      const isVoyaHolding = holding.isVoyaLive || holding.fund?.includes('Voya');
 
                       return (
                         <tr key={`${holding.fund}-${idx}`}>
                           <td>
-                            {ticker ? (
+                            {ticker && !isVoyaHolding ? (
                               <Link to={`/fund/${ticker}`} className="fund-link">
                                 {formatFundName(holding.fund)}
                               </Link>
