@@ -11,7 +11,7 @@ import { handleCors, requireSharedToken, jsonResponse } from '../../../src/utils
  * @type {string[]}
  */
 const ROTH_IRA_TICKERS = ['VTI', 'SCHD', 'QQQM', 'DES', 'VOO'];
-const VOYA_CONVERSION_RATIO = 15.73; // VOO to Voya 0899 conversion ratio (VOO tracks same index as VFIAX)
+const VOYA_CONVERSION_RATIO = 15.577; // VOO to Voya 0899 conversion ratio (calculated from Oct 2025 data)
 
 /**
  * Checks if the US stock market is currently open based on UTC time.
