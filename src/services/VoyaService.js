@@ -1,13 +1,13 @@
 /**
  * @file src/services/VoyaService.js
- * @description Service for handling live pricing of Voya 401k fund 0899 using VFIAX as a proxy.
+ * @description Service for handling live pricing of Voya 401k fund 0899 using VOO as a proxy.
  * Implements client-side caching and position calculation from transaction history.
  * Uses existing price fetching infrastructure via VOYA_0899 ticker stored in database.
  */
 
 /**
  * Ticker symbol for Voya 401k fund in the database.
- * Represents the converted price from VFIAX (÷ 15.73 ratio).
+ * Represents the converted price from VOO (÷ 15.577 ratio).
  * @type {string}
  */
 const VOYA_TICKER = 'VOYA_0899';
@@ -135,7 +135,7 @@ export class VoyaService {
         const gainLoss = marketValue - position.costBasis;
 
         holdings.push({
-          fund: 'VFIAX (Voya 0899)',
+          fund: 'VOO (Voya 0899)',
           accountName: `Voya 401(k) (${source})`,
           shares: position.shares,
           latestNAV: voyaPrice,

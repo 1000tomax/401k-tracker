@@ -88,8 +88,8 @@ export default function FundDetail() {
         const fundName = tx.fund?.toUpperCase() || '';
         const tickerUpper = ticker.toUpperCase();
 
-        // Special handling for VFIAX - also match Voya fund 0899
-        if (tickerUpper === 'VFIAX' && fundName.includes('0899')) {
+        // Special handling for VOO - also match Voya fund 0899
+        if (tickerUpper === 'VOO' && fundName.includes('0899')) {
           return true;
         }
 

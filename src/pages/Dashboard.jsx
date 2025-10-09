@@ -516,7 +516,7 @@ export default function Dashboard({ summary, isLoading }) {
                             {holding.isVoyaLive && (
                               <span
                                 className="live-badge"
-                                title="Live pricing via VFIAX proxy (99.7% accuracy)"
+                                title="Live pricing via VOO proxy (99.8% accuracy)"
                                 style={{
                                   marginLeft: '8px',
                                   padding: '2px 6px',
