@@ -177,6 +177,16 @@ export default function FundDetail() {
     // Use live price if available
     // For Voya fund, use VOYA_0899 price, otherwise use the ticker price
     const livePriceTicker = isVoyaFund ? 'VOYA_0899' : ticker?.toUpperCase();
+
+    console.log('FundDetail Debug:', {
+      ticker,
+      isVoyaFund,
+      livePriceTicker,
+      availablePrices: Object.keys(livePrices),
+      voyaPrice: livePrices['VOYA_0899'],
+      vooPrice: livePrices['VOO'],
+    });
+
     const livePrice = livePrices[livePriceTicker]?.price || latestPrice;
     const marketValue = currentShares * livePrice;
     const gainLoss = marketValue - currentCostBasis;
