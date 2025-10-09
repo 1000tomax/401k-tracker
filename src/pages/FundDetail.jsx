@@ -170,8 +170,14 @@ export default function FundDetail() {
     const latestEntry = timeline[timeline.length - 1];
     const latestPrice = latestEntry?.price || fundTransactions[fundTransactions.length - 1]?.unit_price || 0;
 
+    // Check if these are Voya transactions (they have fund name with "0899")
+    const isVoyaFund = fundTransactions.length > 0 &&
+                       fundTransactions[0].fund?.includes('0899');
+
     // Use live price if available
-    const livePrice = livePrices[ticker?.toUpperCase()]?.price || latestPrice;
+    // For Voya fund, use VOYA_0899 price, otherwise use the ticker price
+    const livePriceTicker = isVoyaFund ? 'VOYA_0899' : ticker?.toUpperCase();
+    const livePrice = livePrices[livePriceTicker]?.price || latestPrice;
     const marketValue = currentShares * livePrice;
     const gainLoss = marketValue - currentCostBasis;
     const gainLossPercent = currentCostBasis > 0 ? (gainLoss / currentCostBasis) * 100 : 0;
