@@ -10,8 +10,8 @@ import { handleCors, requireSharedToken, jsonResponse } from '../../../src/utils
  * A predefined list of ETF tickers for which to fetch live prices.
  * @type {string[]}
  */
-const ROTH_IRA_TICKERS = ['VTI', 'SCHD', 'QQQM', 'DES', 'VFIAX'];
-const VOYA_CONVERSION_RATIO = 15.73; // VFIAX to Voya 0899 conversion ratio
+const ROTH_IRA_TICKERS = ['VTI', 'SCHD', 'QQQM', 'DES', 'VOO'];
+const VOYA_CONVERSION_RATIO = 15.73; // VOO to Voya 0899 conversion ratio (VOO tracks same index as VFIAX)
 
 /**
  * Checks if the US stock market is currently open based on UTC time.
@@ -144,8 +144,8 @@ export async function onRequestPost(context) {
 
       updates.push({ ticker, price, changePercent });
 
-      // If this is VFIAX, also store the converted Voya 0899 price
-      if (ticker === 'VFIAX') {
+      // If this is VOO, also store the converted Voya 0899 price
+      if (ticker === 'VOO') {
         const voyaPrice = price / VOYA_CONVERSION_RATIO;
         const { error: voyaError } = await supabase
           .from('current_etf_prices')
@@ -164,7 +164,7 @@ export async function onRequestPost(context) {
         }
 
         updates.push({ ticker: 'VOYA_0899', price: voyaPrice, changePercent });
-        console.log(`✅ Stored VOYA_0899 price: $${voyaPrice.toFixed(4)} (VFIAX $${price} ÷ ${VOYA_CONVERSION_RATIO})`);
+        console.log(`✅ Stored VOYA_0899 price: $${voyaPrice.toFixed(4)} (VOO $${price} ÷ ${VOYA_CONVERSION_RATIO})`);
       }
     }
 
