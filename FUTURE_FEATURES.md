@@ -180,10 +180,37 @@ Track dividend income and reinvestments now that all Plaid transactions are stor
 - Fingerprint/Face ID for quick access
 - Push notifications for portfolio milestones
 
-### Data Export
+### Data Export & Professional Statements
+
+**Status:** 💡 Idea stage
+
+**CSV/Excel Export:**
 - Export portfolio data to CSV/Excel
-- Generate PDF reports
-- Tax documents helper (capital gains summary)
+- Transaction history export for tax purposes
+- Custom date range selection
+
+**Professional Account Statement Generator:**
+- Generate professional PDF statements similar to Vanguard/Fidelity
+- Content ideas:
+  - Account summary (holdings, total value, gains/losses)
+  - Performance charts (account growth over time)
+  - Transaction history for selected period
+  - Asset allocation breakdown
+  - YTD contributions and returns
+  - Tax information (cost basis, realized gains)
+- Time period options: quarterly, annual, YTD, custom date ranges
+- Delivery options: on-demand download, scheduled email delivery
+- Professional styling and branding
+
+**Potential Libraries:**
+- `react-pdf` or `pdfmake` for PDF generation
+- Chart rendering in PDFs (recharts → static images)
+- Template system for consistent formatting
+
+**Tax Documents:**
+- Capital gains summary
+- Cost basis reporting
+- Contribution tracking for IRA limits
 
 ---
 
