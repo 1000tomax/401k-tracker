@@ -516,7 +516,7 @@ export default function Dashboard({ summary, isLoading }) {
                             {holding.isVoyaLive && (
                               <span
                                 className="live-badge"
-                                title="Live pricing via VOO proxy (99.8% accuracy)"
+                                title="Live pricing via VOO proxy - Voya's proprietary fund 0899 tracks the S&P 500 but isn't publicly traded. We use VOO (Vanguard S&P 500 ETF) as a proxy with a 15.577 conversion ratio for real-time pricing. Historical accuracy: 99.8%"
                                 style={{
                                   marginLeft: '8px',
                                   padding: '2px 6px',
