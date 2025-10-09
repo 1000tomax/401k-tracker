@@ -51,7 +51,9 @@ async function fetchTickerPrice(ticker, apiKey) {
     const response = await fetch(url);
 
     if (!response.ok) {
-      throw new Error(`Finnhub API error: ${response.status}`);
+      const errorBody = await response.text();
+      console.error(`Finnhub API error for ${ticker}: ${response.status} - ${errorBody}`);
+      throw new Error(`Finnhub API error: ${response.status} - ${errorBody}`);
     }
 
     const data = await response.json();
