@@ -5,7 +5,7 @@
  * short-lived `public_token`, which must be exchanged for a permanent `access_token` on the server.
  */
 import { Configuration, PlaidApi, PlaidEnvironments } from 'plaid';
-import { handleCors, jsonResponse } from '../../../src/utils/cors-workers.js';
+import { handleCors, jsonResponse, requireSharedToken } from '../../../src/utils/cors-workers.js';
 
 /**
  * Initializes the Plaid API client with credentials from environment variables.
@@ -56,6 +56,12 @@ export async function onRequestPost(context) {
   // Handle CORS preflight
   const corsResponse = handleCors(request, env);
   if (corsResponse) return corsResponse;
+
+  // Verify authentication token
+  const auth = requireSharedToken(request, env);
+  if (!auth.ok) {
+    return jsonResponse({ ok: false, error: auth.message }, auth.status, env);
+  }
 
   try {
     // Parse request body

@@ -108,8 +108,8 @@ async function verifyWebhookJWT(requestBody, jwtToken, env) {
 }
 
 // Discord notification function for real webhook processing
-async function notifyDiscord(webhook) {
-  const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1411197542380867604/-L14Xu0h1qwSkuCa4kgdu9OFd1PZGLH7WASrPRPn0TBtiuDzGshdftx2ooagM_cFv9B9';
+async function notifyDiscord(webhook, env) {
+  const DISCORD_WEBHOOK_URL = env.DISCORD_WEBHOOK_URL;
 
   try {
     const message = {
@@ -222,7 +222,7 @@ export async function onRequestPost(context) {
 
     // Store webhook data for processing (in production, you'd queue this for background processing)
     // Send notification to Discord to show active webhook processing
-    await notifyDiscord(webhook);
+    await notifyDiscord(webhook, env);
 
     // Respond with 200 to acknowledge receipt
     return jsonResponse({

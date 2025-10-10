@@ -16,17 +16,24 @@ export const PlaidAuthProvider = ({ children }) => {
   useEffect(() => {
     const checkExistingSession = async () => {
       try {
+        // Check for existing session in storage
+        const sessionData = sessionStorage.getItem(STORAGE_KEY);
+
+        if (sessionData) {
+          const parsed = JSON.parse(sessionData);
+          if (parsed.authenticated) {
+            setIsAuthenticated(true);
+            setCurrentPassword(parsed.password);
+          }
+        }
+
         // Check for saved connections in database
         const hasConnections = await PlaidDatabaseService.hasSavedConnections();
         setHasSavedConnections(hasConnections);
 
-        // For database, we don't need password authentication anymore
-        // Connections are stored server-side with API auth
-        setIsAuthenticated(true);
         setIsLoading(false);
       } catch (error) {
         console.error('Error checking saved connections:', error);
-        setIsAuthenticated(true); // Still allow access
         setIsLoading(false);
       }
     };

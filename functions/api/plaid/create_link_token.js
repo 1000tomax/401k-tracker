@@ -5,7 +5,7 @@
  * which allows users to connect their financial accounts.
  */
 import { Configuration, PlaidApi, PlaidEnvironments } from 'plaid';
-import { handleCors, jsonResponse } from '../../../src/utils/cors-workers.js';
+import { handleCors, jsonResponse, requireSharedToken } from '../../../src/utils/cors-workers.js';
 
 /**
  * Initializes the Plaid API client with credentials and configuration from environment variables.
@@ -61,6 +61,12 @@ export async function onRequestPost(context) {
   // Handle CORS preflight
   const corsResponse = handleCors(request, env);
   if (corsResponse) return corsResponse;
+
+  // Verify authentication token
+  const auth = requireSharedToken(request, env);
+  if (!auth.ok) {
+    return jsonResponse({ ok: false, error: auth.message }, auth.status, env);
+  }
 
   try {
     console.log('🔍 Environment variables check:', {
