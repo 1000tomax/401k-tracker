@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { formatCurrency, formatDate } from '../utils/formatters.js';
+import { convertHoldingsToCSV, downloadCSV } from '../utils/csvExport.js';
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -104,6 +105,12 @@ export default function Dashboard({ summary, isLoading }) {
       }
       return newSet;
     });
+  };
+
+  const handleExportPortfolio = () => {
+    const csvData = convertHoldingsToCSV(holdingsByAccount);
+    const filename = `portfolio-${new Date().toISOString().split('T')[0]}.csv`;
+    downloadCSV(csvData, filename);
   };
 
   // Helper to determine account type
@@ -419,8 +426,19 @@ export default function Dashboard({ summary, isLoading }) {
       {/* Current Holdings by Account */}
       <section>
         <div className="section-header">
-          <h2>Current Holdings</h2>
-          <p className="meta">Your portfolio holdings grouped by account.</p>
+          <div>
+            <h2>Current Holdings</h2>
+            <p className="meta">Your portfolio holdings grouped by account.</p>
+          </div>
+          <div className="section-actions">
+            <button
+              className="primary"
+              onClick={handleExportPortfolio}
+              disabled={!holdings.length}
+            >
+              Export Portfolio
+            </button>
+          </div>
         </div>
 
         {holdingsByAccount.map(account => {
