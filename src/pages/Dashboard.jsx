@@ -35,6 +35,9 @@ const ChartTooltip = memo(({ active, payload, label }) => {
   const mvValue = typeof marketValue?.value === 'number' ? marketValue.value : parseFloat(marketValue?.value || 0);
   const cbValue = typeof costBasis?.value === 'number' ? costBasis.value : parseFloat(costBasis?.value || 0);
 
+  // Debug logging
+  console.log('Tooltip payload:', { marketValue, costBasis, mvValue, cbValue });
+
   return (
     <div className="chart-tooltip">
       <div className="chart-tooltip-label" style={{ fontWeight: 700, marginBottom: '10px', fontSize: '14px' }}>{label}</div>
