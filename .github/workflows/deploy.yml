@@ -35,12 +35,19 @@ jobs:
           # Add VITE_* variables here if needed
           # VITE_API_URL: ${{ secrets.VITE_API_URL }}
 
+      - name: Temporarily move functions directory
+        run: mv functions functions.bak || true
+
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=401k-tracker
+          command: pages deploy dist --project-name=401k-tracker --commit-dirty=true
+
+      - name: Restore functions directory
+        if: always()
+        run: mv functions.bak functions || true
 
       - name: Create deployment comment (PR only)
         if: github.event_name == 'pull_request'
