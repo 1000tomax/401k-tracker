@@ -22,27 +22,33 @@ const ChartTooltip = memo(({ active, payload, label }) => {
   if (!active || !payload || !payload.length) {
     return null;
   }
-  const filtered = payload.filter(item => item.dataKey !== 'marketValueShade');
-  if (!filtered.length) {
+
+  // Only show marketValue and costBasis, explicitly exclude shade/area
+  const marketValue = payload.find(item => item.dataKey === 'marketValue');
+  const costBasis = payload.find(item => item.dataKey === 'costBasis');
+
+  if (!marketValue && !costBasis) {
     return null;
   }
 
-  const labelMap = {
-    marketValue: 'Market Value',
-    costBasis: 'Cost Basis',
-  };
-
   return (
     <div className="chart-tooltip">
-      <div className="chart-tooltip-label">{label}</div>
+      <div className="chart-tooltip-label" style={{ fontWeight: 600, marginBottom: '8px' }}>{label}</div>
       <ul>
-        {filtered.map(item => (
-          <li key={item.dataKey}>
-            <span className="dot" style={{ background: item.color || item.stroke }} />
-            <span className="name">{labelMap[item.dataKey] || item.dataKey}</span>
-            <span className="value">{formatCurrency(item.value ?? 0)}</span>
+        {marketValue && (
+          <li key="marketValue">
+            <span className="dot" style={{ background: marketValue.stroke }} />
+            <span className="name">Market Value</span>
+            <span className="value">{formatCurrency(marketValue.value ?? 0)}</span>
           </li>
-        ))}
+        )}
+        {costBasis && (
+          <li key="costBasis">
+            <span className="dot" style={{ background: costBasis.stroke }} />
+            <span className="name">Cost Basis</span>
+            <span className="value">{formatCurrency(costBasis.value ?? 0)}</span>
+          </li>
+        )}
       </ul>
     </div>
   );
