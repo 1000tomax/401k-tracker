@@ -1,7 +1,11 @@
 name = "401k-tracker"
 compatibility_date = "2024-09-23"
-compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = "dist"
 
-# Note: Cron triggers for Pages need to be configured in Cloudflare dashboard
-# Workers & Pages → Your project → Settings → Functions → Cron Triggers
+# Environment Variables (configure in dashboard or via wrangler secrets)
+# Use wrangler pages secret put PLAID_CLIENT_ID
+# Use wrangler pages secret put PLAID_SECRET
+
+# Note: Build configuration, cron triggers, and other settings
+# are configured via Cloudflare dashboard or CLI commands
+# Pages projects don't use [build], [pages], or [functions] blocks in wrangler.toml

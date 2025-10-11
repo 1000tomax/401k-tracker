@@ -2,7 +2,36 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <!-- Performance: DNS Prefetch & Preconnect -->
+    <link rel="dns-prefetch" href="https://cdn.plaid.com" />
+    <link rel="preconnect" href="https://cdn.plaid.com" crossorigin />
+    <link rel="dns-prefetch" href="https://production.plaid.com" />
+    <link rel="preconnect" href="https://production.plaid.com" crossorigin />
+
+    <!-- Performance: Preload Critical Assets -->
+    <!-- Note: Vite will inject the actual asset paths during build -->
+
+    <!-- PWA Theme Colors -->
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: light)" />
+
+    <!-- iOS Safari Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="401k Tracker" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+
+    <!-- Standard Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png" />
+
+    <!-- SEO & Description -->
+    <meta name="description" content="Monitor your retirement portfolio with automatic daily synchronization. Track 401(k), Roth IRA, and other retirement accounts." />
+    <meta name="keywords" content="401k, retirement, portfolio, tracker, investment, finance" />
+
     <title>401k Tracker</title>
   </head>
   <body>

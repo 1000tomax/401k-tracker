@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json.schemastore.org/performance-budget.json",
+  "budget": {
+    "description": "Performance budgets for 401K-Tracker application",
+    "resourceSizes": [
+      {
+        "resourceType": "script",
+        "budget": 800,
+        "description": "Total JavaScript bundle size in KB (uncompressed). Actual gzipped is ~250KB"
+      },
+      {
+        "resourceType": "stylesheet",
+        "budget": 60,
+        "description": "Total CSS size in KB (uncompressed). Actual gzipped is ~10KB"
+      },
+      {
+        "resourceType": "image",
+        "budget": 200,
+        "description": "Total image size in KB"
+      },
+      {
+        "resourceType": "font",
+        "budget": 100,
+        "description": "Total font size in KB"
+      },
+      {
+        "resourceType": "total",
+        "budget": 1400,
+        "description": "Total page weight in KB (uncompressed). Actual gzipped is ~400KB"
+      }
+    ],
+    "resourceCounts": [
+      {
+        "resourceType": "script",
+        "budget": 15,
+        "description": "Maximum number of JavaScript files"
+      },
+      {
+        "resourceType": "stylesheet",
+        "budget": 5,
+        "description": "Maximum number of CSS files"
+      },
+      {
+        "resourceType": "third-party",
+        "budget": 5,
+        "description": "Maximum number of third-party scripts"
+      }
+    ],
+    "timings": [
+      {
+        "metric": "first-contentful-paint",
+        "budget": 1800,
+        "description": "FCP should be under 1.8 seconds"
+      },
+      {
+        "metric": "largest-contentful-paint",
+        "budget": 2500,
+        "description": "LCP should be under 2.5 seconds"
+      },
+      {
+        "metric": "time-to-interactive",
+        "budget": 3800,
+        "description": "TTI should be under 3.8 seconds"
+      },
+      {
+        "metric": "speed-index",
+        "budget": 3000,
+        "description": "Speed Index should be under 3 seconds"
+      },
+      {
+        "metric": "total-blocking-time",
+        "budget": 300,
+        "description": "TBT should be under 300ms"
+      }
+    ]
+  },
+  "targets": {
+    "desktop": {
+      "description": "Desktop performance targets",
+      "lcp": 2500,
+      "fid": 100,
+      "cls": 0.1,
+      "fcp": 1800,
+      "ttfb": 800,
+      "inp": 200
+    },
+    "mobile": {
+      "description": "Mobile performance targets (3G connection)",
+      "lcp": 4000,
+      "fid": 100,
+      "cls": 0.1,
+      "fcp": 3000,
+      "ttfb": 1800,
+      "inp": 200
+    }
+  },
+  "monitoring": {
+    "sampleRate": 1.0,
+    "description": "Monitor 100% of sessions in production",
+    "alertThresholds": {
+      "lcp": {
+        "warning": 3000,
+        "critical": 4000
+      },
+      "fid": {
+        "warning": 150,
+        "critical": 300
+      },
+      "cls": {
+        "warning": 0.15,
+        "critical": 0.25
+      },
+      "bundleSize": {
+        "warning": 500,
+        "critical": 600
+      },
+      "errorRate": {
+        "warning": 0.01,
+        "critical": 0.05,
+        "description": "Error rate as percentage (1% warning, 5% critical)"
+      }
+    }
+  }
+}

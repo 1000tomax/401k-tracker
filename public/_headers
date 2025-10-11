@@ -1,0 +1,58 @@
+# Cloudflare Pages Custom Headers for Optimal Performance
+# This file configures caching, security, and compression for the 401K-Tracker application
+
+# Static Assets - Immutable with long-term caching
+# Vite generates hashed filenames, so these can be cached indefinitely
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+  X-Content-Type-Options: nosniff
+  # Cloudflare automatically applies Brotli/Gzip - no manual config needed
+
+# Service Worker - Must revalidate on every request
+/sw.js
+  Cache-Control: public, max-age=0, must-revalidate
+  X-Content-Type-Options: nosniff
+
+# Workbox Runtime
+/workbox-*.js
+  Cache-Control: public, max-age=31536000, immutable
+  X-Content-Type-Options: nosniff
+
+# PWA Manifest - Cache but revalidate periodically
+/manifest.webmanifest
+  Cache-Control: public, max-age=3600, must-revalidate
+  Content-Type: application/manifest+json
+  X-Content-Type-Options: nosniff
+
+# Icons - Long-term cache (rarely change)
+/icons/*
+  Cache-Control: public, max-age=2592000, immutable
+  X-Content-Type-Options: nosniff
+
+# HTML - No cache (always fetch latest for SPA updates)
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), camera=()
+
+# Root HTML
+/
+  Cache-Control: public, max-age=0, must-revalidate
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), camera=()
+
+# API Routes - No caching (dynamic content)
+/api/*
+  Cache-Control: private, no-cache, no-store, must-revalidate
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+
+# Security Headers for All Routes
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  # CSP will be added after testing to avoid breaking functionality

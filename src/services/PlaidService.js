@@ -9,6 +9,17 @@ class PlaidService {
     this.linkToken = null;
     this.accessToken = null;
     this.accountId = null;
+    this.token = import.meta.env.VITE_401K_TOKEN || '';
+  }
+
+  /**
+   * Get auth headers
+   */
+  getHeaders() {
+    return {
+      'Content-Type': 'application/json',
+      'X-401K-Token': this.token,
+    };
   }
 
   /**
@@ -18,9 +29,7 @@ class PlaidService {
     try {
       const response = await fetch(`${this.baseURL}/create_link_token`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: this.getHeaders(),
         body: JSON.stringify({
           user_id: userId,
         }),
@@ -52,9 +61,7 @@ class PlaidService {
 
       const response = await fetch(`${this.baseURL}/exchange_public_token`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: this.getHeaders(),
         body: JSON.stringify({
           public_token: publicToken,
         }),
@@ -85,9 +92,7 @@ class PlaidService {
     try {
       const response = await fetch(`${this.baseURL}/accounts`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: this.getHeaders(),
         body: JSON.stringify({
           access_token: accessToken,
         }),
@@ -121,9 +126,7 @@ class PlaidService {
 
       const response = await fetch(`${this.baseURL}/investment_transactions`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: this.getHeaders(),
         body: JSON.stringify({
           access_token: accessToken,
           start_date: start,
@@ -168,9 +171,7 @@ class PlaidService {
 
       const response = await fetch(`${this.baseURL}/transactions`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: this.getHeaders(),
         body: JSON.stringify({
           access_token: accessToken,
           start_date: start,

@@ -1,8 +1,14 @@
 :root {
   color-scheme: dark;
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  /* Performance: Use system fonts for faster loading */
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
   line-height: 1.6;
   font-weight: 400;
+
+  /* Performance: Enable font smoothing */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 
   /* Simplified Color System */
   --gray-50: #f8fafc;
@@ -68,6 +74,20 @@
   box-sizing: border-box;
 }
 
+/* Performance: GPU-accelerated animations */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Performance: will-change for elements that animate frequently */
+.loading-spinner,
+.chart-wrapper,
+.app-main {
+  will-change: auto;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
@@ -75,6 +95,9 @@ body {
   background-attachment: fixed;
   color: inherit;
   position: relative;
+  /* Performance: Enable GPU acceleration for smooth scrolling */
+  transform: translateZ(0);
+  -webkit-overflow-scrolling: touch;
 }
 
 body::before {
@@ -3190,4 +3213,245 @@ details ul {
 .filter-select option:hover,
 .filter-select option:checked {
   background: var(--surface-elevated);
+}
+
+.filter-select option:hover,
+.filter-select option:checked {
+  background: var(--surface-elevated);
+}
+
+/* ==========================================================================
+   PWA OFFLINE/UPDATE BANNERS & INSTALL PROMPT
+   ========================================================================== */
+
+/* PWA Offline/Update Banners */
+.offline-banner,
+.update-banner {
+  position: fixed;
+  top: var(--space-4);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  max-width: 600px;
+  width: calc(100% - var(--space-8));
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -20px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.offline-banner {
+  background: rgba(239, 68, 68, 0.95);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  backdrop-filter: blur(10px);
+}
+
+.update-banner {
+  background: rgba(59, 130, 246, 0.95);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  backdrop-filter: blur(10px);
+}
+
+.offline-content,
+.update-content {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+}
+
+.offline-icon,
+.update-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.offline-text,
+.update-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  color: white;
+}
+
+.offline-text strong,
+.update-text strong {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.offline-text span,
+.update-text span {
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
+.update-button {
+  padding: var(--space-2) var(--space-5);
+  background: white;
+  color: var(--blue-600);
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.update-button:hover {
+  background: var(--gray-100);
+  transform: scale(1.05);
+}
+
+/* PWA Install Prompt (Optional) */
+.install-prompt {
+  position: fixed;
+  bottom: var(--space-4);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9998;
+  max-width: 600px;
+  width: calc(100% - var(--space-8));
+  background: var(--surface-primary);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 20px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.install-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5);
+}
+
+.install-icon {
+  font-size: 2rem;
+  text-align: center;
+}
+
+.install-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  text-align: center;
+}
+
+.install-text strong {
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.install-text span {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.install-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.install-button {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 48px;
+}
+
+.install-button.primary {
+  background: var(--blue-500);
+  color: white;
+  border: none;
+}
+
+.install-button.primary:hover {
+  background: var(--blue-600);
+  transform: translateY(-1px);
+}
+
+.install-button.secondary {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+}
+
+.install-button.secondary:hover {
+  background: var(--surface-elevated);
+  border-color: var(--border-strong);
+}
+
+/* Mobile Responsive Adjustments */
+@media (max-width: 768px) {
+  .offline-banner,
+  .update-banner {
+    top: var(--space-3);
+    width: calc(100% - var(--space-6));
+    border-radius: var(--radius-md);
+  }
+
+  .offline-content,
+  .update-content {
+    padding: var(--space-3) var(--space-4);
+    gap: var(--space-2);
+  }
+
+  .offline-icon,
+  .update-icon {
+    font-size: 1.25rem;
+  }
+
+  .offline-text strong,
+  .update-text strong {
+    font-size: 0.9rem;
+  }
+
+  .offline-text span,
+  .update-text span {
+    font-size: 0.8rem;
+  }
+
+  .update-button {
+    padding: var(--space-2) var(--space-4);
+    font-size: 0.85rem;
+  }
+
+  .install-prompt {
+    bottom: var(--space-3);
+    width: calc(100% - var(--space-6));
+  }
+
+  .install-actions {
+    grid-template-columns: 1fr;
+  }
 }

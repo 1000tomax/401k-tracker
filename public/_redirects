@@ -1,0 +1,17 @@
+# Cloudflare Pages Redirects and Rewrites
+# Optimizes SPA routing and API requests
+
+# API Routes - Proxy to Cloudflare Workers/Functions
+# These are handled by the /functions directory automatically
+# No explicit redirects needed - Cloudflare Pages handles this
+
+# SPA Fallback - All non-file requests go to index.html
+# This enables client-side routing for React Router
+# The 200 status code ensures proper SPA behavior
+/*    /index.html   200
+
+# Alternative format with explicit path matching
+# /accounts    /index.html   200
+# /dividends   /index.html   200
+# /transactions /index.html   200
+# /fund/*      /index.html   200

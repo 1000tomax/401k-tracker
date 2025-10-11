@@ -1,16 +1,46 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, NavLink, Navigate } from 'react-router-dom';
-import Dashboard from './pages/Dashboard.jsx';
-import Accounts from './pages/Accounts.jsx';
-import Dividends from './pages/Dividends.jsx';
-import Transactions from './pages/Transactions.jsx';
-import FundDetail from './pages/FundDetail.jsx';
 import { formatDate, formatCurrency } from './utils/formatters.js';
 import { PlaidAuthProvider } from './contexts/PlaidAuthContext.jsx';
 import HoldingsService from './services/HoldingsService.js';
 import TransactionService from './services/TransactionService.js';
 import VoyaService from './services/VoyaService.js';
 import { aggregatePortfolio } from './utils/parseTransactions.js';
+import OfflineBanner from './components/OfflineBanner.jsx';
+// import InstallPrompt from './components/InstallPrompt.jsx'; // OPTIONAL: Uncomment to enable install prompt
+
+// Lazy load route components for code splitting
+const Dashboard = lazy(() => import('./pages/Dashboard.jsx'));
+const Accounts = lazy(() => import('./pages/Accounts.jsx'));
+const Dividends = lazy(() => import('./pages/Dividends.jsx'));
+const Transactions = lazy(() => import('./pages/Transactions.jsx'));
+const FundDetail = lazy(() => import('./pages/FundDetail.jsx'));
+const PerformanceDashboard = lazy(() => import('./components/PerformanceDashboard.jsx'));
+
+// Loading fallback component
+const PageLoader = () => (
+  <div style={{
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '400px',
+    color: 'var(--text-secondary)',
+    fontSize: '1rem'
+  }}>
+    <div style={{ textAlign: 'center' }}>
+      <div style={{
+        width: '40px',
+        height: '40px',
+        margin: '0 auto 1rem',
+        border: '3px solid var(--border-subtle)',
+        borderTopColor: 'var(--blue-500)',
+        borderRadius: '50%',
+        animation: 'spin 0.8s linear infinite'
+      }} />
+      Loading...
+    </div>
+  </div>
+);
 
 const API_URL = window.location.origin;
 const API_TOKEN = import.meta.env.VITE_401K_TOKEN || '';
@@ -394,6 +424,9 @@ export default function App() {
   return (
     <PlaidAuthProvider>
       <BrowserRouter>
+        <OfflineBanner />
+        {/* <InstallPrompt /> */} {/* OPTIONAL: Uncomment to enable install prompt */}
+
         <div className="app">
           <header className="top-bar">
             <div className="brand">
@@ -449,6 +482,11 @@ export default function App() {
               <NavLink to="/transactions" className={({ isActive }) => (isActive ? 'active' : '')}>
                 Transactions
               </NavLink>
+              {import.meta.env.DEV && (
+                <NavLink to="/performance" className={({ isActive }) => (isActive ? 'active' : '')}>
+                  Performance
+                </NavLink>
+              )}
             </nav>
           </header>
 
@@ -459,22 +497,27 @@ export default function App() {
               </div>
             )}
 
-            <Routes>
-              <Route
-                path="/"
-                element={
-                  <Dashboard
-                    summary={summary}
-                    isLoading={isLoading}
-                  />
-                }
-              />
-              <Route path="/accounts" element={<Accounts />} />
-              <Route path="/dividends" element={<Dividends />} />
-              <Route path="/transactions" element={<Transactions />} />
-              <Route path="/fund/:ticker" element={<FundDetail />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                <Route
+                  path="/"
+                  element={
+                    <Dashboard
+                      summary={summary}
+                      isLoading={isLoading}
+                    />
+                  }
+                />
+                <Route path="/accounts" element={<Accounts />} />
+                <Route path="/dividends" element={<Dividends />} />
+                <Route path="/transactions" element={<Transactions />} />
+                <Route path="/fund/:ticker" element={<FundDetail />} />
+                {import.meta.env.DEV && (
+                  <Route path="/performance" element={<PerformanceDashboard />} />
+                )}
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Suspense>
           </main>
         </div>
       </BrowserRouter>

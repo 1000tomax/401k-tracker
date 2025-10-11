@@ -11,7 +11,13 @@
       "Bash(node:*)",
       "Bash(rm:*)",
       "Bash(python3:*)",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(npm run deploy:*)",
+      "Bash(wrangler pages deployment list:*)",
+      "Bash(wrangler pages project:*)",
+      "Bash(wrangler pages secret list:*)",
+      "Bash(wrangler pages deploy:*)",
+      "Bash(mv:*)"
     ],
     "deny": [],
     "ask": []

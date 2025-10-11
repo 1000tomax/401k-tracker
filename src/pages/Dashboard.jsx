@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, memo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { formatCurrency, formatDate } from '../utils/formatters.js';
 import { convertHoldingsToCSV, downloadCSV } from '../utils/csvExport.js';
@@ -17,7 +17,62 @@ import {
   Legend,
 } from 'recharts';
 
-export default function Dashboard({ summary, isLoading }) {
+// Memoized chart tooltip component
+const ChartTooltip = memo(({ active, payload, label }) => {
+  if (!active || !payload || !payload.length) {
+    return null;
+  }
+  const filtered = payload.filter(item => item.dataKey !== 'marketValueShade');
+  if (!filtered.length) {
+    return null;
+  }
+
+  const labelMap = {
+    marketValue: 'Market Value',
+    costBasis: 'Cost Basis',
+  };
+
+  return (
+    <div className="chart-tooltip">
+      <div className="chart-tooltip-label">{label}</div>
+      <ul>
+        {filtered.map(item => (
+          <li key={item.dataKey}>
+            <span className="dot" style={{ background: item.color || item.stroke }} />
+            <span className="name">{labelMap[item.dataKey] || item.dataKey}</span>
+            <span className="value">{formatCurrency(item.value ?? 0)}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+});
+ChartTooltip.displayName = 'ChartTooltip';
+
+// Memoized pie chart tooltip component
+const PieTooltip = memo(({ active, payload }) => {
+  if (!active || !payload || !payload.length) return null;
+  const data = payload[0].payload;
+  return (
+    <div className="chart-tooltip">
+      <div className="chart-tooltip-label">{data.name}</div>
+      <ul>
+        <li>
+          <span className="dot" style={{ background: payload[0].fill }} />
+          <span className="name">Value</span>
+          <span className="value">{formatCurrency(data.value)}</span>
+        </li>
+        <li>
+          <span className="name">Allocation</span>
+          <span className="value">{data.percentage}%</span>
+        </li>
+      </ul>
+    </div>
+  );
+});
+PieTooltip.displayName = 'PieTooltip';
+
+function Dashboard({ summary, isLoading }) {
   const { totals, timeline, holdings, holdingsByAccount } = summary;
   const [expandedAccounts, setExpandedAccounts] = useState(new Set());
   const [portfolioFilter, setPortfolioFilter] = useState('all');
@@ -54,7 +109,7 @@ export default function Dashboard({ summary, isLoading }) {
     }));
   }, [timeline]);
 
-  const tickFormatter = value => {
+  const tickFormatter = useCallback(value => {
     if (!Number.isFinite(value)) return '';
     if (Math.abs(value) >= 1_000_000) {
       return `$${(value / 1_000_000).toFixed(1)}M`;
@@ -63,39 +118,9 @@ export default function Dashboard({ summary, isLoading }) {
       return `$${(value / 1_000).toFixed(1)}K`;
     }
     return formatCurrency(value);
-  };
+  }, []);
 
-  const renderTooltip = ({ active, payload, label }) => {
-    if (!active || !payload || !payload.length) {
-      return null;
-    }
-    const filtered = payload.filter(item => item.dataKey !== 'marketValueShade');
-    if (!filtered.length) {
-      return null;
-    }
-
-    const labelMap = {
-      marketValue: 'Market Value',
-      costBasis: 'Cost Basis',
-    };
-
-    return (
-      <div className="chart-tooltip">
-        <div className="chart-tooltip-label">{label}</div>
-        <ul>
-          {filtered.map(item => (
-            <li key={item.dataKey}>
-              <span className="dot" style={{ background: item.color || item.stroke }} />
-              <span className="name">{labelMap[item.dataKey] || item.dataKey}</span>
-              <span className="value">{formatCurrency(item.value ?? 0)}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    );
-  };
-
-  const toggleAccountExpanded = (accountName) => {
+  const toggleAccountExpanded = useCallback((accountName) => {
     setExpandedAccounts(prev => {
       const newSet = new Set(prev);
       if (newSet.has(accountName)) {
@@ -105,13 +130,13 @@ export default function Dashboard({ summary, isLoading }) {
       }
       return newSet;
     });
-  };
+  }, []);
 
-  const handleExportPortfolio = () => {
+  const handleExportPortfolio = useCallback(() => {
     const csvData = convertHoldingsToCSV(holdingsByAccount);
     const filename = `portfolio-${new Date().toISOString().split('T')[0]}.csv`;
     downloadCSV(csvData, filename);
-  };
+  }, [holdingsByAccount]);
 
   // Helper to determine account type
   const getAccountType = (accountName) => {
@@ -178,36 +203,15 @@ export default function Dashboard({ summary, isLoading }) {
     return { accountAllocation, fundAllocation, filteredTotal };
   }, [holdingsByAccount, holdings, totals.marketValue, portfolioFilter]);
 
-  // Color palette for pie charts
-  const COLORS = [
+  // Color palette for pie charts (memoized to prevent recalculation)
+  const COLORS = useMemo(() => [
     'rgba(99, 102, 241, 0.9)',   // Blue
     'rgba(251, 146, 60, 0.9)',   // Orange
     'rgba(34, 197, 94, 0.9)',    // Green
     'rgba(168, 85, 247, 0.9)',   // Purple
     'rgba(236, 72, 153, 0.9)',   // Pink
     'rgba(20, 184, 166, 0.9)',   // Teal
-  ];
-
-  const renderPieTooltip = ({ active, payload }) => {
-    if (!active || !payload || !payload.length) return null;
-    const data = payload[0].payload;
-    return (
-      <div className="chart-tooltip">
-        <div className="chart-tooltip-label">{data.name}</div>
-        <ul>
-          <li>
-            <span className="dot" style={{ background: payload[0].fill }} />
-            <span className="name">Value</span>
-            <span className="value">{formatCurrency(data.value)}</span>
-          </li>
-          <li>
-            <span className="name">Allocation</span>
-            <span className="value">{data.percentage}%</span>
-          </li>
-        </ul>
-      </div>
-    );
-  };
+  ], []);
 
   if (isLoading) {
     return (
@@ -281,7 +285,7 @@ export default function Dashboard({ summary, isLoading }) {
                       fontWeight: 600,
                     }}
                   />
-                  <Tooltip content={renderTooltip} />
+                  <Tooltip content={ChartTooltip} />
                   <Legend
                     verticalAlign="top"
                     height={32}
@@ -356,7 +360,7 @@ export default function Dashboard({ summary, isLoading }) {
                     <Cell key={`account-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip content={renderPieTooltip} />
+                <Tooltip content={PieTooltip} />
                 <Legend
                   verticalAlign="bottom"
                   iconType="circle"
@@ -405,7 +409,7 @@ export default function Dashboard({ summary, isLoading }) {
                       <Cell key={`fund-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip content={renderPieTooltip} />
+                  <Tooltip content={PieTooltip} />
                   <Legend
                     verticalAlign="bottom"
                     iconType="circle"
@@ -593,3 +597,6 @@ export default function Dashboard({ summary, isLoading }) {
     </div>
   );
 }
+
+// Export memoized component to prevent unnecessary re-renders
+export default memo(Dashboard);
