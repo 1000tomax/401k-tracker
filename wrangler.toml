@@ -1,5 +1,6 @@
 name = "401k-tracker"
 compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = "dist"
 
 # Environment Variables (configure in dashboard or via wrangler secrets)
@@ -8,4 +9,4 @@ pages_build_output_dir = "dist"
 
 # Note: Build configuration, cron triggers, and other settings
 # are configured via Cloudflare dashboard or CLI commands
-# Pages projects don't use [build], [pages], or [functions] blocks in wrangler.toml
+# nodejs_compat flag enables Node.js APIs (crypto, buffer, etc.) in Functions
