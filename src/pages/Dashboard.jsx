@@ -17,8 +17,8 @@ import {
   Legend,
 } from 'recharts';
 
-// Memoized chart tooltip component
-const ChartTooltip = memo(({ active, payload, label }) => {
+// Custom chart tooltip component - NOT memoized to ensure Recharts compatibility
+function ChartTooltip({ active, payload, label }) {
   if (!active || !payload || !payload.length) {
     return null;
   }
@@ -34,9 +34,6 @@ const ChartTooltip = memo(({ active, payload, label }) => {
   // Extract numeric values - handle both number and string types
   const mvValue = typeof marketValue?.value === 'number' ? marketValue.value : parseFloat(marketValue?.value || 0);
   const cbValue = typeof costBasis?.value === 'number' ? costBasis.value : parseFloat(costBasis?.value || 0);
-
-  // Debug logging
-  console.log('Tooltip payload:', { marketValue, costBasis, mvValue, cbValue });
 
   return (
     <div className="chart-tooltip">
@@ -59,8 +56,7 @@ const ChartTooltip = memo(({ active, payload, label }) => {
       </ul>
     </div>
   );
-});
-ChartTooltip.displayName = 'ChartTooltip';
+}
 
 // Memoized pie chart tooltip component
 const PieTooltip = memo(({ active, payload }) => {
