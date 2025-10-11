@@ -298,7 +298,7 @@ function Dashboard({ summary, isLoading }) {
                       fontWeight: 600,
                     }}
                   />
-                  <Tooltip content={ChartTooltip} />
+                  <Tooltip content={ChartTooltip} cursor={{ strokeDasharray: '3 3' }} />
                   <Legend
                     verticalAlign="top"
                     height={32}
