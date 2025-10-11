@@ -31,9 +31,7 @@ jobs:
         run: npm run build
         env:
           NODE_ENV: production
-          # Environment variables for build-time configuration
-          # Add VITE_* variables here if needed
-          # VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_401K_TOKEN: ${{ secrets.VITE_401K_TOKEN }}
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
