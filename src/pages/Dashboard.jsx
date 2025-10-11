@@ -31,6 +31,10 @@ const ChartTooltip = memo(({ active, payload, label }) => {
     return null;
   }
 
+  // Extract numeric values - handle both number and string types
+  const mvValue = typeof marketValue?.value === 'number' ? marketValue.value : parseFloat(marketValue?.value || 0);
+  const cbValue = typeof costBasis?.value === 'number' ? costBasis.value : parseFloat(costBasis?.value || 0);
+
   return (
     <div className="chart-tooltip">
       <div className="chart-tooltip-label" style={{ fontWeight: 700, marginBottom: '10px', fontSize: '14px' }}>{label}</div>
@@ -39,14 +43,14 @@ const ChartTooltip = memo(({ active, payload, label }) => {
           <li key="marketValue" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0' }}>
             <span className="dot" style={{ background: marketValue.stroke, width: '8px', height: '8px', borderRadius: '50%', display: 'inline-block' }} />
             <span className="name" style={{ flex: 1 }}>Market Value</span>
-            <span className="value" style={{ fontWeight: 600 }}>{formatCurrency(Number(marketValue.value) || 0)}</span>
+            <span className="value" style={{ fontWeight: 600 }}>{formatCurrency(mvValue)}</span>
           </li>
         )}
         {costBasis && (
           <li key="costBasis" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0' }}>
             <span className="dot" style={{ background: costBasis.stroke, width: '8px', height: '8px', borderRadius: '50%', display: 'inline-block' }} />
             <span className="name" style={{ flex: 1 }}>Cost Basis</span>
-            <span className="value" style={{ fontWeight: 600 }}>{formatCurrency(Number(costBasis.value) || 0)}</span>
+            <span className="value" style={{ fontWeight: 600 }}>{formatCurrency(cbValue)}</span>
           </li>
         )}
       </ul>
