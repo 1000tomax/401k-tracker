@@ -33,20 +33,20 @@ const ChartTooltip = memo(({ active, payload, label }) => {
 
   return (
     <div className="chart-tooltip">
-      <div className="chart-tooltip-label" style={{ fontWeight: 600, marginBottom: '8px' }}>{label}</div>
-      <ul>
+      <div className="chart-tooltip-label" style={{ fontWeight: 700, marginBottom: '10px', fontSize: '14px' }}>{label}</div>
+      <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
         {marketValue && (
-          <li key="marketValue">
-            <span className="dot" style={{ background: marketValue.stroke }} />
-            <span className="name">Market Value</span>
-            <span className="value">{formatCurrency(marketValue.value ?? 0)}</span>
+          <li key="marketValue" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0' }}>
+            <span className="dot" style={{ background: marketValue.stroke, width: '8px', height: '8px', borderRadius: '50%', display: 'inline-block' }} />
+            <span className="name" style={{ flex: 1 }}>Market Value</span>
+            <span className="value" style={{ fontWeight: 600 }}>{formatCurrency(Number(marketValue.value) || 0)}</span>
           </li>
         )}
         {costBasis && (
-          <li key="costBasis">
-            <span className="dot" style={{ background: costBasis.stroke }} />
-            <span className="name">Cost Basis</span>
-            <span className="value">{formatCurrency(costBasis.value ?? 0)}</span>
+          <li key="costBasis" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0' }}>
+            <span className="dot" style={{ background: costBasis.stroke, width: '8px', height: '8px', borderRadius: '50%', display: 'inline-block' }} />
+            <span className="name" style={{ flex: 1 }}>Cost Basis</span>
+            <span className="value" style={{ fontWeight: 600 }}>{formatCurrency(Number(costBasis.value) || 0)}</span>
           </li>
         )}
       </ul>
@@ -304,6 +304,7 @@ function Dashboard({ summary, isLoading }) {
                   <Area
                     type="monotone"
                     dataKey="marketValueShade"
+                    name=""
                     stroke="rgba(129, 140, 248, 0.35)"
                     strokeWidth={1}
                     fill="url(#balanceTrendGradient)"
@@ -311,6 +312,7 @@ function Dashboard({ summary, isLoading }) {
                     dot={false}
                     activeDot={false}
                     legendType="none"
+                    tooltipType="none"
                   />
                   <Line
                     type="monotone"
