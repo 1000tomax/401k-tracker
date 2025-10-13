@@ -17,7 +17,9 @@
       "Bash(wrangler pages project:*)",
       "Bash(wrangler pages secret list:*)",
       "Bash(wrangler pages deploy:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(mkdir:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
