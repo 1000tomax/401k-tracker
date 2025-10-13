@@ -129,6 +129,23 @@ function Dashboard({ summary, isLoading }) {
     return formatCurrency(value);
   }, []);
 
+  // Calculate Y-axis domain with padding for better visualization
+  const yAxisDomain = useMemo(() => {
+    if (!trendData.length) return [0, 'auto'];
+
+    const allValues = trendData.flatMap(d => [d.marketValue, d.costBasis]);
+    const minValue = Math.min(...allValues);
+    const maxValue = Math.max(...allValues);
+    const range = maxValue - minValue;
+
+    // Add 10% padding above and below for better visualization
+    const padding = range * 0.1;
+    const domainMin = Math.max(0, minValue - padding);
+    const domainMax = maxValue + padding;
+
+    return [Math.floor(domainMin), Math.ceil(domainMax)];
+  }, [trendData]);
+
   const toggleAccountExpanded = useCallback((accountName) => {
     setExpandedAccounts(prev => {
       const newSet = new Set(prev);
@@ -284,6 +301,7 @@ function Dashboard({ summary, isLoading }) {
                     axisLine={{ stroke: 'rgba(148, 163, 184, 0.2)' }}
                     tickFormatter={tickFormatter}
                     width={90}
+                    domain={yAxisDomain}
                     label={{
                       value: 'Account Value',
                       angle: -90,
