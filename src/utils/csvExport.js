@@ -42,6 +42,7 @@ export function convertHoldingsToCSV(holdingsByAccount) {
   const headers = [
     'Account',
     'Fund',
+    'Source',
     'Shares',
     'Avg Cost',
     'Cost Basis',
@@ -58,29 +59,70 @@ export function convertHoldingsToCSV(holdingsByAccount) {
 
   const rows = [headers.join(',')];
 
+  // Helper function to extract source from account name
+  const extractSource = (accountName) => {
+    if (!accountName) return '';
+
+    // Extract source from patterns like "Voya 401(k) (Match)" or "Voya 401(k) (PreTax)"
+    const sourceMatch = accountName.match(/\(([^)]+)\)$/);
+    if (sourceMatch) {
+      return sourceMatch[1];
+    }
+
+    return '';
+  };
+
   holdingsByAccount.forEach(account => {
     // Validate account has holdings array
     if (!account || !Array.isArray(account.holdings)) {
       return;
     }
 
-    account.holdings.forEach(holding => {
-      const gainLossPercent = holding.costBasis > 0
-        ? ((holding.gainLoss / holding.costBasis) * 100).toFixed(2)
-        : '0.00';
+    // If this account has source breakdown (like Voya 401k), export each source separately
+    if (account.sources && Array.isArray(account.sources)) {
+      account.sources.forEach(sourceData => {
+        sourceData.holdings.forEach(holding => {
+          const gainLossPercent = holding.costBasis > 0
+            ? ((holding.gainLoss / holding.costBasis) * 100).toFixed(2)
+            : '0.00';
 
-      rows.push([
-        escapeCSVValue(account.accountName || 'Unknown'),
-        escapeCSVValue(holding.fund || 'Unknown'),
-        formatNumber(holding.shares, 4),
-        formatNumber(holding.avgCost, 2),
-        formatNumber(holding.costBasis, 2),
-        formatNumber(holding.latestNAV, 2),
-        formatNumber(holding.marketValue, 2),
-        formatNumber(holding.gainLoss, 2),
-        gainLossPercent
-      ].join(','));
-    });
+          rows.push([
+            escapeCSVValue(account.accountName || 'Unknown'),
+            escapeCSVValue(holding.fund || 'Unknown'),
+            escapeCSVValue(sourceData.source || ''),
+            formatNumber(holding.shares, 4),
+            formatNumber(holding.avgCost, 2),
+            formatNumber(holding.costBasis, 2),
+            formatNumber(holding.latestNAV, 2),
+            formatNumber(holding.marketValue, 2),
+            formatNumber(holding.gainLoss, 2),
+            gainLossPercent
+          ].join(','));
+        });
+      });
+    } else {
+      // Regular account - extract source from account name if available
+      account.holdings.forEach(holding => {
+        const gainLossPercent = holding.costBasis > 0
+          ? ((holding.gainLoss / holding.costBasis) * 100).toFixed(2)
+          : '0.00';
+
+        const source = extractSource(account.accountName);
+
+        rows.push([
+          escapeCSVValue(account.accountName || 'Unknown'),
+          escapeCSVValue(holding.fund || 'Unknown'),
+          escapeCSVValue(source),
+          formatNumber(holding.shares, 4),
+          formatNumber(holding.avgCost, 2),
+          formatNumber(holding.costBasis, 2),
+          formatNumber(holding.latestNAV, 2),
+          formatNumber(holding.marketValue, 2),
+          formatNumber(holding.gainLoss, 2),
+          gainLossPercent
+        ].join(','));
+      });
+    }
   });
 
   return rows.join('\n');
