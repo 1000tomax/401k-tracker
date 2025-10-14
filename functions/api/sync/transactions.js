@@ -151,7 +151,7 @@ export async function onRequestPost(context) {
         console.log(`🔍 Fetching transactions for ${connection.institution_name}`);
 
         // SECURITY: Decrypt the access token before using it
-        const decryptedData = decryptJson(connection.access_token, env);
+        const decryptedData = await decryptJson(connection.access_token, env);
         const accessToken = decryptedData.token;
 
         // Fetch investment transactions from Plaid

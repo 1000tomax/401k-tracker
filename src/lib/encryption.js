@@ -1,55 +1,109 @@
-import crypto from 'crypto';
-
-const ALGORITHM = 'aes-256-gcm';
+// Web Crypto API implementation for browser and Cloudflare Workers compatibility
+const ALGORITHM = 'AES-GCM';
 const IV_LENGTH = 12; // GCM recommended
 
-function getKey(env) {
+// Helper to convert base64 to Uint8Array
+function base64ToUint8Array(base64) {
+  const binaryString = atob(base64);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
+}
+
+// Helper to convert Uint8Array to base64
+function uint8ArrayToBase64(bytes) {
+  let binaryString = '';
+  for (let i = 0; i < bytes.length; i++) {
+    binaryString += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binaryString);
+}
+
+async function getKey(env) {
   const rawKey = env.PLAID_TOKEN_ENCRYPTION_KEY;
   if (!rawKey) {
     throw new Error('PLAID_TOKEN_ENCRYPTION_KEY environment variable is required');
   }
 
-  const keyBuffer = Buffer.from(rawKey, 'base64');
+  const keyBuffer = base64ToUint8Array(rawKey);
   if (keyBuffer.length !== 32) {
     throw new Error('PLAID_TOKEN_ENCRYPTION_KEY must be 32 bytes (base64 encoded) to use aes-256-gcm');
   }
 
-  return keyBuffer;
+  // Import the key for use with Web Crypto API
+  return await crypto.subtle.importKey(
+    'raw',
+    keyBuffer,
+    { name: ALGORITHM },
+    false,
+    ['encrypt', 'decrypt']
+  );
 }
 
-export function encryptJson(payload, env) {
-  const key = getKey(env);
-  const iv = crypto.randomBytes(IV_LENGTH);
-  const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
+export async function encryptJson(payload, env) {
+  const key = await getKey(env);
 
-  const json = JSON.stringify(payload);
-  const encrypted = Buffer.concat([cipher.update(json, 'utf8'), cipher.final()]);
-  const authTag = cipher.getAuthTag();
+  // Generate random IV
+  const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH));
 
-  return Buffer.concat([iv, authTag, encrypted]).toString('base64');
+  // Convert JSON to Uint8Array
+  const encoder = new TextEncoder();
+  const data = encoder.encode(JSON.stringify(payload));
+
+  // Encrypt the data
+  const encrypted = await crypto.subtle.encrypt(
+    {
+      name: ALGORITHM,
+      iv: iv,
+    },
+    key,
+    data
+  );
+
+  // Combine IV + encrypted data (which includes auth tag in GCM mode)
+  const encryptedBytes = new Uint8Array(encrypted);
+  const combined = new Uint8Array(iv.length + encryptedBytes.length);
+  combined.set(iv, 0);
+  combined.set(encryptedBytes, iv.length);
+
+  return uint8ArrayToBase64(combined);
 }
 
-export function decryptJson(token, env) {
+export async function decryptJson(token, env) {
   if (!token) {
     throw new Error('Cannot decrypt empty token');
   }
 
-  const key = getKey(env);
-  const buffer = Buffer.from(token, 'base64');
-  const iv = buffer.subarray(0, IV_LENGTH);
-  const authTag = buffer.subarray(IV_LENGTH, IV_LENGTH + 16);
-  const ciphertext = buffer.subarray(IV_LENGTH + 16);
+  const key = await getKey(env);
 
-  const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
-  decipher.setAuthTag(authTag);
+  // Decode base64 token
+  const combined = base64ToUint8Array(token);
 
-  const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8');
-  return JSON.parse(decrypted);
+  // Extract IV and encrypted data
+  const iv = combined.slice(0, IV_LENGTH);
+  const encrypted = combined.slice(IV_LENGTH);
+
+  // Decrypt the data
+  const decrypted = await crypto.subtle.decrypt(
+    {
+      name: ALGORITHM,
+      iv: iv,
+    },
+    key,
+    encrypted
+  );
+
+  // Convert back to string and parse JSON
+  const decoder = new TextDecoder();
+  const json = decoder.decode(decrypted);
+  return JSON.parse(json);
 }
 
-export function tryDecryptJson(token, env) {
+export async function tryDecryptJson(token, env) {
   try {
-    return decryptJson(token, env);
+    return await decryptJson(token, env);
   } catch (error) {
     console.warn('Failed to decrypt token', error);
     return null;

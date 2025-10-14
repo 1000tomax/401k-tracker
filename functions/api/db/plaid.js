@@ -85,7 +85,7 @@ export async function onRequestPost(context) {
     }
 
     // SECURITY: Encrypt the access token before storing it
-    const encryptedToken = encryptJson({ token: access_token }, env);
+    const encryptedToken = await encryptJson({ token: access_token }, env);
 
     const supabase = createSupabaseAdmin(env);
 
