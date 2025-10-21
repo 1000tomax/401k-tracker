@@ -1,3 +1,16 @@
+/**
+ * @file App.jsx
+ * @description Main application component that orchestrates the 401K Tracker application.
+ * Handles portfolio data loading, account aggregation, live price updates, and routing.
+ *
+ * Key responsibilities:
+ * - Loading transaction data and calculating portfolio metrics
+ * - Merging Plaid-connected accounts with manual Voya 401(k) data
+ * - Fetching and applying live ETF prices during market hours
+ * - Auto-refreshing prices every 15 minutes when market is open
+ * - Grouping holdings by account for dashboard display
+ * - Managing application state and routing
+ */
 import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, NavLink, Navigate } from 'react-router-dom';
 import { formatDate, formatCurrency } from './utils/formatters.js';
@@ -56,7 +69,13 @@ export default function App() {
   const transactionService = useMemo(() => new TransactionService(API_URL, API_TOKEN), []);
   const voyaService = useMemo(() => new VoyaService(API_URL, API_TOKEN), []);
 
-  // Helper: Convert portfolio to holdings array
+  /**
+   * Converts nested portfolio structure to a flat array of holdings.
+   * Filters out closed positions and positions with zero shares.
+   * @param {object} portfolio - Portfolio object with nested fund/source structure
+   * @param {object} portfolio.portfolio - Map of funds to sources to position metrics
+   * @returns {Array<object>} Flat array of holding objects with fund, accountName, shares, etc.
+   */
   const convertPortfolioToHoldings = useCallback((portfolio) => {
     const holdings = [];
 
@@ -80,7 +99,16 @@ export default function App() {
     return holdings;
   }, []);
 
-  // Load holdings from transactions
+  /**
+   * Loads all transaction data, calculates portfolio metrics, and updates state.
+   * This is the main data loading function that:
+   * 1. Fetches all transactions from the database
+   * 2. Separates Voya 401(k) transactions for special handling
+   * 3. Fetches live ETF prices for Roth IRA holdings
+   * 4. Aggregates portfolio metrics (cost basis, market value, gains/losses)
+   * 5. Enriches Voya holdings with live proxy pricing
+   * 6. Generates timeline data for charts
+   */
   const loadHoldings = useCallback(async () => {
     try {
       console.log('📊 Loading portfolio from transactions...');
@@ -215,7 +243,11 @@ export default function App() {
     }
   }, [transactionService, convertPortfolioToHoldings, holdingsService, voyaService]);
 
-  // Check if currently during US market hours (9:30 AM - 4:00 PM ET, Mon-Fri)
+  /**
+   * Determines if the US stock market is currently open.
+   * Market hours: Monday-Friday, 9:30 AM - 4:00 PM Eastern Time (excluding holidays).
+   * @returns {boolean} True if market is currently open, false otherwise
+   */
   const isMarketHours = useCallback(() => {
     const now = new Date();
 
@@ -259,8 +291,13 @@ export default function App() {
     return () => clearInterval(interval);
   }, [loadHoldings, isMarketHours]);
 
-
-  // Account name mapping for display
+  /**
+   * Formats raw account names into user-friendly display names.
+   * Handles various account types including Roth IRAs and Voya 401(k) sources.
+   * Maps common variations to standardized names for consistent display.
+   * @param {string} name - Raw account name from database
+   * @returns {string} Formatted, user-friendly account name
+   */
   const formatAccountName = (name) => {
     const cleanName = name || 'Unknown Account';
     const lower = cleanName.toLowerCase();
@@ -304,7 +341,15 @@ export default function App() {
     return cleanName;
   };
 
-  // Group holdings by account for display
+  /**
+   * Groups holdings by account for dashboard display.
+   * Special handling for Voya 401(k) accounts:
+   * - Combines multiple Voya sources (PreTax, Roth, Match) into one account
+   * - Makes Voya account collapsible to show/hide source breakdown
+   * - Merges holdings with the same fund across sources
+   * - Tracks most recent price timestamp for each account
+   * @returns {Array<object>} Array of account objects with holdings and totals
+   */
   const holdingsByAccount = useMemo(() => {
     const grouped = new Map();
     const voyaSources = new Map(); // Track Voya sources separately
@@ -421,6 +466,11 @@ export default function App() {
     };
   }, [totals, timeline, holdings, holdingsByAccount]);
 
+  /**
+   * Main application component with routing, navigation, and portfolio summary display.
+   * Renders the app shell with header (showing portfolio metrics), navigation bar,
+   * and lazy-loaded page routes. Auto-refreshes data during market hours.
+   */
   return (
     <PlaidAuthProvider>
       <BrowserRouter>

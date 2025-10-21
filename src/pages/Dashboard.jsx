@@ -1,3 +1,15 @@
+/**
+ * @file Dashboard.jsx
+ * @description Main dashboard page component displaying portfolio overview, charts, and holdings.
+ *
+ * Key features:
+ * - Account growth chart showing market value vs cost basis over time
+ * - Asset allocation pie charts (by account and by fund)
+ * - Current holdings table grouped by account with expandable Voya sources
+ * - Portfolio export to CSV functionality
+ * - Live price indicators and timestamps
+ * - Filterable fund allocation (all accounts, IRA only, or 401k only)
+ */
 import React, { useMemo, useState, memo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { formatCurrency, formatDate } from '../utils/formatters.js';
@@ -17,7 +29,16 @@ import {
   Legend,
 } from 'recharts';
 
-// Custom chart tooltip component - NOT memoized to ensure Recharts compatibility
+/**
+ * Custom tooltip component for the account growth chart.
+ * Displays formatted market value and cost basis for a specific date.
+ * Not memoized to ensure Recharts compatibility.
+ * @param {object} props - Recharts tooltip props
+ * @param {boolean} props.active - Whether tooltip is active
+ * @param {Array} props.payload - Data payload for the hovered point
+ * @param {string} props.label - X-axis label (date)
+ * @returns {React.Component|null} Tooltip component or null if inactive
+ */
 function ChartTooltip({ active, payload, label }) {
   if (!active || !payload || !payload.length) {
     return null;
@@ -58,7 +79,14 @@ function ChartTooltip({ active, payload, label }) {
   );
 }
 
-// Memoized pie chart tooltip component
+/**
+ * Custom tooltip component for pie charts showing asset allocation.
+ * Displays the asset name, value, and percentage of total.
+ * @param {object} props - Recharts tooltip props
+ * @param {boolean} props.active - Whether tooltip is active
+ * @param {Array} props.payload - Data payload for the hovered slice
+ * @returns {React.Component|null} Tooltip component or null if inactive
+ */
 const PieTooltip = memo(({ active, payload }) => {
   if (!active || !payload || !payload.length) return null;
   const data = payload[0].payload;
@@ -81,12 +109,28 @@ const PieTooltip = memo(({ active, payload }) => {
 });
 PieTooltip.displayName = 'PieTooltip';
 
+/**
+ * Dashboard page component that displays comprehensive portfolio overview.
+ * @param {object} props - Component props
+ * @param {object} props.summary - Portfolio summary data
+ * @param {object} props.summary.totals - Portfolio totals (market value, cost basis, gain/loss)
+ * @param {Array} props.summary.timeline - Historical portfolio values for charting
+ * @param {Array} props.summary.holdings - Current holdings array
+ * @param {Array} props.summary.holdingsByAccount - Holdings grouped by account
+ * @param {boolean} props.isLoading - Whether data is currently loading
+ * @returns {React.Component} Dashboard page component
+ */
 function Dashboard({ summary, isLoading }) {
   const { totals, timeline, holdings, holdingsByAccount } = summary;
   const [expandedAccounts, setExpandedAccounts] = useState(new Set());
   const [portfolioFilter, setPortfolioFilter] = useState('all');
 
-  // Helper to extract ticker symbol from fund name
+  /**
+   * Extracts stock ticker symbol from various fund name formats.
+   * Handles patterns like "Fund Name (SYMBOL)" or "SYMBOL - Fund Name".
+   * @param {string} fundName - Full fund name that may contain a ticker
+   * @returns {string|null} Extracted ticker symbol or null if not found
+   */
   const extractTicker = (fundName) => {
     if (!fundName) return null;
     const cleaned = fundName.trim().toUpperCase();
@@ -108,6 +152,11 @@ function Dashboard({ summary, isLoading }) {
     return null;
   };
 
+  /**
+   * Prepares timeline data for the account growth chart.
+   * Formats dates and ensures numeric values for plotting.
+   * @returns {Array<object>} Array of data points with date, marketValue, costBasis
+   */
   const trendData = useMemo(() => {
     return (timeline || []).map(entry => ({
       date: entry.date,
@@ -118,6 +167,12 @@ function Dashboard({ summary, isLoading }) {
     }));
   }, [timeline]);
 
+  /**
+   * Formats Y-axis tick values to abbreviated currency strings.
+   * Displays values as $1.5M, $2.3K, etc. for readability.
+   * @param {number} value - Numeric value to format
+   * @returns {string} Formatted currency string
+   */
   const tickFormatter = useCallback(value => {
     if (!Number.isFinite(value)) return '';
     if (Math.abs(value) >= 1_000_000) {
@@ -129,7 +184,11 @@ function Dashboard({ summary, isLoading }) {
     return formatCurrency(value);
   }, []);
 
-  // Calculate Y-axis domain with padding for better visualization
+  /**
+   * Calculates Y-axis domain with 10% padding above and below data range.
+   * Ensures chart doesn't clip data points and provides visual breathing room.
+   * @returns {Array<number>} [minValue, maxValue] for Y-axis domain
+   */
   const yAxisDomain = useMemo(() => {
     if (!trendData.length) return [0, 'auto'];
 
@@ -146,6 +205,10 @@ function Dashboard({ summary, isLoading }) {
     return [Math.floor(domainMin), Math.ceil(domainMax)];
   }, [trendData]);
 
+  /**
+   * Toggles the expanded state of a collapsible account (e.g., Voya 401k with sources).
+   * @param {string} accountName - Name of the account to toggle
+   */
   const toggleAccountExpanded = useCallback((accountName) => {
     setExpandedAccounts(prev => {
       const newSet = new Set(prev);
@@ -158,13 +221,21 @@ function Dashboard({ summary, isLoading }) {
     });
   }, []);
 
+  /**
+   * Exports current portfolio holdings to CSV file.
+   * Generates filename with current date for easy organization.
+   */
   const handleExportPortfolio = useCallback(() => {
     const csvData = convertHoldingsToCSV(holdingsByAccount);
     const filename = `portfolio-${new Date().toISOString().split('T')[0]}.csv`;
     downloadCSV(csvData, filename);
   }, [holdingsByAccount]);
 
-  // Helper to determine account type
+  /**
+   * Determines broad account type for filtering purposes.
+   * @param {string} accountName - Account name to categorize
+   * @returns {string} 'ira', '401k', or 'other'
+   */
   const getAccountType = (accountName) => {
     const name = accountName.toLowerCase();
     if (name.includes('ira')) return 'ira';
@@ -177,7 +248,11 @@ function Dashboard({ summary, isLoading }) {
     return 'other';
   };
 
-  // Helper to get account subtype for fund breakdown
+  /**
+   * Gets detailed account subtype for display in fund breakdown.
+   * @param {string} accountName - Account name to parse
+   * @returns {string} Specific account subtype (e.g., 'Roth IRA', 'PreTax', 'Match')
+   */
   const getAccountSubtype = (accountName) => {
     const name = accountName.toLowerCase();
     if (name.includes('roth') && name.includes('ira')) return 'Roth IRA';
@@ -187,7 +262,11 @@ function Dashboard({ summary, isLoading }) {
     return accountName;
   };
 
-  // Asset allocation data
+  /**
+   * Calculates asset allocation data for pie charts.
+   * Computes allocation by account (always all) and by fund (filterable by account type).
+   * @returns {object} Object with accountAllocation, fundAllocation, and filteredTotal
+   */
   const allocationData = useMemo(() => {
     // Account allocation (always show all)
     const accountAllocation = holdingsByAccount.map(account => ({

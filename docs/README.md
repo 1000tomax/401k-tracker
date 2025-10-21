@@ -2,10 +2,11 @@
 
 This folder contains comprehensive documentation for the 401K Tracker project.
 
-## 📚 Documentation Structure
+## Documentation Structure
 
 ### Main Documentation
 - [FUTURE_FEATURES.md](./FUTURE_FEATURES.md) - Feature roadmap and planned improvements
+- [API_DOCUMENTATION.md](./API_DOCUMENTATION.md) - Complete API endpoint reference
 
 ### Integration Guides
 - [integration/VOYA_INTEGRATION.md](./integration/VOYA_INTEGRATION.md) - Guide for importing Voya 401(k) data via copy-paste
@@ -15,10 +16,11 @@ This folder contains comprehensive documentation for the 401K Tracker project.
 - [performance/PERFORMANCE_MONITORING.md](./performance/PERFORMANCE_MONITORING.md) - Performance monitoring system documentation
 - [performance/CLOUDFLARE_OPTIMIZATION.md](./performance/CLOUDFLARE_OPTIMIZATION.md) - Cloudflare Pages infrastructure optimization guide
 
-## 📖 Quick Links
+## Quick Links
 
 ### For Developers
 - **Getting Started**: See [../README.md](../README.md)
+- **API Reference**: [API_DOCUMENTATION.md](./API_DOCUMENTATION.md)
 - **AI Instructions**: See [../CLAUDE.md](../CLAUDE.md)
 - **Performance Guide**: [performance/PERFORMANCE_OPTIMIZATIONS.md](./performance/PERFORMANCE_OPTIMIZATIONS.md)
 
@@ -30,7 +32,7 @@ This folder contains comprehensive documentation for the 401K Tracker project.
 - **Cloudflare Setup**: [performance/CLOUDFLARE_OPTIMIZATION.md](./performance/CLOUDFLARE_OPTIMIZATION.md)
 - **Monitoring**: [performance/PERFORMANCE_MONITORING.md](./performance/PERFORMANCE_MONITORING.md)
 
-## 🗂️ What Was Cleaned Up
+## What Was Cleaned Up
 
 This documentation structure was recently organized. The following redundant files were removed:
 - Multiple overlapping performance quick-start guides
