@@ -2,22 +2,22 @@
 
 A modern portfolio tracking application for retirement accounts. Automatically syncs holdings from investment accounts via Plaid and provides daily snapshots of your portfolio value.
 
-## 🔗 Live Demo
+## Live Demo
 
 **[https://401k.mreedon.com](https://401k.mreedon.com)**
 
 ## Features
 
-- 🔗 **Plaid Integration** - Securely connect to investment accounts for automatic transaction syncing.
-- 📊 **Transaction Tracking** - Full transaction history with cost basis calculation
-- 💰 **Live ETF Prices** - Auto-refresh ETF prices every 15 min during market hours (Finnhub API)
-- 📈 **Account Growth Chart** - Visualize portfolio value and cost basis over time
-- 💵 **Gain/Loss Tracking** - Real-time profit/loss calculation per holding and total portfolio
-- 📧 **Email Notifications** - Daily transaction summaries via Resend API
-- ⏰ **Daily Auto-Sync** - Automatic Plaid sync via GitHub Actions (6 AM UTC)
-- 🗄️ **Supabase Database** - Secure cloud storage for transactions and raw data
-- 📋 **Manual Voya Import** - Copy-paste 401(k) data for tracking
-- ⚡ **Cloudflare Pages** - Fast, global deployment with Workers Functions
+- **Plaid Integration** - Securely connect to investment accounts for automatic transaction syncing.
+- **Transaction Tracking** - Full transaction history with cost basis calculation
+- **Live ETF Prices** - Auto-refresh ETF prices every 15 min during market hours (Finnhub API)
+- **Account Growth Chart** - Visualize portfolio value and cost basis over time
+- **Gain/Loss Tracking** - Real-time profit/loss calculation per holding and total portfolio
+- **Email Notifications** - Daily transaction summaries via Resend API
+- **Daily Auto-Sync** - Automatic Plaid sync via GitHub Actions (6 AM UTC)
+- **Supabase Database** - Secure cloud storage for transactions and raw data
+- **Manual Voya Import** - Copy-paste 401(k) data for tracking
+- **Cloudflare Pages** - Fast, global deployment with Workers Functions
 
 ## Tech Stack
 
@@ -143,11 +143,11 @@ The daily sync workflow runs at 6 AM UTC automatically.
 See [FUTURE_FEATURES.md](FUTURE_FEATURES.md) for detailed roadmap.
 
 **Planned:**
-- 📧 Weekly/monthly/quarterly email recaps with Claude AI commentary
-- 📊 Individual fund detail views with transaction history
-- 💹 Dividend tracking using raw transaction data
-- 🎯 Retirement goal tracking and projections
-- 📱 PWA support for mobile app experience
+- Weekly/monthly/quarterly email recaps with Claude AI commentary
+- Individual fund detail views with transaction history
+- Dividend tracking using raw transaction data
+- Retirement goal tracking and projections
+- PWA support for mobile app experience
 
 ## License
 
