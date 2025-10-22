@@ -226,10 +226,10 @@ function Dashboard({ summary, isLoading }) {
    * Generates filename with current date for easy organization.
    */
   const handleExportPortfolio = useCallback(() => {
-    const csvData = convertHoldingsToCSV(holdingsByAccount);
+    const csvData = convertHoldingsToCSV(holdingsByAccount, totals.marketValue);
     const filename = `portfolio-${new Date().toISOString().split('T')[0]}.csv`;
     downloadCSV(csvData, filename);
-  }, [holdingsByAccount]);
+  }, [holdingsByAccount, totals.marketValue]);
 
   /**
    * Determines broad account type for filtering purposes.

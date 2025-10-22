@@ -33,12 +33,33 @@ function formatNumber(value, decimals) {
 }
 
 /**
+ * Calculates the number of days between a date string and today.
+ *
+ * @param {string} dateString Date in YYYY-MM-DD format
+ * @returns {number|null} Number of days held, or null if date is invalid
+ */
+function calculateDaysHeld(dateString) {
+  if (!dateString) return null;
+
+  try {
+    const purchaseDate = new Date(dateString);
+    const today = new Date();
+    const diffTime = today - purchaseDate;
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays >= 0 ? diffDays : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Converts portfolio holdings data to CSV format.
  *
  * @param {Array<object>} holdingsByAccount Array of account objects with holdings
+ * @param {number} totalPortfolioValue Total portfolio market value for allocation calculation
  * @returns {string} CSV-formatted string with headers and data rows
  */
-export function convertHoldingsToCSV(holdingsByAccount) {
+export function convertHoldingsToCSV(holdingsByAccount, totalPortfolioValue = null) {
   const headers = [
     'Account',
     'Fund',
@@ -49,7 +70,10 @@ export function convertHoldingsToCSV(holdingsByAccount) {
     'Latest Price',
     'Market Value',
     'Gain/Loss',
-    'Gain/Loss %'
+    'Gain/Loss %',
+    'Allocation %',
+    'First Purchase',
+    'Days Held'
   ];
 
   // Handle empty or invalid input
@@ -58,6 +82,13 @@ export function convertHoldingsToCSV(holdingsByAccount) {
   }
 
   const rows = [headers.join(',')];
+
+  // Calculate total portfolio value if not provided
+  if (totalPortfolioValue === null) {
+    totalPortfolioValue = holdingsByAccount.reduce((sum, account) => {
+      return sum + (account.totalValue || 0);
+    }, 0);
+  }
 
   // Helper function to extract source from account name
   const extractSource = (accountName) => {
@@ -71,6 +102,13 @@ export function convertHoldingsToCSV(holdingsByAccount) {
 
     return '';
   };
+
+  // Track totals for summary rows
+  const accountTotals = new Map();
+  const sourceTotals = new Map();
+  let overallCostBasis = 0;
+  let overallMarketValue = 0;
+  let overallGainLoss = 0;
 
   holdingsByAccount.forEach(account => {
     // Validate account has holdings array
@@ -86,6 +124,35 @@ export function convertHoldingsToCSV(holdingsByAccount) {
             ? ((holding.gainLoss / holding.costBasis) * 100).toFixed(2)
             : '0.00';
 
+          const allocationPercent = totalPortfolioValue > 0
+            ? ((holding.marketValue / totalPortfolioValue) * 100).toFixed(2)
+            : '0.00';
+
+          const daysHeld = calculateDaysHeld(holding.firstBuyDate);
+
+          // Accumulate totals
+          const accountKey = account.accountName || 'Unknown';
+          const sourceKey = sourceData.source || 'Unknown';
+
+          if (!accountTotals.has(accountKey)) {
+            accountTotals.set(accountKey, { costBasis: 0, marketValue: 0, gainLoss: 0 });
+          }
+          if (!sourceTotals.has(sourceKey)) {
+            sourceTotals.set(sourceKey, { costBasis: 0, marketValue: 0, gainLoss: 0 });
+          }
+
+          accountTotals.get(accountKey).costBasis += holding.costBasis || 0;
+          accountTotals.get(accountKey).marketValue += holding.marketValue || 0;
+          accountTotals.get(accountKey).gainLoss += holding.gainLoss || 0;
+
+          sourceTotals.get(sourceKey).costBasis += holding.costBasis || 0;
+          sourceTotals.get(sourceKey).marketValue += holding.marketValue || 0;
+          sourceTotals.get(sourceKey).gainLoss += holding.gainLoss || 0;
+
+          overallCostBasis += holding.costBasis || 0;
+          overallMarketValue += holding.marketValue || 0;
+          overallGainLoss += holding.gainLoss || 0;
+
           rows.push([
             escapeCSVValue(account.accountName || 'Unknown'),
             escapeCSVValue(holding.fund || 'Unknown'),
@@ -96,7 +163,10 @@ export function convertHoldingsToCSV(holdingsByAccount) {
             formatNumber(holding.latestNAV, 2),
             formatNumber(holding.marketValue, 2),
             formatNumber(holding.gainLoss, 2),
-            gainLossPercent
+            gainLossPercent,
+            allocationPercent,
+            holding.firstBuyDate || '',
+            daysHeld !== null ? daysHeld.toString() : ''
           ].join(','));
         });
       });
@@ -107,7 +177,35 @@ export function convertHoldingsToCSV(holdingsByAccount) {
           ? ((holding.gainLoss / holding.costBasis) * 100).toFixed(2)
           : '0.00';
 
+        const allocationPercent = totalPortfolioValue > 0
+          ? ((holding.marketValue / totalPortfolioValue) * 100).toFixed(2)
+          : '0.00';
+
         const source = extractSource(account.accountName);
+        const daysHeld = calculateDaysHeld(holding.firstBuyDate);
+
+        // Accumulate totals
+        const accountKey = account.accountName || 'Unknown';
+        const sourceKey = source || 'Unknown';
+
+        if (!accountTotals.has(accountKey)) {
+          accountTotals.set(accountKey, { costBasis: 0, marketValue: 0, gainLoss: 0 });
+        }
+        if (!sourceTotals.has(sourceKey)) {
+          sourceTotals.set(sourceKey, { costBasis: 0, marketValue: 0, gainLoss: 0 });
+        }
+
+        accountTotals.get(accountKey).costBasis += holding.costBasis || 0;
+        accountTotals.get(accountKey).marketValue += holding.marketValue || 0;
+        accountTotals.get(accountKey).gainLoss += holding.gainLoss || 0;
+
+        sourceTotals.get(sourceKey).costBasis += holding.costBasis || 0;
+        sourceTotals.get(sourceKey).marketValue += holding.marketValue || 0;
+        sourceTotals.get(sourceKey).gainLoss += holding.gainLoss || 0;
+
+        overallCostBasis += holding.costBasis || 0;
+        overallMarketValue += holding.marketValue || 0;
+        overallGainLoss += holding.gainLoss || 0;
 
         rows.push([
           escapeCSVValue(account.accountName || 'Unknown'),
@@ -119,11 +217,101 @@ export function convertHoldingsToCSV(holdingsByAccount) {
           formatNumber(holding.latestNAV, 2),
           formatNumber(holding.marketValue, 2),
           formatNumber(holding.gainLoss, 2),
-          gainLossPercent
+          gainLossPercent,
+          allocationPercent,
+          holding.firstBuyDate || '',
+          daysHeld !== null ? daysHeld.toString() : ''
         ].join(','));
       });
     }
   });
+
+  // Add summary rows
+  rows.push(''); // Blank line separator
+
+  // Summary section header
+  rows.push('SUMMARY');
+  rows.push('');
+
+  // Total by Account
+  rows.push('By Account');
+  for (const [accountName, totals] of accountTotals.entries()) {
+    const gainLossPercent = totals.costBasis > 0
+      ? ((totals.gainLoss / totals.costBasis) * 100).toFixed(2)
+      : '0.00';
+    const allocationPercent = totalPortfolioValue > 0
+      ? ((totals.marketValue / totalPortfolioValue) * 100).toFixed(2)
+      : '0.00';
+
+    rows.push([
+      escapeCSVValue(accountName),
+      '',
+      '',
+      '',
+      '',
+      formatNumber(totals.costBasis, 2),
+      '',
+      formatNumber(totals.marketValue, 2),
+      formatNumber(totals.gainLoss, 2),
+      gainLossPercent,
+      allocationPercent,
+      '',
+      ''
+    ].join(','));
+  }
+  rows.push('');
+
+  // Total by Source Type
+  rows.push('By Source Type');
+  for (const [sourceName, totals] of sourceTotals.entries()) {
+    if (sourceName === 'Unknown') continue; // Skip unknown sources in summary
+
+    const gainLossPercent = totals.costBasis > 0
+      ? ((totals.gainLoss / totals.costBasis) * 100).toFixed(2)
+      : '0.00';
+    const allocationPercent = totalPortfolioValue > 0
+      ? ((totals.marketValue / totalPortfolioValue) * 100).toFixed(2)
+      : '0.00';
+
+    rows.push([
+      '',
+      '',
+      escapeCSVValue(sourceName),
+      '',
+      '',
+      formatNumber(totals.costBasis, 2),
+      '',
+      formatNumber(totals.marketValue, 2),
+      formatNumber(totals.gainLoss, 2),
+      gainLossPercent,
+      allocationPercent,
+      '',
+      ''
+    ].join(','));
+  }
+  rows.push('');
+
+  // Overall Portfolio Total
+  rows.push('Overall Portfolio Total');
+  const overallGainLossPercent = overallCostBasis > 0
+    ? ((overallGainLoss / overallCostBasis) * 100).toFixed(2)
+    : '0.00';
+
+  rows.push([
+    'TOTAL',
+    '',
+    '',
+    '',
+    '',
+    formatNumber(overallCostBasis, 2),
+    '',
+    formatNumber(overallMarketValue, 2),
+    formatNumber(overallGainLoss, 2),
+    overallGainLossPercent,
+    '100.00',
+    '',
+    ''
+  ].join(','));
 
   return rows.join('\n');
 }
