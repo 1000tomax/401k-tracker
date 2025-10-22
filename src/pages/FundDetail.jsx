@@ -311,9 +311,9 @@ export default function FundDetail() {
         )}
       </div>
 
-      {/* Share Accumulation Chart */}
+      {/* Value Growth Chart */}
       <div className="chart-section">
-        <h2>Share Accumulation Over Time</h2>
+        <h2>Value Growth Over Time</h2>
         <ResponsiveContainer width="100%" height={300}>
           <ComposedChart data={fundMetrics.timeline}>
             <CartesianGrid strokeDasharray="3 3" stroke="#333" />
@@ -323,31 +323,22 @@ export default function FundDetail() {
               tickFormatter={(date) => new Date(date).toLocaleDateString('en-US', { month: 'short', year: '2-digit' })}
             />
             <YAxis
-              yAxisId="left"
-              stroke="#888"
-              label={{ value: 'Shares', angle: -90, position: 'insideLeft', fill: '#888' }}
-            />
-            <YAxis
-              yAxisId="right"
-              orientation="right"
               stroke="#888"
               tickFormatter={tickFormatter}
-              label={{ value: 'Value ($)', angle: 90, position: 'insideRight', fill: '#888' }}
+              label={{ value: 'Value ($)', angle: -90, position: 'insideLeft', fill: '#888' }}
             />
             <Tooltip content={renderTooltip} />
             <Legend />
             <Area
-              yAxisId="left"
               type="monotone"
-              dataKey="shares"
-              fill="#3b82f6"
+              dataKey="costBasis"
+              fill="#8b5cf6"
               fillOpacity={0.3}
-              stroke="#3b82f6"
+              stroke="#8b5cf6"
               strokeWidth={2}
-              name="Shares Held"
+              name="Cost Basis"
             />
             <Line
-              yAxisId="right"
               type="monotone"
               dataKey="marketValue"
               stroke="#10b981"
