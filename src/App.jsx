@@ -479,65 +479,75 @@ export default function App() {
 
         <div className="app">
           <header className="top-bar">
-            <div className="brand">
-              <div className="brand-heading">
-                <h1>401k Tracker</h1>
-                <p>
-                  Monitor your retirement portfolio with automatic daily synchronization.
-                  {totals.lastUpdated && (
-                    <span className="last-update">
-                      {' '}• Last updated {formatDate(totals.lastUpdated)}
-                    </span>
-                  )}
-                  {!holdings.length && !isLoading && (
-                    <span className="getting-started">
-                      {' '}• Connect your Plaid account to get started
-                    </span>
-                  )}
-                </p>
-              </div>
-              {holdings.length > 0 && (
-                <div className="hero-metrics" aria-label="Portfolio quick metrics">
-                  <div className="hero-metric">
-                    <span className="hero-metric-label">Cost Basis</span>
-                    <span className="hero-metric-value">
-                      {formatCurrency(totals.costBasis || 0)}
-                    </span>
-                  </div>
-                  <div className="hero-metric">
-                    <span className="hero-metric-label">Market Value</span>
-                    <span className="hero-metric-value">
-                      {formatCurrency(totals.marketValue || 0)}
-                    </span>
-                  </div>
-                  <div className="hero-metric">
-                    <span className="hero-metric-label">Gain/Loss</span>
-                    <span className={`hero-metric-value ${(totals.gainLoss || 0) >= 0 ? 'positive' : 'negative'}`}>
-                      {formatCurrency(totals.gainLoss || 0)}
-                    </span>
-                  </div>
+            <div className="top-bar-header">
+              <div className="brand">
+                <div className="brand-heading">
+                  <h1>401k Tracker</h1>
+                  <p>
+                    Monitor your retirement portfolio with automatic daily synchronization.
+                    {totals.lastUpdated && (
+                      <span className="last-update">
+                        {' '}• Last updated {formatDate(totals.lastUpdated)}
+                      </span>
+                    )}
+                    {!holdings.length && !isLoading && (
+                      <span className="getting-started">
+                        {' '}• Connect your Plaid account to get started
+                      </span>
+                    )}
+                  </p>
                 </div>
-              )}
-            </div>
-            <nav className="nav">
-              <NavLink to="/" className={({ isActive }) => (isActive ? 'active' : '')} end>
-                Dashboard
-              </NavLink>
-              <NavLink to="/accounts" className={({ isActive }) => (isActive ? 'active' : '')}>
-                Accounts
-              </NavLink>
-              <NavLink to="/dividends" className={({ isActive }) => (isActive ? 'active' : '')}>
-                Dividends
-              </NavLink>
-              <NavLink to="/transactions" className={({ isActive }) => (isActive ? 'active' : '')}>
-                Transactions
-              </NavLink>
-              {import.meta.env.DEV && (
-                <NavLink to="/performance" className={({ isActive }) => (isActive ? 'active' : '')}>
-                  Performance
+              </div>
+              <nav className="nav">
+                <NavLink to="/" className={({ isActive }) => (isActive ? 'active' : '')} end>
+                  Dashboard
                 </NavLink>
-              )}
-            </nav>
+                <NavLink to="/accounts" className={({ isActive }) => (isActive ? 'active' : '')}>
+                  Accounts
+                </NavLink>
+                <NavLink to="/dividends" className={({ isActive }) => (isActive ? 'active' : '')}>
+                  Dividends
+                </NavLink>
+                <NavLink to="/transactions" className={({ isActive }) => (isActive ? 'active' : '')}>
+                  Transactions
+                </NavLink>
+                {import.meta.env.DEV && (
+                  <NavLink to="/performance" className={({ isActive }) => (isActive ? 'active' : '')}>
+                    Performance
+                  </NavLink>
+                )}
+              </nav>
+            </div>
+            {holdings.length > 0 && (
+              <div className="hero-metrics" aria-label="Portfolio quick metrics">
+                <div className="hero-metric">
+                  <span className="hero-metric-label">Cost Basis</span>
+                  <span className="hero-metric-value">
+                    {formatCurrency(totals.costBasis || 0)}
+                  </span>
+                </div>
+                <div className="hero-metric">
+                  <span className="hero-metric-label">Market Value</span>
+                  <span className="hero-metric-value">
+                    {formatCurrency(totals.marketValue || 0)}
+                  </span>
+                </div>
+                <div className="hero-metric">
+                  <span className="hero-metric-label">Gain/Loss</span>
+                  <span className={`hero-metric-value ${(totals.gainLoss || 0) >= 0 ? 'positive' : 'negative'}`}>
+                    {formatCurrency(totals.gainLoss || 0)}
+                  </span>
+                </div>
+                <div className="hero-metric">
+                  <span className="hero-metric-label">Total Return</span>
+                  <span className={`hero-metric-value ${(totals.gainLoss || 0) >= 0 ? 'positive' : 'negative'}`}>
+                    {totals.costBasis > 0
+                      ? `${((totals.gainLoss / totals.costBasis) * 100).toFixed(2)}%`
+                      : '0.00%'}
+                  </span>
+                </div>
+              </div>
+            )}
           </header>
 
           <main className="app-main">
