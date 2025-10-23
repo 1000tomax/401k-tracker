@@ -43,13 +43,23 @@ jobs:
                 body=$(echo "$response" | sed '$d')
 
                 echo "  HTTP Response code: $http_code"
-                echo "  Response body: $body"
 
                 if [ "$http_code" -eq 200 ]; then
+                  # Extract and display formatted summary if available
+                  formatted_summary=$(echo "$body" | jq -r '.formatted_summary // empty' 2>/dev/null)
+
+                  if [ -n "$formatted_summary" ]; then
+                    echo "$formatted_summary"
+                  else
+                    # Fallback to raw response if no formatted summary
+                    echo "  Response: $body"
+                  fi
+
                   echo "✅ Sync successful via $url"
                   exit 0
                 else
                   echo "  ⚠️ HTTP error: $http_code"
+                  echo "  Response body: $body"
                 fi
               else
                 echo "  ⚠️ Curl failed with exit code $curl_exit"

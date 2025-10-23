@@ -521,28 +521,49 @@ export async function onRequestPost(context) {
       }
     }
 
-    // Final summary
-    console.log('\n' + '='.repeat(80));
-    console.log('📊 SYNC SUMMARY');
-    console.log('='.repeat(80));
-    console.log(`Institutions processed:  ${connections.length}`);
-    console.log(`Date range:              ${startDate} to ${endDate}`);
-    console.log('');
-    console.log(`Total raw fetched:       ${totalTransactions.toString().padStart(4)}`);
-    console.log(`Transactions imported:   ${totalImported.toString().padStart(4)}`);
-    console.log(`Transactions duplicates: ${totalDuplicates.toString().padStart(4)}`);
-    console.log(`Dividends imported:      ${totalDividends.toString().padStart(4)}`);
-    console.log(`Dividends duplicates:    ${totalDividendsDuplicates.toString().padStart(4)}`);
+    // Build formatted summary for both console and response
+    const summaryLines = [];
+    summaryLines.push('');
+    summaryLines.push('='.repeat(80));
+    summaryLines.push('📊 PLAID TRANSACTION SYNC SUMMARY');
+    summaryLines.push('='.repeat(80));
+    summaryLines.push(`Institutions processed:  ${connections.length}`);
+    summaryLines.push(`Date range:              ${startDate} to ${endDate}`);
+    summaryLines.push('');
+    summaryLines.push(`Total raw fetched:       ${totalTransactions.toString().padStart(4)}`);
+    summaryLines.push(`Transactions imported:   ${totalImported.toString().padStart(4)}`);
+    summaryLines.push(`Transactions duplicates: ${totalDuplicates.toString().padStart(4)}`);
+    summaryLines.push(`Dividends imported:      ${totalDividends.toString().padStart(4)}`);
+    summaryLines.push(`Dividends duplicates:    ${totalDividendsDuplicates.toString().padStart(4)}`);
 
-    if (errors.length > 0) {
-      console.log(`\n⚠️  Errors: ${errors.length}`);
-      errors.forEach(err => {
-        console.log(`   - ${err.institution}: ${err.error}`);
+    // Per-institution breakdown
+    if (results.length > 0) {
+      summaryLines.push('');
+      summaryLines.push('Per Institution:');
+      results.forEach(result => {
+        summaryLines.push(`  🏦 ${result.institution}`);
+        summaryLines.push(`     Raw saved:      ${result.raw_saved.toString().padStart(4)}`);
+        summaryLines.push(`     Transactions:   ${result.transactions_imported.toString().padStart(4)} imported | ${result.transactions_duplicates.toString().padStart(3)} duplicates | ${result.transactions_filtered.toString().padStart(3)} filtered`);
+        summaryLines.push(`     Dividends:      ${result.dividends_imported.toString().padStart(4)} imported | ${result.dividends_duplicates.toString().padStart(3)} duplicates`);
       });
     }
 
-    console.log('='.repeat(80));
-    console.log('✅ SYNC COMPLETE\n');
+    if (errors.length > 0) {
+      summaryLines.push('');
+      summaryLines.push(`⚠️  Errors: ${errors.length}`);
+      errors.forEach(err => {
+        summaryLines.push(`   - ${err.institution}: ${err.error}`);
+      });
+    }
+
+    summaryLines.push('='.repeat(80));
+    summaryLines.push('✅ SYNC COMPLETE');
+    summaryLines.push('');
+
+    const formattedSummary = summaryLines.join('\n');
+
+    // Log to console
+    console.log(formattedSummary);
 
     return jsonResponse({
       ok: true,
@@ -556,6 +577,7 @@ export async function onRequestPost(context) {
       results,
       errors: errors.length > 0 ? errors : undefined,
       date_range: { start: startDate, end: endDate },
+      formatted_summary: formattedSummary,
     }, 200, env);
 
   } catch (error) {
