@@ -385,25 +385,44 @@ export async function onRequestPost(context) {
           });
         }
 
-        // Batch insert dividends (upsert to handle duplicates)
+        // Query existing dividends to identify duplicates
         if (dividendsToInsert.length > 0) {
-          const { data: insertedDivs, error: divError } = await supabase
-            .from('dividends')
-            .upsert(dividendsToInsert, {
-              onConflict: 'plaid_transaction_id',
-              ignoreDuplicates: true
-            });
+          // Get list of plaid_transaction_ids we're trying to insert
+          const plaidDivIds = dividendsToInsert.map(div => div.plaid_transaction_id);
 
-          if (divError) {
-            console.error('Error batch saving dividends:', divError);
-          } else {
-            // Supabase doesn't return inserted count on upsert with ignoreDuplicates
-            // So we'll assume all were processed
-            dividendsImported = dividendsToInsert.length;
+          // Query for existing dividends
+          const { data: existingDivs, error: divQueryError } = await supabase
+            .from('dividends')
+            .select('plaid_transaction_id')
+            .in('plaid_transaction_id', plaidDivIds);
+
+          if (divQueryError) {
+            console.error('Error querying existing dividends:', divQueryError);
+          }
+
+          // Create set of existing IDs for fast lookup
+          const existingDivIds = new Set((existingDivs || []).map(div => div.plaid_transaction_id));
+
+          // Separate new from duplicate dividends
+          const newDividends = dividendsToInsert.filter(div => !existingDivIds.has(div.plaid_transaction_id));
+          const duplicateDivCount = dividendsToInsert.length - newDividends.length;
+
+          dividendsDuplicates = duplicateDivCount;
+          dividendsImported = newDividends.length;
+
+          // Only insert new dividends
+          if (newDividends.length > 0) {
+            const { error: divError } = await supabase
+              .from('dividends')
+              .insert(newDividends);
+
+            if (divError) {
+              console.error('Error batch saving dividends:', divError);
+            }
           }
         }
 
-        console.log(`✅ Dividends: ${dividendsImported} processed`);
+        console.log(`✅ Dividends: ${dividendsImported} new, ${dividendsDuplicates} duplicates`);
 
         // Third pass: Process buy/sell transactions with filtering for main table
         const transactionsToInsert = [];
@@ -464,29 +483,52 @@ export async function onRequestPost(context) {
           });
         }
 
-        // Batch insert transactions (upsert to handle duplicates)
+        // Query existing transactions to identify duplicates
         if (transactionsToInsert.length > 0) {
-          const { data: insertedTxs, error: insertError } = await supabase
-            .from('transactions')
-            .upsert(transactionsToInsert, {
-              onConflict: 'plaid_transaction_id',
-              ignoreDuplicates: true
-            });
+          // Get list of plaid_transaction_ids we're trying to insert
+          const plaidTxIds = transactionsToInsert.map(tx => tx.plaid_transaction_id);
 
-          if (insertError) {
-            console.error('Error batch saving transactions:', insertError);
-            errors.push({
-              institution: connection.institution_name,
-              error: insertError.message,
-            });
-          } else {
-            connectionImported = transactionsToInsert.length;
-            totalImported += connectionImported;
+          // Query for existing transactions
+          const { data: existingTxs, error: queryError } = await supabase
+            .from('transactions')
+            .select('plaid_transaction_id')
+            .in('plaid_transaction_id', plaidTxIds);
+
+          if (queryError) {
+            console.error('Error querying existing transactions:', queryError);
           }
+
+          // Create set of existing IDs for fast lookup
+          const existingIds = new Set((existingTxs || []).map(tx => tx.plaid_transaction_id));
+
+          // Separate new from duplicate transactions
+          const newTransactions = transactionsToInsert.filter(tx => !existingIds.has(tx.plaid_transaction_id));
+          const duplicateCount = transactionsToInsert.length - newTransactions.length;
+
+          connectionDuplicates = duplicateCount;
+          connectionImported = newTransactions.length;
+
+          // Only insert new transactions
+          if (newTransactions.length > 0) {
+            const { error: insertError } = await supabase
+              .from('transactions')
+              .insert(newTransactions);
+
+            if (insertError) {
+              console.error('Error batch saving transactions:', insertError);
+              errors.push({
+                institution: connection.institution_name,
+                error: insertError.message,
+              });
+            } else {
+              totalImported += connectionImported;
+            }
+          }
+
+          totalDuplicates += connectionDuplicates;
         }
 
         totalTransactions += investment_transactions.length;
-        totalDuplicates += connectionDuplicates;
         totalDividends += dividendsImported;
         totalDividendsDuplicates += dividendsDuplicates;
 
