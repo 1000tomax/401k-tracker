@@ -28,13 +28,13 @@ jobs:
 
               # Run curl and capture both output and exit code
               set +e  # Don't exit on error
-              response=$(curl -X POST "$url" \
+              response=$(curl -s -X POST "$url" \
                 -H "X-401K-Token: ${{ secrets.API_SHARED_TOKEN }}" \
                 -H "Content-Type: application/json" \
                 -w "\n%{http_code}" \
                 --connect-timeout 10 \
                 --max-time 60 \
-                2>&1)  # Capture stderr too
+                2>&1)
               curl_exit=$?
               set -e  # Re-enable exit on error
 
@@ -46,12 +46,20 @@ jobs:
 
                 if [ "$http_code" -eq 200 ]; then
                   # Extract and display formatted summary if available
-                  formatted_summary=$(echo "$body" | jq -r '.formatted_summary // empty' 2>/dev/null)
+                  # Use grep to find the last valid JSON line before parsing
+                  json_line=$(echo "$body" | grep -o '{.*}' | tail -n1)
 
-                  if [ -n "$formatted_summary" ]; then
-                    echo "$formatted_summary"
+                  if [ -n "$json_line" ]; then
+                    formatted_summary=$(echo "$json_line" | jq -r '.formatted_summary // empty' 2>/dev/null)
+
+                    if [ -n "$formatted_summary" ]; then
+                      echo "$formatted_summary"
+                    else
+                      # Fallback to showing JSON if no formatted summary
+                      echo "  Response: $json_line"
+                    fi
                   else
-                    # Fallback to raw response if no formatted summary
+                    # No JSON found, show raw body
                     echo "  Response: $body"
                   fi
 
