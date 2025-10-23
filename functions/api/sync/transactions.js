@@ -133,10 +133,15 @@ export async function onRequestPost(context) {
       }, 200, env);
     }
 
-    console.log(`📊 Transaction sync: Processing ${connections.length} connection(s)`);
+    console.log('\n' + '='.repeat(80));
+    console.log('📊 PLAID TRANSACTION SYNC');
+    console.log('='.repeat(80));
+    console.log(`Connections to process: ${connections.length}`);
 
     const endDate = new Date().toISOString().split('T')[0];
     const startDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    console.log(`Date range: ${startDate} to ${endDate}`);
+    console.log('='.repeat(80) + '\n');
 
     let totalTransactions = 0;
     let totalImported = 0;
@@ -148,7 +153,9 @@ export async function onRequestPost(context) {
 
     for (const connection of connections) {
       try {
-        console.log(`🔍 Fetching transactions for ${connection.institution_name}`);
+        console.log('\n' + '-'.repeat(80));
+        console.log(`🏦 INSTITUTION: ${connection.institution_name}`);
+        console.log('-'.repeat(80));
 
         // SECURITY: Decrypt the access token before using it
         const decryptedData = await decryptJson(connection.access_token, env);
@@ -163,15 +170,25 @@ export async function onRequestPost(context) {
 
         const { investment_transactions, accounts, securities } = response.data;
 
-        console.log(`📥 Received ${investment_transactions.length} transactions from ${connection.institution_name}`);
+        console.log(`📥 Received: ${investment_transactions.length} raw transactions`);
+        console.log(`📋 Accounts: ${accounts.length} | Securities: ${securities.length}`);
 
-        // Debug: Log ALL transaction types in the raw response
+        // Show security symbols for quick verification
+        const symbols = securities.map(s => s.ticker_symbol).filter(Boolean).join(', ');
+        if (symbols) {
+          console.log(`🏷️  Symbols: ${symbols}`);
+        }
+
+        // Transaction type breakdown
         const typeBreakdown = {};
         investment_transactions.forEach(tx => {
           const key = `${tx.type || 'null'}/${tx.subtype || 'null'}`;
           typeBreakdown[key] = (typeBreakdown[key] || 0) + 1;
         });
-        console.log(`📊 Transaction type breakdown:`, JSON.stringify(typeBreakdown, null, 2));
+        console.log(`\n📊 Transaction Types:`);
+        Object.entries(typeBreakdown).sort((a, b) => b[1] - a[1]).forEach(([type, count]) => {
+          console.log(`   ${type.padEnd(30)} ${count.toString().padStart(3)}`);
+        });
 
         let connectionImported = 0;
         let connectionDuplicates = 0;
@@ -184,17 +201,14 @@ export async function onRequestPost(context) {
         const securitiesMap = new Map(securities.map(sec => [sec.security_id, sec]));
         const accountsMap = new Map(accounts.map(acc => [acc.account_id, acc]));
 
-        console.log(`📋 Securities available: ${securities.length} (symbols: ${securities.map(s => s.ticker_symbol).join(', ')})`);
-        console.log(`📋 Accounts available: ${accounts.length}`);
+        console.log(`\n💾 Processing Stages:`);
 
-        // First pass: Save ALL raw transactions (no filtering)
-        console.log(`💾 Saving ${investment_transactions.length} raw transactions...`);
-
-        // Debug: Check for dividend transactions
+        // Check for dividend transactions
         const dividendTxs = investment_transactions.filter(tx =>
           tx.type === 'cash' && tx.subtype === 'dividend'
         );
-        console.log(`🔍 Found ${dividendTxs.length} dividend transactions in Plaid response`);
+        console.log(`   Stage 1: Saving ${investment_transactions.length} raw transactions...`);
+        console.log(`   Stage 2: Processing ${dividendTxs.length} dividend transactions...`);
 
         // Prepare batch of raw transactions to insert
         const rawTxToInsert = [];
@@ -493,7 +507,10 @@ export async function onRequestPost(context) {
           dividends_duplicates: dividendsDuplicates,
         });
 
-        console.log(`✅ ${connection.institution_name}: ${rawTransactionsSaved} raw saved, ${connectionImported} txns imported, ${dividendsImported} dividends imported, ${connectionDuplicates} duplicates, ${connectionFiltered} filtered`);
+        console.log(`\n✅ RESULTS:`);
+        console.log(`   Raw Saved:     ${rawTransactionsSaved.toString().padStart(4)}`);
+        console.log(`   Transactions:  ${connectionImported.toString().padStart(4)} imported | ${connectionDuplicates.toString().padStart(3)} duplicates | ${connectionFiltered.toString().padStart(3)} filtered`);
+        console.log(`   Dividends:     ${dividendsImported.toString().padStart(4)} imported | ${dividendsDuplicates.toString().padStart(3)} duplicates`);
 
       } catch (error) {
         console.error(`❌ Error syncing ${connection.institution_name}:`, error.message);
@@ -503,6 +520,29 @@ export async function onRequestPost(context) {
         });
       }
     }
+
+    // Final summary
+    console.log('\n' + '='.repeat(80));
+    console.log('📊 SYNC SUMMARY');
+    console.log('='.repeat(80));
+    console.log(`Institutions processed:  ${connections.length}`);
+    console.log(`Date range:              ${startDate} to ${endDate}`);
+    console.log('');
+    console.log(`Total raw fetched:       ${totalTransactions.toString().padStart(4)}`);
+    console.log(`Transactions imported:   ${totalImported.toString().padStart(4)}`);
+    console.log(`Transactions duplicates: ${totalDuplicates.toString().padStart(4)}`);
+    console.log(`Dividends imported:      ${totalDividends.toString().padStart(4)}`);
+    console.log(`Dividends duplicates:    ${totalDividendsDuplicates.toString().padStart(4)}`);
+
+    if (errors.length > 0) {
+      console.log(`\n⚠️  Errors: ${errors.length}`);
+      errors.forEach(err => {
+        console.log(`   - ${err.institution}: ${err.error}`);
+      });
+    }
+
+    console.log('='.repeat(80));
+    console.log('✅ SYNC COMPLETE\n');
 
     return jsonResponse({
       ok: true,
