@@ -18,7 +18,12 @@ import { PlaidAuthProvider } from './contexts/PlaidAuthContext.jsx';
 import HoldingsService from './services/HoldingsService.js';
 import TransactionService from './services/TransactionService.js';
 import VoyaService from './services/VoyaService.js';
+import { DividendService } from './services/DividendService.js';
 import { aggregatePortfolio } from './utils/parseTransactions.js';
+import {
+  calculateWeightedExpenseRatio,
+  calculateDividendMetrics,
+} from './utils/portfolioMetrics.js';
 import OfflineBanner from './components/OfflineBanner.jsx';
 // import InstallPrompt from './components/InstallPrompt.jsx'; // OPTIONAL: Uncomment to enable install prompt
 
@@ -64,10 +69,13 @@ export default function App() {
   const [totals, setTotals] = useState({ marketValue: 0, totalHoldings: 0, lastUpdated: null });
   const [isLoading, setIsLoading] = useState(true);
   const [status, setStatus] = useState('');
+  const [transactions, setTransactions] = useState([]);
+  const [dividends, setDividends] = useState([]);
 
   const holdingsService = useMemo(() => new HoldingsService(API_URL, API_TOKEN), []);
   const transactionService = useMemo(() => new TransactionService(API_URL, API_TOKEN), []);
   const voyaService = useMemo(() => new VoyaService(API_URL, API_TOKEN), []);
+  const dividendService = useMemo(() => new DividendService(API_URL, API_TOKEN), []);
 
   /**
    * Converts nested portfolio structure to a flat array of holdings.
@@ -116,14 +124,22 @@ export default function App() {
 
       // Fetch all transactions
       const transactions = await transactionService.getAllTransactions();
+      setTransactions(transactions); // Store for metrics calculations
+
+      // Fetch all dividends
+      const dividends = await dividendService.getAllDividends();
+      setDividends(dividends);
 
       console.log('📥 Loaded transactions:', transactions.length);
+      console.log('📥 Loaded dividends:', dividends.length);
 
       if (transactions.length === 0) {
         console.log('ℹ️ No transactions found');
         setHoldings([]);
         setTimeline([]);
         setTotals({ marketValue: 0, costBasis: 0, gainLoss: 0, totalHoldings: 0, lastUpdated: null });
+        setTransactions([]);
+        setDividends([]);
         setStatus('');
         return;
       }
@@ -241,7 +257,7 @@ export default function App() {
     } finally {
       setIsLoading(false);
     }
-  }, [transactionService, convertPortfolioToHoldings, holdingsService, voyaService]);
+  }, [transactionService, convertPortfolioToHoldings, holdingsService, voyaService, dividendService]);
 
   /**
    * Determines if the US stock market is currently open.
@@ -455,6 +471,17 @@ export default function App() {
     return Array.from(grouped.values());
   }, [holdings, totals]);
 
+  // Calculate advanced portfolio metrics
+  const expenseRatio = useMemo(() => {
+    if (!holdings || holdings.length === 0) return null;
+    return calculateWeightedExpenseRatio(holdings);
+  }, [holdings]);
+
+  const dividendMetrics = useMemo(() => {
+    if (!holdings || holdings.length === 0 || !dividends || dividends.length === 0) return null;
+    return calculateDividendMetrics(holdings, dividends);
+  }, [holdings, dividends]);
+
   // Portfolio summary for dashboard
   const summary = useMemo(() => {
     return {
@@ -463,8 +490,10 @@ export default function App() {
       holdings,
       holdingsByAccount,
       lastUpdated: totals.lastUpdated,
+      expenseRatio,
+      dividendMetrics,
     };
-  }, [totals, timeline, holdings, holdingsByAccount]);
+  }, [totals, timeline, holdings, holdingsByAccount, expenseRatio, dividendMetrics]);
 
   /**
    * Main application component with routing, navigation, and portfolio summary display.
@@ -502,18 +531,18 @@ export default function App() {
                 <NavLink to="/" className={({ isActive }) => (isActive ? 'active' : '')} end>
                   Dashboard
                 </NavLink>
-                <NavLink to="/accounts" className={({ isActive }) => (isActive ? 'active' : '')}>
-                  Accounts
-                </NavLink>
                 <NavLink to="/dividends" className={({ isActive }) => (isActive ? 'active' : '')}>
                   Dividends
                 </NavLink>
                 <NavLink to="/transactions" className={({ isActive }) => (isActive ? 'active' : '')}>
                   Transactions
                 </NavLink>
+                <NavLink to="/accounts" className={({ isActive }) => (isActive ? 'active' : '')}>
+                  Accounts
+                </NavLink>
                 {import.meta.env.DEV && (
-                  <NavLink to="/performance" className={({ isActive }) => (isActive ? 'active' : '')}>
-                    Performance
+                  <NavLink to="/performance-debug" className={({ isActive }) => (isActive ? 'active' : '')}>
+                    Debug
                   </NavLink>
                 )}
               </nav>
@@ -573,7 +602,7 @@ export default function App() {
                 <Route path="/transactions" element={<Transactions />} />
                 <Route path="/fund/:ticker" element={<FundDetail />} />
                 {import.meta.env.DEV && (
-                  <Route path="/performance" element={<PerformanceDashboard />} />
+                  <Route path="/performance-debug" element={<PerformanceDashboard />} />
                 )}
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>

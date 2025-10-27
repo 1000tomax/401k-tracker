@@ -117,11 +117,24 @@ PieTooltip.displayName = 'PieTooltip';
  * @param {Array} props.summary.timeline - Historical portfolio values for charting
  * @param {Array} props.summary.holdings - Current holdings array
  * @param {Array} props.summary.holdingsByAccount - Holdings grouped by account
+ * @param {object} props.summary.contributionMetrics - Contribution progress metrics
+ * @param {object} props.summary.expenseRatio - Expense ratio calculations
+ * @param {object} props.summary.dividendMetrics - Dividend yield and income metrics
+ * @param {object} props.summary.twr - Time-weighted return calculations
  * @param {boolean} props.isLoading - Whether data is currently loading
  * @returns {React.Component} Dashboard page component
  */
 function Dashboard({ summary, isLoading }) {
-  const { totals, timeline, holdings, holdingsByAccount } = summary;
+  const {
+    totals,
+    timeline,
+    holdings,
+    holdingsByAccount,
+    contributionMetrics,
+    expenseRatio,
+    dividendMetrics,
+    twr,
+  } = summary;
   const [expandedAccounts, setExpandedAccounts] = useState(new Set());
   const [portfolioFilter, setPortfolioFilter] = useState('all');
 
