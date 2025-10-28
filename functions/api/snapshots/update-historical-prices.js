@@ -123,6 +123,7 @@ export async function onRequestPost(context) {
 
     let updated = 0;
     let errors = 0;
+    const debugInfo = [];
 
     // Process each snapshot date
     for (const date of dates) {
@@ -145,6 +146,9 @@ export async function onRequestPost(context) {
         const updatedHoldings = [];
 
         // Recalculate each holding with historical price
+        let pricesFound = 0;
+        let pricesMissing = 0;
+
         for (const holding of holdings) {
           let historicalPrice = null;
           let priceSource = 'transaction';
@@ -155,18 +159,32 @@ export async function onRequestPost(context) {
             if (vooPrices && vooPrices.has(date)) {
               historicalPrice = vooPrices.get(date) / VOYA_CONVERSION_RATIO;
               priceSource = 'proxy';
+              pricesFound++;
+            } else {
+              pricesMissing++;
+              console.log(`  ⚠️ No VOO price for ${date} (Voya fund)`);
             }
           } else {
             // Try to match ticker from fund name
+            let tickerMatched = false;
             for (const ticker of tickers) {
               if (holding.fund.includes(ticker)) {
+                tickerMatched = true;
                 const prices = historicalPrices.get(ticker);
                 if (prices && prices.has(date)) {
                   historicalPrice = prices.get(date);
                   priceSource = 'historical';
+                  pricesFound++;
                   break;
+                } else {
+                  pricesMissing++;
+                  console.log(`  ⚠️ No ${ticker} price for ${date}`);
                 }
               }
+            }
+            if (!tickerMatched) {
+              pricesMissing++;
+              console.log(`  ⚠️ No ticker matched for fund: ${holding.fund}`);
             }
           }
 
@@ -224,14 +242,31 @@ export async function onRequestPost(context) {
 
         if (updatePortfolioError) {
           console.error(`Error updating portfolio snapshot for ${date}:`, updatePortfolioError);
+          debugInfo.push({
+            date,
+            status: 'error',
+            error: updatePortfolioError.message,
+          });
           errors++;
         } else {
-          console.log(`✓ Updated ${date}: $${totalMarketValue.toFixed(2)}`);
+          console.log(`✓ Updated ${date}: $${totalMarketValue.toFixed(2)} (${pricesFound} prices found, ${pricesMissing} missing)`);
+          debugInfo.push({
+            date,
+            status: pricesMissing === 0 ? 'success' : 'partial',
+            pricesFound,
+            pricesMissing,
+            marketValue: totalMarketValue,
+          });
           updated++;
         }
 
       } catch (error) {
         console.error(`Error processing ${date}:`, error);
+        debugInfo.push({
+          date,
+          status: 'exception',
+          error: error.message,
+        });
         errors++;
       }
     }
@@ -247,6 +282,7 @@ export async function onRequestPost(context) {
         start: startDate,
         end: endDate,
       },
+      debug: debugInfo,
     }, 200, env);
 
   } catch (error) {
