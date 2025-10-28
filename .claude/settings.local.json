@@ -31,9 +31,11 @@
       "Bash(export API_TOKEN=\"$VITE_401K_TOKEN\")",
       "Bash(./scripts/backfill-snapshots.sh:*)",
       "Bash(\"https://401k.mreedon.com/api/snapshots/backfill\" )",
-      "Bash(git push)"
+      "Bash(git push)",
+      "Bash(claude mcp list:*)"
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "enableAllProjectMcpServers": false
 }
