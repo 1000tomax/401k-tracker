@@ -134,6 +134,7 @@ export default function FundDetail() {
   // Calculate running totals and metrics
   const fundMetrics = useMemo(() => {
     let timeline = [];
+    let transactionTimeline = [];
     let totalDividends = 0;
 
     // Add dividends to total
@@ -141,7 +142,46 @@ export default function FundDetail() {
       totalDividends += parseFloat(div.amount) || 0;
     });
 
-    // If we have fund snapshots, use those for the timeline
+    // Always build transaction-only timeline for Price History chart
+    let totalShares = 0;
+    let totalCostBasis = 0;
+
+    fundTransactions.forEach(tx => {
+      const shares = parseFloat(tx.units) || 0;
+      const price = parseFloat(tx.unit_price) || 0;
+      const amount = parseFloat(tx.amount) || Math.abs(shares * price);
+      const activity = (tx.activity || '').toLowerCase();
+
+      const isBuy = activity.includes('buy') ||
+                    activity.includes('purchase') ||
+                    activity.includes('contribution') ||
+                    activity.includes('transfer in');
+      const isSell = activity.includes('sell') ||
+                     activity.includes('sold') ||
+                     activity.includes('transfer out') ||
+                     activity.includes('fee');
+
+      if (isBuy) {
+        totalShares += shares;
+        totalCostBasis += amount;
+      } else if (isSell) {
+        totalShares -= shares;
+        const sellRatio = shares / (totalShares + shares);
+        totalCostBasis -= totalCostBasis * sellRatio;
+      }
+
+      transactionTimeline.push({
+        date: tx.date,
+        shares: totalShares,
+        costBasis: totalCostBasis,
+        avgCost: totalShares > 0 ? totalCostBasis / totalShares : 0,
+        price: price,
+        marketValue: totalShares * price,
+        activity: activity,
+      });
+    });
+
+    // If we have fund snapshots, use those for the Value Growth timeline
     if (fundSnapshots && fundSnapshots.timeline && fundSnapshots.timeline.length > 0) {
       timeline = fundSnapshots.timeline;
 
@@ -175,6 +215,7 @@ export default function FundDetail() {
         gainLossPercent,
         totalDividends,
         timeline,
+        transactionTimeline,
         transactionCount: fundTransactions.length,
         dividendCount: fundDividends.length,
         firstBuyDate: fundTransactions[0]?.date,
@@ -183,44 +224,8 @@ export default function FundDetail() {
       };
     }
 
-    // Fallback: Build timeline from transactions if no snapshots available
-    let totalShares = 0;
-    let totalCostBasis = 0;
-
-    fundTransactions.forEach(tx => {
-      const shares = parseFloat(tx.units) || 0;
-      const price = parseFloat(tx.unit_price) || 0;
-      const amount = parseFloat(tx.amount) || Math.abs(shares * price);
-      const activity = (tx.activity || '').toLowerCase();
-
-      const isBuy = activity.includes('buy') ||
-                    activity.includes('purchase') ||
-                    activity.includes('contribution') ||
-                    activity.includes('transfer in');
-      const isSell = activity.includes('sell') ||
-                     activity.includes('sold') ||
-                     activity.includes('transfer out') ||
-                     activity.includes('fee');
-
-      if (isBuy) {
-        totalShares += shares;
-        totalCostBasis += amount;
-      } else if (isSell) {
-        totalShares -= shares;
-        const sellRatio = shares / (totalShares + shares);
-        totalCostBasis -= totalCostBasis * sellRatio;
-      }
-
-      timeline.push({
-        date: tx.date,
-        shares: totalShares,
-        costBasis: totalCostBasis,
-        avgCost: totalShares > 0 ? totalCostBasis / totalShares : 0,
-        price: price,
-        marketValue: totalShares * price,
-        activity: activity,
-      });
-    });
+    // Fallback: Use transaction timeline for both charts if no snapshots
+    timeline = transactionTimeline;
 
     const currentShares = totalShares;
     const currentCostBasis = totalCostBasis;
@@ -248,6 +253,7 @@ export default function FundDetail() {
       gainLossPercent,
       totalDividends,
       timeline,
+      transactionTimeline,
       transactionCount: fundTransactions.length,
       dividendCount: fundDividends.length,
       firstBuyDate: fundTransactions[0]?.date,
@@ -413,7 +419,7 @@ export default function FundDetail() {
       <div className="chart-section">
         <h2>Price History</h2>
         <ResponsiveContainer width="100%" height={300}>
-          <ComposedChart data={fundMetrics.timeline}>
+          <ComposedChart data={fundMetrics.transactionTimeline}>
             <CartesianGrid strokeDasharray="3 3" stroke="#333" />
             <XAxis
               dataKey="date"
