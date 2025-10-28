@@ -29,3 +29,4 @@ CLAUDE.md
 
 # MCP configuration (may contain credentials)
 .mcp.json
+.wrangler/
