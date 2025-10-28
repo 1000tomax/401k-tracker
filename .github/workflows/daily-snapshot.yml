@@ -1,10 +1,11 @@
 name: Daily Portfolio Snapshot
 
 on:
-  # Run daily at 4:15 PM ET (after market close)
-  # 20:15 UTC = 4:15 PM ET
+  # Run daily at 4:05 PM ET (after market close)
+  # Fetches closing prices then creates snapshot
+  # 20:05 UTC = 4:05 PM ET
   schedule:
-    - cron: '15 20 * * 1-5'  # Mon-Fri at 4:15 PM ET
+    - cron: '5 20 * * 1-5'  # Mon-Fri at 4:05 PM ET
 
   # Allow manual trigger for testing
   workflow_dispatch:
@@ -19,6 +20,33 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Fetch closing prices
+        run: |
+          echo "💰 Fetching closing prices from Finnhub..."
+
+          response=$(curl -s -w "\n%{http_code}" -X POST \
+            https://401k.mreedon.com/api/prices/refresh \
+            -H "X-401K-Token: ${{ secrets.API_SHARED_TOKEN }}" \
+            -H "Content-Type: application/json")
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | head -n-1)
+
+          echo "Response: $body"
+          echo "HTTP Status: $http_code"
+
+          if [ "$http_code" -ne 200 ]; then
+            echo "❌ Price fetch failed with status $http_code"
+            exit 1
+          fi
+
+          echo "✅ Closing prices fetched successfully"
+
+      - name: Wait for database to settle
+        run: |
+          echo "⏳ Waiting 5 seconds for prices to propagate..."
+          sleep 5
+
       - name: Create daily portfolio snapshot
         run: |
           echo "📸 Creating portfolio snapshot..."

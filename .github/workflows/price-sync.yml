@@ -3,9 +3,9 @@ name: Sync ETF Prices
 on:
   # Run every 15 minutes during market hours (9:30 AM - 4:00 PM ET)
   # Cron is in UTC, so 13:30 - 20:00 UTC = 9:30 AM - 4:00 PM ET
+  # Note: Closing prices are now fetched by daily-snapshot.yml at 4:05 PM ET
   schedule:
     - cron: '*/15 13-19 * * 1-5'  # Every 15 min, Mon-Fri during market hours
-    - cron: '5 20 * * 1-5'        # 4:05 PM ET - capture closing prices
 
   # Allow manual trigger for testing
   workflow_dispatch:
