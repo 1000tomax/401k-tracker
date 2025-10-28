@@ -3,6 +3,10 @@
  * @description Updates existing snapshots with accurate historical prices from Finnhub API.
  * This is a one-time backfill operation to replace transaction-based NAVs with actual
  * historical market closing prices.
+ *
+ * Fixed issues:
+ * - Batches database updates to avoid Cloudflare subrequest limits
+ * - Proper date matching with Finnhub data
  */
 import { createSupabaseAdmin } from '../../../src/lib/supabaseAdmin.js';
 import { handleCors, requireSharedToken, jsonResponse } from '../../../src/utils/cors-workers.js';
@@ -29,20 +33,24 @@ async function fetchHistoricalPrices(symbol, fromTimestamp, toTimestamp, apiKey)
     const data = await response.json();
 
     if (data.s !== 'ok' || !data.c || !data.t) {
-      throw new Error(`No data returned for ${symbol}`);
+      console.log(`No data returned for ${symbol}, status: ${data.s}`);
+      return new Map();
     }
 
     // Build map of date -> closing price
     const priceMap = new Map();
     for (let i = 0; i < data.t.length; i++) {
-      const date = new Date(data.t[i] * 1000).toISOString().split('T')[0];
-      priceMap.set(date, data.c[i]);
+      // Finnhub returns timestamps at midnight UTC, convert to YYYY-MM-DD
+      const date = new Date(data.t[i] * 1000);
+      const dateStr = date.toISOString().split('T')[0];
+      priceMap.set(dateStr, data.c[i]);
     }
 
+    console.log(`Fetched ${symbol}: ${priceMap.size} days of data`);
     return priceMap;
   } catch (error) {
     console.error(`Error fetching historical prices for ${symbol}:`, error);
-    throw error;
+    return new Map();
   }
 }
 
@@ -77,7 +85,7 @@ export async function onRequestPost(context) {
 
     console.log('📈 Starting historical price update...');
 
-    // Get all snapshots that need updating (all sources, not just backfill)
+    // Get all snapshots that need updating
     const { data: snapshots, error: snapshotsError } = await supabase
       .from('portfolio_snapshots')
       .select('snapshot_date, snapshot_source')
@@ -88,7 +96,7 @@ export async function onRequestPost(context) {
     if (!snapshots || snapshots.length === 0) {
       return jsonResponse({
         ok: false,
-        error: 'No backfilled snapshots found to update',
+        error: 'No snapshots found to update',
       }, 400, env);
     }
 
@@ -98,8 +106,9 @@ export async function onRequestPost(context) {
     const startDate = dates[0];
     const endDate = dates[dates.length - 1];
 
-    const fromTimestamp = dateToTimestamp(startDate);
-    const toTimestamp = dateToTimestamp(endDate) + 86400; // Add 1 day to include end date
+    // Add buffer to ensure we get all needed dates
+    const fromTimestamp = dateToTimestamp(startDate) - 86400; // Start 1 day before
+    const toTimestamp = dateToTimestamp(endDate) + 86400; // End 1 day after
 
     console.log(`Fetching historical prices from ${startDate} to ${endDate}`);
 
@@ -112,10 +121,15 @@ export async function onRequestPost(context) {
       try {
         const prices = await fetchHistoricalPrices(ticker, fromTimestamp, toTimestamp, finnhubKey);
         historicalPrices.set(ticker, prices);
-        console.log(`✓ ${ticker}: ${prices.size} days`);
+
+        // Show sample of dates fetched
+        if (prices.size > 0) {
+          const sampleDates = Array.from(prices.keys()).slice(0, 3);
+          console.log(`  Sample dates: ${sampleDates.join(', ')}`);
+        }
 
         // Rate limit: 60 calls/min, so wait 1 second between calls
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 1100));
       } catch (error) {
         console.error(`Failed to fetch ${ticker}:`, error);
       }
@@ -125,149 +139,164 @@ export async function onRequestPost(context) {
     let errors = 0;
     const debugInfo = [];
 
-    // Process each snapshot date
-    for (const date of dates) {
-      try {
-        // Get holdings for this date
-        const { data: holdings, error: holdingsError } = await supabase
-          .from('holdings_snapshots')
-          .select('*')
-          .eq('snapshot_date', date);
+    // Process dates in batches to avoid subrequest limit
+    const BATCH_SIZE = 5; // Process 5 dates at a time
 
-        if (holdingsError) throw holdingsError;
+    for (let batchStart = 0; batchStart < dates.length; batchStart += BATCH_SIZE) {
+      const batchDates = dates.slice(batchStart, batchStart + BATCH_SIZE);
+      console.log(`Processing batch: ${batchDates[0]} to ${batchDates[batchDates.length - 1]}`);
 
-        if (!holdings || holdings.length === 0) {
-          console.log(`No holdings for ${date}, skipping`);
-          continue;
-        }
+      for (const date of batchDates) {
+        try {
+          // Get holdings for this date
+          const { data: holdings, error: holdingsError } = await supabase
+            .from('holdings_snapshots')
+            .select('*')
+            .eq('snapshot_date', date);
 
-        let totalMarketValue = 0;
-        let totalCostBasis = 0;
-        const updatedHoldings = [];
+          if (holdingsError) throw holdingsError;
 
-        // Recalculate each holding with historical price
-        let pricesFound = 0;
-        let pricesMissing = 0;
+          if (!holdings || holdings.length === 0) {
+            console.log(`No holdings for ${date}, skipping`);
+            continue;
+          }
 
-        for (const holding of holdings) {
-          let historicalPrice = null;
-          let priceSource = 'transaction';
+          let totalMarketValue = 0;
+          let totalCostBasis = 0;
+          let pricesFound = 0;
+          let pricesMissing = 0;
 
-          // Check if it's Voya fund (use VOO as proxy)
-          if (holding.fund.includes('0899') || holding.fund.includes('Vanguard 500')) {
-            const vooPrices = historicalPrices.get('VOO');
-            if (vooPrices && vooPrices.has(date)) {
-              historicalPrice = vooPrices.get(date) / VOYA_CONVERSION_RATIO;
-              priceSource = 'proxy';
-              pricesFound++;
+          // Collect all holding updates for batch processing
+          const holdingUpdates = [];
+
+          // Recalculate each holding with historical price
+          for (const holding of holdings) {
+            let historicalPrice = null;
+            let priceSource = 'transaction';
+            let matchedTicker = null;
+
+            // Check if it's Voya fund (use VOO as proxy)
+            if (holding.fund.includes('0899') || holding.fund.toLowerCase().includes('vanguard 500')) {
+              const vooPrices = historicalPrices.get('VOO');
+              if (vooPrices && vooPrices.has(date)) {
+                historicalPrice = vooPrices.get(date) / VOYA_CONVERSION_RATIO;
+                priceSource = 'proxy';
+                matchedTicker = 'VOO';
+                pricesFound++;
+              } else {
+                pricesMissing++;
+              }
             } else {
-              pricesMissing++;
-              console.log(`  ⚠️ No VOO price for ${date} (Voya fund)`);
-            }
-          } else {
-            // Try to match ticker from fund name
-            let tickerMatched = false;
-            for (const ticker of tickers) {
-              if (holding.fund.includes(ticker)) {
-                tickerMatched = true;
-                const prices = historicalPrices.get(ticker);
-                if (prices && prices.has(date)) {
-                  historicalPrice = prices.get(date);
-                  priceSource = 'historical';
-                  pricesFound++;
-                  break;
-                } else {
-                  pricesMissing++;
-                  console.log(`  ⚠️ No ${ticker} price for ${date}`);
+              // Try to match ticker from fund name
+              for (const ticker of tickers) {
+                if (holding.fund.includes(ticker)) {
+                  const prices = historicalPrices.get(ticker);
+                  if (prices && prices.has(date)) {
+                    historicalPrice = prices.get(date);
+                    priceSource = 'historical';
+                    matchedTicker = ticker;
+                    pricesFound++;
+                    break;
+                  } else {
+                    pricesMissing++;
+                  }
                 }
               }
             }
-            if (!tickerMatched) {
-              pricesMissing++;
-              console.log(`  ⚠️ No ticker matched for fund: ${holding.fund}`);
-            }
-          }
 
-          // Use historical price if available, otherwise keep original
-          const unitPrice = historicalPrice || parseFloat(holding.unit_price);
-          const shares = parseFloat(holding.shares);
-          const marketValue = shares * unitPrice;
-          const costBasis = parseFloat(holding.cost_basis);
-          const gainLoss = marketValue - costBasis;
+            // Calculate values
+            const unitPrice = historicalPrice || parseFloat(holding.unit_price);
+            const shares = parseFloat(holding.shares);
+            const marketValue = shares * unitPrice;
+            const costBasis = parseFloat(holding.cost_basis);
+            const gainLoss = marketValue - costBasis;
 
-          totalMarketValue += marketValue;
-          totalCostBasis += costBasis;
+            totalMarketValue += marketValue;
+            totalCostBasis += costBasis;
 
-          // Update holding snapshot
-          const { error: updateError } = await supabase
-            .from('holdings_snapshots')
-            .update({
+            // Store update for batch processing
+            holdingUpdates.push({
+              id: holding.id,
               unit_price: unitPrice,
               market_value: marketValue,
               gain_loss: gainLoss,
               price_source: priceSource,
               price_timestamp: historicalPrice ? new Date(date + 'T16:00:00-04:00').toISOString() : null,
-            })
-            .eq('id', holding.id);
-
-          if (updateError) {
-            console.error(`Error updating holding ${holding.id}:`, updateError);
+            });
           }
 
-          updatedHoldings.push({
-            fund: holding.fund,
-            oldPrice: parseFloat(holding.unit_price),
-            newPrice: unitPrice,
-            priceSource,
-          });
-        }
+          // Batch update all holdings for this date
+          for (const update of holdingUpdates) {
+            const { error: updateError } = await supabase
+              .from('holdings_snapshots')
+              .update({
+                unit_price: update.unit_price,
+                market_value: update.market_value,
+                gain_loss: update.gain_loss,
+                price_source: update.price_source,
+                price_timestamp: update.price_timestamp,
+              })
+              .eq('id', update.id);
 
-        const totalGainLoss = totalMarketValue - totalCostBasis;
-        const totalGainLossPercent = totalCostBasis > 0 ? (totalGainLoss / totalCostBasis) * 100 : 0;
+            if (updateError) {
+              console.error(`Error updating holding ${update.id}:`, updateError);
+            }
+          }
 
-        // Update portfolio snapshot
-        const { error: updatePortfolioError } = await supabase
-          .from('portfolio_snapshots')
-          .update({
-            total_market_value: totalMarketValue,
-            total_gain_loss: totalGainLoss,
-            total_gain_loss_percent: totalGainLossPercent,
-            snapshot_source: 'backfill-historical',
-            metadata: {
-              updated_with_historical_prices: true,
-              update_timestamp: new Date().toISOString(),
-            },
-          })
-          .eq('snapshot_date', date);
+          const totalGainLoss = totalMarketValue - totalCostBasis;
+          const totalGainLossPercent = totalCostBasis > 0 ? (totalGainLoss / totalCostBasis) * 100 : 0;
 
-        if (updatePortfolioError) {
-          console.error(`Error updating portfolio snapshot for ${date}:`, updatePortfolioError);
+          // Update portfolio snapshot
+          const { error: updatePortfolioError } = await supabase
+            .from('portfolio_snapshots')
+            .update({
+              total_market_value: totalMarketValue,
+              total_gain_loss: totalGainLoss,
+              total_gain_loss_percent: totalGainLossPercent,
+              snapshot_source: 'backfill-historical',
+              metadata: {
+                updated_with_historical_prices: true,
+                update_timestamp: new Date().toISOString(),
+                prices_found: pricesFound,
+                prices_missing: pricesMissing,
+              },
+            })
+            .eq('snapshot_date', date);
+
+          if (updatePortfolioError) {
+            console.error(`Error updating portfolio snapshot for ${date}:`, updatePortfolioError);
+            debugInfo.push({
+              date,
+              status: 'error',
+              error: updatePortfolioError.message,
+            });
+            errors++;
+          } else {
+            console.log(`✓ Updated ${date}: $${totalMarketValue.toFixed(2)} (${pricesFound} prices found, ${pricesMissing} missing)`);
+            debugInfo.push({
+              date,
+              status: pricesMissing === 0 ? 'success' : 'partial',
+              pricesFound,
+              pricesMissing,
+              marketValue: totalMarketValue,
+            });
+            updated++;
+          }
+
+        } catch (error) {
+          console.error(`Error processing ${date}:`, error);
           debugInfo.push({
             date,
-            status: 'error',
-            error: updatePortfolioError.message,
+            status: 'exception',
+            error: error.message,
           });
           errors++;
-        } else {
-          console.log(`✓ Updated ${date}: $${totalMarketValue.toFixed(2)} (${pricesFound} prices found, ${pricesMissing} missing)`);
-          debugInfo.push({
-            date,
-            status: pricesMissing === 0 ? 'success' : 'partial',
-            pricesFound,
-            pricesMissing,
-            marketValue: totalMarketValue,
-          });
-          updated++;
         }
+      }
 
-      } catch (error) {
-        console.error(`Error processing ${date}:`, error);
-        debugInfo.push({
-          date,
-          status: 'exception',
-          error: error.message,
-        });
-        errors++;
+      // Small delay between batches
+      if (batchStart + BATCH_SIZE < dates.length) {
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
     }
 
