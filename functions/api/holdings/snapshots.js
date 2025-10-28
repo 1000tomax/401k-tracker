@@ -27,68 +27,56 @@ export async function onRequestGet(context) {
 
     const supabase = createSupabaseAdmin(env);
 
-    // Get all snapshots within date range
-    const { data: snapshots, error } = await supabase
-      .from('holdings_snapshots')
-      .select('*')
+    // Get portfolio snapshots for timeline (aggregated daily values)
+    const { data: portfolioSnapshots, error: portfolioError } = await supabase
+      .from('portfolio_snapshots')
+      .select('snapshot_date, total_market_value, total_cost_basis, total_gain_loss')
       .gte('snapshot_date', startDateStr)
       .order('snapshot_date', { ascending: true });
 
-    if (error) throw error;
+    if (portfolioError) throw portfolioError;
 
-    // Group by date for chart data
-    const byDate = new Map();
-    const byFund = new Map();
-    let latestDate = null;
+    // Get holdings snapshots for the most recent date to show current holdings
+    const { data: latestSnapshot } = await supabase
+      .from('portfolio_snapshots')
+      .select('snapshot_date')
+      .order('snapshot_date', { ascending: false })
+      .limit(1)
+      .single();
 
-    for (const snapshot of snapshots || []) {
-      // Track latest date
-      if (!latestDate || snapshot.snapshot_date > latestDate) {
-        latestDate = snapshot.snapshot_date;
-      }
+    let currentHoldings = [];
+    let totalMarketValue = 0;
+    let totalCostBasis = 0;
 
-      // Group by date for timeline
-      if (!byDate.has(snapshot.snapshot_date)) {
-        byDate.set(snapshot.snapshot_date, {
-          date: snapshot.snapshot_date,
-          marketValue: 0,
-          holdings: [],
-        });
-      }
-      const dateEntry = byDate.get(snapshot.snapshot_date);
-      dateEntry.marketValue += parseFloat(snapshot.market_value);
-      dateEntry.holdings.push({
-        fund: snapshot.fund,
-        accountName: snapshot.account_name,
-        shares: parseFloat(snapshot.shares),
-        unitPrice: parseFloat(snapshot.unit_price),
-        marketValue: parseFloat(snapshot.market_value),
-      });
+    if (latestSnapshot) {
+      const { data: holdingsData, error: holdingsError } = await supabase
+        .from('holdings_snapshots')
+        .select('*')
+        .eq('snapshot_date', latestSnapshot.snapshot_date);
 
-      // Track by fund for current holdings
-      if (snapshot.snapshot_date === latestDate) {
-        const key = `${snapshot.fund}-${snapshot.account_id}`;
-        if (!byFund.has(key)) {
-          byFund.set(key, {
-            fund: snapshot.fund,
-            accountName: snapshot.account_name,
-            shares: 0,
-            marketValue: 0,
-            unitPrice: parseFloat(snapshot.unit_price),
-          });
-        }
-        const fundEntry = byFund.get(key);
-        fundEntry.shares += parseFloat(snapshot.shares);
-        fundEntry.marketValue += parseFloat(snapshot.market_value);
-      }
+      if (holdingsError) throw holdingsError;
+
+      currentHoldings = (holdingsData || []).map(h => ({
+        fund: h.fund,
+        accountName: h.account_name,
+        shares: parseFloat(h.shares),
+        unitPrice: parseFloat(h.unit_price),
+        marketValue: parseFloat(h.market_value),
+        costBasis: parseFloat(h.cost_basis),
+        gainLoss: parseFloat(h.gain_loss),
+      }));
+
+      totalMarketValue = currentHoldings.reduce((sum, h) => sum + h.marketValue, 0);
+      totalCostBasis = currentHoldings.reduce((sum, h) => sum + h.costBasis, 0);
     }
 
-    // Convert to arrays
-    const timeline = Array.from(byDate.values());
-    const currentHoldings = Array.from(byFund.values());
-
-    // Calculate totals
-    const totalMarketValue = currentHoldings.reduce((sum, h) => sum + h.marketValue, 0);
+    // Format timeline for charts
+    const timeline = (portfolioSnapshots || []).map(snapshot => ({
+      date: snapshot.snapshot_date,
+      marketValue: parseFloat(snapshot.total_market_value),
+      costBasis: parseFloat(snapshot.total_cost_basis),
+      gainLoss: parseFloat(snapshot.total_gain_loss),
+    }));
 
     return jsonResponse({
       ok: true,
@@ -96,8 +84,10 @@ export async function onRequestGet(context) {
       timeline,
       totals: {
         marketValue: totalMarketValue,
+        costBasis: totalCostBasis,
+        gainLoss: totalMarketValue - totalCostBasis,
         totalHoldings: currentHoldings.length,
-        lastUpdated: latestDate,
+        lastUpdated: latestSnapshot?.snapshot_date || null,
       },
     }, 200, env);
 

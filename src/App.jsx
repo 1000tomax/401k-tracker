@@ -133,6 +133,19 @@ export default function App() {
       console.log('📥 Loaded transactions:', transactions.length);
       console.log('📥 Loaded dividends:', dividends.length);
 
+      // Try to fetch snapshot data for improved timeline accuracy
+      let snapshotTimeline = null;
+      try {
+        console.log('📸 Checking for portfolio snapshots...');
+        const snapshotsData = await holdingsService.getSnapshots(365); // Get last year of snapshots
+        if (snapshotsData && snapshotsData.timeline && snapshotsData.timeline.length > 0) {
+          snapshotTimeline = snapshotsData.timeline;
+          console.log(`✅ Using ${snapshotTimeline.length} daily snapshots for timeline`);
+        }
+      } catch (error) {
+        console.log('ℹ️ No snapshots available, will use transaction-based timeline');
+      }
+
       if (transactions.length === 0) {
         console.log('ℹ️ No transactions found');
         setHoldings([]);
@@ -239,8 +252,8 @@ export default function App() {
       }
 
       setHoldings(holdingsArray);
-      // Use full portfolio timeline which includes all accounts from Voya start date
-      setTimeline(fullPortfolio.timeline || []);
+      // Use snapshot timeline if available (daily values), otherwise fall back to transaction-based timeline
+      setTimeline(snapshotTimeline || fullPortfolio.timeline || []);
       setTotals({
         marketValue: portfolioNonVoya.totals.marketValue,
         costBasis: portfolioNonVoya.totals.costBasis,

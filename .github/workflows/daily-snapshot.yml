@@ -1,0 +1,54 @@
+name: Daily Portfolio Snapshot
+
+on:
+  # Run daily at 4:15 PM ET (after market close)
+  # 20:15 UTC = 4:15 PM ET
+  schedule:
+    - cron: '15 20 * * 1-5'  # Mon-Fri at 4:15 PM ET
+
+  # Allow manual trigger for testing
+  workflow_dispatch:
+    inputs:
+      date:
+        description: 'Snapshot date (YYYY-MM-DD, optional - defaults to today)'
+        required: false
+        type: string
+
+jobs:
+  create-snapshot:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create daily portfolio snapshot
+        run: |
+          echo "📸 Creating portfolio snapshot..."
+
+          # Build request body
+          if [ -n "${{ github.event.inputs.date }}" ]; then
+            body='{"date": "${{ github.event.inputs.date }}", "source": "github-actions"}'
+          else
+            body='{"source": "github-actions"}'
+          fi
+
+          response=$(curl -s -w "\n%{http_code}" -X POST \
+            https://401k.mreedon.com/api/snapshots/save \
+            -H "X-401K-Token: ${{ secrets.API_SHARED_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "$body")
+
+          http_code=$(echo "$response" | tail -n1)
+          body_response=$(echo "$response" | head -n-1)
+
+          echo "Response: $body_response"
+          echo "HTTP Status: $http_code"
+
+          # Check if successful (200) or already exists (409)
+          if [ "$http_code" -eq 200 ]; then
+            echo "✅ Snapshot created successfully"
+            echo "$body_response" | jq -r '.snapshot | "Date: \(.date)\nMarket Value: $\(.marketValue)\nGain/Loss: $\(.gainLoss) (\(.gainLossPercent)%)\nHoldings: \(.holdingsCount)"'
+          elif [ "$http_code" -eq 409 ]; then
+            echo "ℹ️ Snapshot already exists for today"
+          else
+            echo "❌ Snapshot creation failed with status $http_code"
+            exit 1
+          fi
