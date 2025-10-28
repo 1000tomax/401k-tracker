@@ -50,6 +50,7 @@ export default function FundDetail() {
   const [transactions, setTransactions] = useState([]);
   const [dividends, setDividends] = useState([]);
   const [livePrices, setLivePrices] = useState({});
+  const [fundSnapshots, setFundSnapshots] = useState(null);
 
   const transactionService = useMemo(() => new TransactionService(API_URL, API_TOKEN), []);
   const dividendService = useMemo(() => new DividendService(API_URL, API_TOKEN), []);
@@ -60,7 +61,26 @@ export default function FundDetail() {
     const loadData = async () => {
       try {
         setLoading(true);
-        // Fetch all data and filter on frontend (more flexible matching)
+
+        // Fetch fund snapshots first to see if we have historical data
+        let snapshotsData = null;
+        try {
+          const snapshotsUrl = `${API_URL}/api/funds/snapshots?ticker=${encodeURIComponent(ticker.toUpperCase())}&days=365`;
+          const snapshotsResponse = await fetch(snapshotsUrl, {
+            headers: { 'X-401K-Token': API_TOKEN },
+          });
+          if (snapshotsResponse.ok) {
+            snapshotsData = await snapshotsResponse.json();
+            if (snapshotsData.ok && snapshotsData.timeline?.length > 0) {
+              setFundSnapshots(snapshotsData);
+              console.log(`📊 Loaded ${snapshotsData.timeline.length} fund snapshots`);
+            }
+          }
+        } catch (err) {
+          console.log('No fund snapshots available, will use transaction-based calculation');
+        }
+
+        // Fetch all other data
         const [txData, divData, priceData] = await Promise.all([
           transactionService.getAllTransactions(),
           dividendService.getAllDividends(),
@@ -113,19 +133,66 @@ export default function FundDetail() {
 
   // Calculate running totals and metrics
   const fundMetrics = useMemo(() => {
+    let timeline = [];
+    let totalDividends = 0;
+
+    // Add dividends to total
+    fundDividends.forEach(div => {
+      totalDividends += parseFloat(div.amount) || 0;
+    });
+
+    // If we have fund snapshots, use those for the timeline
+    if (fundSnapshots && fundSnapshots.timeline && fundSnapshots.timeline.length > 0) {
+      timeline = fundSnapshots.timeline;
+
+      // Use the latest snapshot for current metrics
+      const latest = fundSnapshots.latest;
+      const currentShares = latest.shares;
+      const currentCostBasis = latest.costBasis;
+      const avgCost = latest.avgCost;
+      const latestPrice = latest.currentPrice;
+
+      // Check if these are Voya transactions (they have fund name with "0899")
+      const isVoyaFund = fundTransactions.length > 0 &&
+                         fundTransactions[0].fund?.includes('0899');
+
+      // Use live price if available
+      const livePriceTicker = isVoyaFund ? 'VOYA_0899' : ticker?.toUpperCase();
+      const livePrice = livePrices[livePriceTicker]?.price || latestPrice;
+      const marketValue = currentShares * livePrice;
+      const gainLoss = marketValue - currentCostBasis;
+      const gainLossPercent = currentCostBasis > 0 ? (gainLoss / currentCostBasis) * 100 : 0;
+
+      return {
+        ticker: ticker.toUpperCase(),
+        currentShares,
+        currentCostBasis,
+        avgCost,
+        latestPrice,
+        livePrice,
+        marketValue,
+        gainLoss,
+        gainLossPercent,
+        totalDividends,
+        timeline,
+        transactionCount: fundTransactions.length,
+        dividendCount: fundDividends.length,
+        firstBuyDate: fundTransactions[0]?.date,
+        lastTransactionDate: fundTransactions[fundTransactions.length - 1]?.date,
+        usingSnapshots: true,
+      };
+    }
+
+    // Fallback: Build timeline from transactions if no snapshots available
     let totalShares = 0;
     let totalCostBasis = 0;
-    let totalDividends = 0;
-    const timeline = [];
 
-    // Process transactions chronologically
     fundTransactions.forEach(tx => {
       const shares = parseFloat(tx.units) || 0;
       const price = parseFloat(tx.unit_price) || 0;
       const amount = parseFloat(tx.amount) || Math.abs(shares * price);
       const activity = (tx.activity || '').toLowerCase();
 
-      // Handle various buy/sell activity names
       const isBuy = activity.includes('buy') ||
                     activity.includes('purchase') ||
                     activity.includes('contribution') ||
@@ -140,7 +207,6 @@ export default function FundDetail() {
         totalCostBasis += amount;
       } else if (isSell) {
         totalShares -= shares;
-        // Reduce cost basis proportionally
         const sellRatio = shares / (totalShares + shares);
         totalCostBasis -= totalCostBasis * sellRatio;
       }
@@ -156,26 +222,14 @@ export default function FundDetail() {
       });
     });
 
-    // Add dividends to total
-    fundDividends.forEach(div => {
-      totalDividends += parseFloat(div.amount) || 0;
-    });
-
-    // Use the running totals directly (more reliable than reading from timeline)
     const currentShares = totalShares;
     const currentCostBasis = totalCostBasis;
     const avgCost = currentShares > 0 ? currentCostBasis / currentShares : 0;
-
-    // Get latest price from timeline or transactions
     const latestEntry = timeline[timeline.length - 1];
     const latestPrice = latestEntry?.price || fundTransactions[fundTransactions.length - 1]?.unit_price || 0;
 
-    // Check if these are Voya transactions (they have fund name with "0899")
     const isVoyaFund = fundTransactions.length > 0 &&
                        fundTransactions[0].fund?.includes('0899');
-
-    // Use live price if available
-    // For Voya fund, use VOYA_0899 price, otherwise use the ticker price
     const livePriceTicker = isVoyaFund ? 'VOYA_0899' : ticker?.toUpperCase();
     const livePrice = livePrices[livePriceTicker]?.price || latestPrice;
     const marketValue = currentShares * livePrice;
@@ -198,8 +252,9 @@ export default function FundDetail() {
       dividendCount: fundDividends.length,
       firstBuyDate: fundTransactions[0]?.date,
       lastTransactionDate: fundTransactions[fundTransactions.length - 1]?.date,
+      usingSnapshots: false,
     };
-  }, [fundTransactions, fundDividends, ticker, livePrices]);
+  }, [fundTransactions, fundDividends, ticker, livePrices, fundSnapshots]);
 
 
   if (loading) {

@@ -251,6 +251,62 @@ export async function onRequestPost(context) {
 
     console.log(`✅ ${holdingsSnapshots.length} holdings snapshots saved`);
 
+    // Aggregate holdings by fund (combine all sources for each fund)
+    const fundAggregates = {};
+    for (const holding of holdings) {
+      const ticker = holding.fund;
+      if (!fundAggregates[ticker]) {
+        fundAggregates[ticker] = {
+          ticker,
+          fund_name: ticker,
+          shares: 0,
+          cost_basis: 0,
+          market_value: 0,
+          current_price: holding.latestNAV,
+        };
+      }
+      fundAggregates[ticker].shares += holding.shares;
+      fundAggregates[ticker].cost_basis += holding.costBasis;
+      fundAggregates[ticker].market_value += holding.marketValue;
+      // Keep the current price (should be same across all sources)
+      fundAggregates[ticker].current_price = holding.latestNAV;
+    }
+
+    // Create fund snapshots
+    const fundSnapshots = Object.values(fundAggregates).map(fund => {
+      const avgCostPerShare = fund.shares > 0 ? fund.cost_basis / fund.shares : 0;
+      const gainLoss = fund.market_value - fund.cost_basis;
+      const gainLossPercent = fund.cost_basis > 0 ? (gainLoss / fund.cost_basis) * 100 : 0;
+
+      return {
+        snapshot_date: snapshotDate,
+        snapshot_time: new Date().toISOString(),
+        ticker: fund.ticker,
+        fund_name: fund.fund_name,
+        shares: fund.shares,
+        cost_basis: fund.cost_basis,
+        market_value: fund.market_value,
+        avg_cost_per_share: avgCostPerShare,
+        current_price: fund.current_price,
+        gain_loss: gainLoss,
+        gain_loss_percent: gainLossPercent,
+      };
+    });
+
+    // Insert fund snapshots
+    if (fundSnapshots.length > 0) {
+      const { error: fundSnapshotsError } = await supabase
+        .from('fund_snapshots')
+        .insert(fundSnapshots);
+
+      if (fundSnapshotsError) {
+        // Log but don't fail the entire snapshot if fund snapshots fail
+        console.error('⚠️ Failed to insert fund snapshots:', fundSnapshotsError.message);
+      } else {
+        console.log(`✅ ${fundSnapshots.length} fund snapshots saved`);
+      }
+    }
+
     return jsonResponse({
       ok: true,
       snapshot: {
@@ -260,6 +316,7 @@ export async function onRequestPost(context) {
         gainLoss: totalGainLoss,
         gainLossPercent: totalGainLossPercent,
         holdingsCount: holdings.length,
+        fundSnapshotsCount: fundSnapshots.length,
         marketStatus,
       },
     }, 200, env);
