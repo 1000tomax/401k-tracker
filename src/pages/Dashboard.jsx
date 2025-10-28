@@ -88,20 +88,30 @@ function ChartTooltip({ active, payload, label }) {
  * @returns {React.Component|null} Tooltip component or null if inactive
  */
 const PieTooltip = memo(({ active, payload }) => {
-  if (!active || !payload || !payload.length) return null;
+  // More defensive checks to prevent fallback to default tooltip
+  if (!active) return null;
+  if (!payload || !Array.isArray(payload) || payload.length === 0) return null;
+  if (!payload[0] || !payload[0].payload) return null;
+
   const data = payload[0].payload;
+
+  // Ensure value is a number and properly formatted
+  const value = typeof data.value === 'number' ? data.value : parseFloat(data.value || 0);
+  const percentage = data.percentage || '0.0';
+
   return (
     <div className="chart-tooltip">
-      <div className="chart-tooltip-label">{data.name}</div>
-      <ul>
-        <li>
-          <span className="dot" style={{ background: payload[0].fill }} />
-          <span className="name">Value</span>
-          <span className="value">{formatCurrency(data.value)}</span>
+      <div className="chart-tooltip-label">{data.name || 'Unknown'}</div>
+      <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
+        <li style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0' }}>
+          <span className="dot" style={{ background: payload[0].fill, width: '8px', height: '8px', borderRadius: '50%', display: 'inline-block' }} />
+          <span className="name" style={{ flex: 1 }}>Value</span>
+          <span className="value" style={{ fontWeight: 600 }}>{formatCurrency(value)}</span>
         </li>
-        <li>
-          <span className="name">Allocation</span>
-          <span className="value">{data.percentage}%</span>
+        <li style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0' }}>
+          <span style={{ width: '8px' }} /> {/* Spacer for alignment */}
+          <span className="name" style={{ flex: 1 }}>Allocation</span>
+          <span className="value" style={{ fontWeight: 600 }}>{percentage}%</span>
         </li>
       </ul>
     </div>
