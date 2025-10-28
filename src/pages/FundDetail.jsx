@@ -380,6 +380,10 @@ export default function FundDetail() {
             <YAxis
               stroke="#888"
               tickFormatter={tickFormatter}
+              domain={[
+                (dataMin) => (dataMin * 0.95).toFixed(2),
+                (dataMax) => (dataMax * 1.05).toFixed(2)
+              ]}
               label={{ value: 'Value ($)', angle: -90, position: 'insideLeft', fill: '#888' }}
             />
             <Tooltip content={renderTooltip} />
