@@ -54,12 +54,13 @@ jobs:
 
       - name: Fetch closing prices
         run: |
-          echo "💰 Fetching closing prices from Finnhub..."
+          echo "💰 Fetching closing prices from Finnhub (forced)..."
 
           response=$(curl -s -w "\n%{http_code}" -X POST \
             https://401k.mreedon.com/api/prices/refresh \
             -H "X-401K-Token: ${{ secrets.API_SHARED_TOKEN }}" \
-            -H "Content-Type: application/json")
+            -H "Content-Type: application/json" \
+            -d '{"force": true}')
 
           http_code=$(echo "$response" | tail -n1)
           body=$(echo "$response" | head -n-1)

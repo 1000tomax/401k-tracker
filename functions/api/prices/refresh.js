@@ -92,8 +92,17 @@ export async function onRequestPost(context) {
   }
 
   try {
-    // Check if market is open
-    if (!isMarketOpen()) {
+    // Parse request body for force parameter
+    let force = false;
+    try {
+      const body = await request.json();
+      force = body.force === true;
+    } catch (e) {
+      // No body or invalid JSON - use default
+    }
+
+    // Check if market is open (unless forced)
+    if (!force && !isMarketOpen()) {
       console.log('📴 Market is closed, skipping price refresh');
       return jsonResponse({
         ok: true,
@@ -103,7 +112,11 @@ export async function onRequestPost(context) {
       }, 200, env);
     }
 
-    console.log('📈 Market is open, fetching prices...');
+    if (force) {
+      console.log('💪 Forced price refresh (bypassing market hours check)...');
+    } else {
+      console.log('📈 Market is open, fetching prices...');
+    }
 
     // Get Finnhub API key
     const apiKey = env.FINNHUB_API_KEY;
