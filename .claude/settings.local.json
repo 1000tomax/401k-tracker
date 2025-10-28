@@ -19,7 +19,19 @@
       "Bash(wrangler pages deploy:*)",
       "Bash(mv:*)",
       "Bash(mkdir:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(npm run lint)",
+      "Bash(chmod:*)",
+      "Bash(echo:*)",
+      "Bash(if [ -f .env ])",
+      "Bash(then grep VITE_401K_TOKEN .env)",
+      "Bash(else echo \"No .env file found\")",
+      "Bash(fi)",
+      "Bash(source:*)",
+      "Bash(export API_TOKEN=\"$VITE_401K_TOKEN\")",
+      "Bash(./scripts/backfill-snapshots.sh:*)",
+      "Bash(\"https://401k.mreedon.com/api/snapshots/backfill\" )",
+      "Bash(git push)"
     ],
     "deny": [],
     "ask": []

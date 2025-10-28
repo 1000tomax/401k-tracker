@@ -77,11 +77,10 @@ export async function onRequestPost(context) {
 
     console.log('📈 Starting historical price update...');
 
-    // Get all snapshots that need updating
+    // Get all snapshots that need updating (all sources, not just backfill)
     const { data: snapshots, error: snapshotsError } = await supabase
       .from('portfolio_snapshots')
-      .select('snapshot_date')
-      .eq('snapshot_source', 'backfill') // Only update backfilled snapshots
+      .select('snapshot_date, snapshot_source')
       .order('snapshot_date', { ascending: true });
 
     if (snapshotsError) throw snapshotsError;
