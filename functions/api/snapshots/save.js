@@ -47,11 +47,11 @@ function getMarketStatus() {
 }
 
 /**
- * Fetches live ETF prices from the live_prices table
+ * Fetches live ETF prices from the current_etf_prices table
  */
 async function getLivePrices(supabase) {
   const { data, error } = await supabase
-    .from('live_prices')
+    .from('current_etf_prices')
     .select('ticker, price, updated_at, change_percent');
 
   if (error) {
@@ -169,7 +169,7 @@ export async function onRequestPost(context) {
 
     // Fetch live prices
     const livePrices = await getLivePrices(supabase);
-    console.log('💰 Live prices:', livePrices ? Object.keys(livePrices).length : 0, 'tickers');
+    console.log('💰 Current ETF prices:', livePrices ? Object.keys(livePrices).length : 0, 'tickers');
 
     // Normalize transactions to match expected format
     const normalizedTransactions = transactions.map(tx => ({
