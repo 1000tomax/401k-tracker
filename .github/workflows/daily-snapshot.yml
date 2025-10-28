@@ -2,7 +2,7 @@ name: Daily Portfolio Snapshot
 
 on:
   # Run daily at 4:05 PM ET (after market close)
-  # Fetches closing prices then creates snapshot
+  # End-of-day processing: Sync Plaid → Fetch prices → Create snapshot
   # 20:05 UTC = 4:05 PM ET
   schedule:
     - cron: '5 20 * * 1-5'  # Mon-Fri at 4:05 PM ET
@@ -20,6 +20,38 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Sync Plaid transactions
+        run: |
+          echo "🔄 Syncing Plaid transactions (optimistic - may catch same-day trades)..."
+
+          response=$(curl -s -w "\n%{http_code}" -X POST \
+            https://401k.mreedon.com/api/sync/transactions \
+            -H "X-401K-Token: ${{ secrets.API_SHARED_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            --connect-timeout 10 \
+            --max-time 60)
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | head -n-1)
+
+          echo "HTTP Status: $http_code"
+
+          if [ "$http_code" -eq 200 ]; then
+            echo "✅ Plaid sync completed"
+            # Extract summary if available
+            json_line=$(echo "$body" | grep -o '{.*}' | tail -n1)
+            if [ -n "$json_line" ]; then
+              formatted_summary=$(echo "$json_line" | jq -r '.formatted_summary // empty' 2>/dev/null)
+              if [ -n "$formatted_summary" ]; then
+                echo "$formatted_summary"
+              fi
+            fi
+          else
+            echo "⚠️ Plaid sync failed with status $http_code, continuing anyway"
+            echo "Response: $body"
+            # Don't fail workflow - snapshot can still use yesterday's transactions
+          fi
+
       - name: Fetch closing prices
         run: |
           echo "💰 Fetching closing prices from Finnhub..."

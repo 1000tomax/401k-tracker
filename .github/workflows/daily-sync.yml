@@ -1,9 +1,10 @@
-name: Daily Transaction Sync
+name: Pre-Market Transaction Sync
 
 on:
   schedule:
-    # Run daily at 6 AM UTC (2 AM ET / 11 PM PT)
-    - cron: '0 6 * * *'
+    # Run at 9:30 AM ET (market open) to catch overnight transactions
+    # 13:30 UTC = 9:30 AM ET, Mon-Fri only
+    - cron: '30 13 * * 1-5'
   workflow_dispatch: # Allows manual trigger from GitHub Actions tab
 
 jobs:
