@@ -87,37 +87,42 @@ function ChartTooltip({ active, payload, label }) {
  * @param {Array} props.payload - Data payload for the hovered slice
  * @returns {React.Component|null} Tooltip component or null if inactive
  */
-const PieTooltip = memo(({ active, payload }) => {
-  // More defensive checks to prevent fallback to default tooltip
+function PieTooltip({ active, payload }) {
+  // Return null if tooltip not active
   if (!active) return null;
-  if (!payload || !Array.isArray(payload) || payload.length === 0) return null;
-  if (!payload[0] || !payload[0].payload) return null;
 
-  const data = payload[0].payload;
+  // Check if we have valid payload data
+  if (!payload || !payload.length || !payload[0]) return null;
 
-  // Ensure value is a number and properly formatted
-  const value = typeof data.value === 'number' ? data.value : parseFloat(data.value || 0);
+  // Get the data - payload structure for Pie charts
+  const entry = payload[0];
+  const data = entry.payload || entry;
+
+  // Extract values with fallbacks
+  const name = data.name || 'Unknown';
+  const rawValue = data.value || 0;
+  const value = typeof rawValue === 'number' ? rawValue : parseFloat(rawValue);
   const percentage = data.percentage || '0.0';
+  const color = entry.fill || entry.color || '#8884d8';
 
   return (
     <div className="chart-tooltip">
-      <div className="chart-tooltip-label">{data.name || 'Unknown'}</div>
+      <div className="chart-tooltip-label">{name}</div>
       <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
         <li style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0' }}>
-          <span className="dot" style={{ background: payload[0].fill, width: '8px', height: '8px', borderRadius: '50%', display: 'inline-block' }} />
-          <span className="name" style={{ flex: 1 }}>Value</span>
-          <span className="value" style={{ fontWeight: 600 }}>{formatCurrency(value)}</span>
+          <span style={{ background: color, width: '8px', height: '8px', borderRadius: '50%', display: 'inline-block' }} />
+          <span style={{ flex: 1 }}>Value</span>
+          <span style={{ fontWeight: 600 }}>{formatCurrency(value)}</span>
         </li>
         <li style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0' }}>
-          <span style={{ width: '8px' }} /> {/* Spacer for alignment */}
-          <span className="name" style={{ flex: 1 }}>Allocation</span>
-          <span className="value" style={{ fontWeight: 600 }}>{percentage}%</span>
+          <span style={{ width: '8px' }} />
+          <span style={{ flex: 1 }}>Allocation</span>
+          <span style={{ fontWeight: 600 }}>{percentage}%</span>
         </li>
       </ul>
     </div>
   );
-});
-PieTooltip.displayName = 'PieTooltip';
+}
 
 /**
  * Dashboard page component that displays comprehensive portfolio overview.
