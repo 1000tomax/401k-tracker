@@ -390,20 +390,20 @@ export default function FundDetail() {
             <Legend />
             <Area
               type="monotone"
-              dataKey="costBasis"
-              fill="#8b5cf6"
+              dataKey="marketValue"
+              fill="#10b981"
               fillOpacity={0.3}
-              stroke="#8b5cf6"
+              stroke="#10b981"
               strokeWidth={2}
-              name="Cost Basis"
+              name="Market Value"
             />
             <Line
               type="monotone"
-              dataKey="marketValue"
-              stroke="#10b981"
+              dataKey="costBasis"
+              stroke="#8b5cf6"
               strokeWidth={2}
               dot={false}
-              name="Market Value"
+              name="Cost Basis"
             />
           </ComposedChart>
         </ResponsiveContainer>
