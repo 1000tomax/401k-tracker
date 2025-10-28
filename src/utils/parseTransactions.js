@@ -37,6 +37,26 @@ const KNOWN_ACTIVITIES = [
 ];
 
 /**
+ * Maps fund names to ticker symbols for live price lookups.
+ * This allows the aggregatePortfolio function to find prices in the livePrices map.
+ * @type {Object<string, string>}
+ */
+const FUND_TO_TICKER_MAP = {
+  '0899 Vanguard 500 Index Fund Adm': 'VOYA_0899',
+  // Other funds use their name as ticker (VTI, QQQM, SCHD, DES)
+};
+
+/**
+ * Gets the ticker symbol for a fund name to use for price lookups.
+ * If no mapping exists, returns the fund name itself (for funds like VTI, QQQM, etc.)
+ * @param {string} fundName - The fund name from transactions
+ * @returns {string} The ticker symbol to use for price lookups
+ */
+function getTicker(fundName) {
+  return FUND_TO_TICKER_MAP[fundName] || fundName;
+}
+
+/**
  * Converts a string-like value into a number. It can handle common currency
  * formats, such as those with '$', ',', and negative numbers represented
  * with parentheses, e.g., (1,234.56).
@@ -795,16 +815,18 @@ export function aggregatePortfolio(transactions, livePrices = null) {
     let nav = 0;
     let priceSource = 'transaction';
 
-    if (livePrices && livePrices[fund] && livePrices[fund].price > 0) {
+    // Map fund name to ticker for price lookup
+    const ticker = getTicker(fund);
+    if (livePrices && livePrices[ticker] && livePrices[ticker].price > 0) {
       // Use live price from API
-      nav = livePrices[fund].price;
+      nav = livePrices[ticker].price;
       priceSource = 'live';
-      console.log(`📈 Using live price for ${fund}: $${nav.toFixed(2)}`);
+      console.log(`📈 Using live price for ${fund}: $${nav.toFixed(2)} (ticker: ${ticker})`);
 
       // Track the price timestamp for this money source
       if (!priceTimestamps[moneySource]) {
         priceTimestamps[moneySource] = {
-          timestamp: livePrices[fund].updatedAt,
+          timestamp: livePrices[ticker].updatedAt,
           source: priceSource
         };
       }
