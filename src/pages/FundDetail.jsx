@@ -65,7 +65,11 @@ export default function FundDetail() {
         // Fetch fund snapshots first to see if we have historical data
         let snapshotsData = null;
         try {
-          const snapshotsUrl = `${API_URL}/api/funds/snapshots?ticker=${encodeURIComponent(ticker.toUpperCase())}&days=365`;
+          // Map VOO to VOYA_0899 for snapshot queries (401k fund uses internal ticker)
+          const tickerUpper = ticker.toUpperCase();
+          const snapshotTicker = tickerUpper === 'VOO' ? 'VOYA_0899' : tickerUpper;
+
+          const snapshotsUrl = `${API_URL}/api/funds/snapshots?ticker=${encodeURIComponent(snapshotTicker)}&days=365`;
           const snapshotsResponse = await fetch(snapshotsUrl, {
             headers: { 'X-401K-Token': API_TOKEN },
           });
@@ -73,7 +77,7 @@ export default function FundDetail() {
             snapshotsData = await snapshotsResponse.json();
             if (snapshotsData.ok && snapshotsData.timeline?.length > 0) {
               setFundSnapshots(snapshotsData);
-              console.log(`📊 Loaded ${snapshotsData.timeline.length} fund snapshots`);
+              console.log(`📊 Loaded ${snapshotsData.timeline.length} fund snapshots for ${ticker.toUpperCase()}`);
             }
           }
         } catch (err) {
