@@ -188,6 +188,109 @@ function createTransactionHash(tx) {
   return simpleHash(primaryData);
 }
 
+/**
+ * Format holdings as readable text
+ */
+function formatHoldingsAsText(holdings, totals, asOfDate) {
+  let text = `Portfolio Holdings as of ${asOfDate}\n`;
+  text += `${'='.repeat(80)}\n\n`;
+
+  holdings.forEach(h => {
+    text += `${h.fund}\n`;
+    text += `  Account: ${h.account}\n`;
+    text += `  Shares: ${h.shares.toFixed(4)}\n`;
+    text += `  Unit Price: $${h.unit_price.toFixed(2)}\n`;
+    text += `  Market Value: $${h.market_value.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n`;
+    if (h.cost_basis !== undefined) {
+      text += `  Cost Basis: $${h.cost_basis.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n`;
+      text += `  Gain/Loss: $${h.gain_loss.toLocaleString('en-US', { minimumFractionDigits: 2 })} (${h.gain_loss_percent}%)\n`;
+    }
+    text += `  % of Portfolio: ${h.percent_of_portfolio}%\n\n`;
+  });
+
+  text += `${'='.repeat(80)}\n`;
+  text += `Total Positions: ${totals.total_positions}\n`;
+  text += `Total Market Value: $${totals.total_market_value.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n`;
+  if (totals.total_cost_basis !== undefined) {
+    text += `Total Cost Basis: $${totals.total_cost_basis.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n`;
+    text += `Total Gain/Loss: $${totals.total_gain_loss.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n`;
+  }
+
+  return text;
+}
+
+/**
+ * Format dividend history as readable text
+ */
+function formatDividendsAsText(grouped, totalAmount, startDate, endDate, groupBy, yieldData) {
+  let text = `Dividend History: ${startDate} to ${endDate}\n`;
+  text += `Grouped by: ${groupBy}\n`;
+  text += `${'='.repeat(80)}\n\n`;
+
+  grouped.forEach(g => {
+    text += `${g.group}\n`;
+    text += `  Payments: ${g.count}\n`;
+    text += `  Total: $${g.total_amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n`;
+
+    if (yieldData && yieldData[g.group]) {
+      text += `  Yield: ${yieldData[g.group].yield_percent}%\n`;
+    }
+
+    text += `  Details:\n`;
+    g.dividends.slice(0, 5).forEach(d => {
+      text += `    ${d.date}: $${d.amount.toFixed(2)} - ${d.fund}\n`;
+    });
+    if (g.dividends.length > 5) {
+      text += `    ... and ${g.dividends.length - 5} more\n`;
+    }
+    text += `\n`;
+  });
+
+  text += `${'='.repeat(80)}\n`;
+  text += `Grand Total: $${totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n`;
+  text += `Total Payments: ${grouped.reduce((sum, g) => sum + g.count, 0)}\n`;
+
+  return text;
+}
+
+/**
+ * Format transaction search results as readable text
+ */
+function formatTransactionsAsText(transactions, summary, filters) {
+  let text = `Transaction Search Results\n`;
+  if (filters.startDate || filters.endDate) {
+    text += `Date Range: ${filters.startDate || 'any'} to ${filters.endDate || 'any'}\n`;
+  }
+  if (filters.fund) text += `Fund Filter: ${filters.fund}\n`;
+  if (filters.activity) text += `Activity Filter: ${filters.activity}\n`;
+  if (filters.moneySource) text += `Money Source Filter: ${filters.moneySource}\n`;
+  text += `${'='.repeat(80)}\n\n`;
+
+  transactions.slice(0, 20).forEach(t => {
+    text += `${t.date} | ${t.activity}\n`;
+    text += `  Fund: ${t.fund}\n`;
+    if (t.money_source) text += `  Source: ${t.money_source}\n`;
+    if (t.shares) text += `  Shares: ${t.shares.toFixed(4)} @ $${t.unit_price.toFixed(2)}\n`;
+    text += `  Amount: $${t.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n\n`;
+  });
+
+  if (transactions.length > 20) {
+    text += `... and ${transactions.length - 20} more transactions\n\n`;
+  }
+
+  text += `${'='.repeat(80)}\n`;
+  text += `Summary:\n`;
+  text += `  Total Transactions: ${summary.count}\n`;
+  text += `  Total Amount: $${summary.total_amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n`;
+  text += `  Date Range: ${summary.date_range.earliest} to ${summary.date_range.latest}\n`;
+  text += `\nBy Activity:\n`;
+  Object.entries(summary.by_activity).forEach(([activity, stats]) => {
+    text += `  ${activity}: ${stats.count} transactions, $${stats.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n`;
+  });
+
+  return text;
+}
+
 // ============================================================================
 // MCP PROTOCOL HANDLER
 // ============================================================================
@@ -232,6 +335,94 @@ function handleToolsList() {
         inputSchema: {
           type: 'object',
           properties: {},
+          required: []
+        }
+      },
+      {
+        name: 'get_holdings',
+        description: 'Get detailed holdings breakdown by fund and account. Shows shares, values, cost basis, and gains. Supports historical queries.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            as_of_date: {
+              type: 'string',
+              description: 'Date to query holdings (YYYY-MM-DD format). Defaults to today.'
+            },
+            include_zero_balance: {
+              type: 'boolean',
+              description: 'Include funds with zero shares (sold positions). Defaults to false.'
+            },
+            calculate_gains: {
+              type: 'boolean',
+              description: 'Include gain/loss calculations. Defaults to true.'
+            }
+          },
+          required: []
+        }
+      },
+      {
+        name: 'get_dividend_history',
+        description: 'Get dividend payment history with flexible grouping options. Shows income by fund, month, or quarter. Optionally calculates dividend yield.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            start_date: {
+              type: 'string',
+              description: 'Start date for dividend history (YYYY-MM-DD format). Defaults to beginning of current year.'
+            },
+            end_date: {
+              type: 'string',
+              description: 'End date for dividend history (YYYY-MM-DD format). Defaults to today.'
+            },
+            group_by: {
+              type: 'string',
+              enum: ['fund', 'month', 'quarter'],
+              description: 'How to group dividend results. Defaults to "fund".'
+            },
+            calculate_yield: {
+              type: 'boolean',
+              description: 'Calculate dividend yield based on current holdings. Defaults to false.'
+            }
+          },
+          required: []
+        }
+      },
+      {
+        name: 'search_transactions',
+        description: 'Search and filter transactions with flexible criteria. Filter by date range, fund, activity type, and money source. Useful for auditing contributions, fees, and specific transaction types.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            start_date: {
+              type: 'string',
+              description: 'Start date for search (YYYY-MM-DD format).'
+            },
+            end_date: {
+              type: 'string',
+              description: 'End date for search (YYYY-MM-DD format).'
+            },
+            fund: {
+              type: 'string',
+              description: 'Filter by fund name (partial match, case-insensitive).'
+            },
+            activity: {
+              type: 'string',
+              description: 'Filter by activity type (e.g., "Contribution", "Dividend", "Fee").'
+            },
+            money_source: {
+              type: 'string',
+              description: 'Filter by money source (e.g., "ROTH", "Safe Harbor Match", "Employee PreTax").'
+            },
+            limit: {
+              type: 'integer',
+              description: 'Maximum number of results to return. Defaults to 50, max 500.'
+            },
+            sort: {
+              type: 'string',
+              enum: ['date_desc', 'date_asc', 'amount_desc'],
+              description: 'How to sort results. Defaults to "date_desc".'
+            }
+          },
           required: []
         }
       }
@@ -460,6 +651,384 @@ async function handleGetPortfolioSummary(args, env) {
   }
 }
 
+/**
+ * Handle get_holdings tool call
+ */
+async function handleGetHoldings(args, env) {
+  try {
+    const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY);
+
+    // Extract and validate parameters
+    const today = new Date().toISOString().split('T')[0];
+    const asOfDate = args.as_of_date || today;
+    const includeZeroBalance = args.include_zero_balance || false;
+    const calculateGains = args.calculate_gains !== false; // default true
+
+    // Query holdings snapshots
+    let query = supabase
+      .from('holdings_snapshots')
+      .select('*')
+      .eq('snapshot_date', asOfDate);
+
+    const { data: holdings, error } = await query;
+
+    if (error) {
+      throw new Error(`Database error: ${error.message}`);
+    }
+
+    if (!holdings || holdings.length === 0) {
+      return {
+        content: [{
+          type: 'text',
+          text: JSON.stringify({
+            message: `No holdings data available for ${asOfDate}`,
+            as_of_date: asOfDate
+          }, null, 2)
+        }]
+      };
+    }
+
+    // Filter out zero balance if requested
+    let filteredHoldings = holdings;
+    if (!includeZeroBalance) {
+      filteredHoldings = holdings.filter(h => parseFloat(h.shares) > 0);
+    }
+
+    // Calculate total portfolio value for percentage calculations
+    const totalValue = filteredHoldings.reduce((sum, h) => sum + parseFloat(h.market_value || 0), 0);
+
+    // Format holdings data
+    const formattedHoldings = filteredHoldings.map(h => ({
+      fund: h.fund,
+      account: h.account_name,
+      shares: parseFloat(h.shares),
+      unit_price: parseFloat(h.unit_price),
+      market_value: parseFloat(h.market_value),
+      cost_basis: calculateGains ? parseFloat(h.cost_basis) : undefined,
+      gain_loss: calculateGains ? parseFloat(h.gain_loss) : undefined,
+      gain_loss_percent: calculateGains && h.cost_basis > 0 ?
+        ((parseFloat(h.gain_loss) / parseFloat(h.cost_basis)) * 100).toFixed(2) : undefined,
+      percent_of_portfolio: ((parseFloat(h.market_value) / totalValue) * 100).toFixed(2)
+    }));
+
+    // Sort by market value descending
+    formattedHoldings.sort((a, b) => b.market_value - a.market_value);
+
+    // Calculate totals
+    const totals = {
+      total_market_value: totalValue,
+      total_cost_basis: calculateGains ? formattedHoldings.reduce((sum, h) => sum + (h.cost_basis || 0), 0) : undefined,
+      total_gain_loss: calculateGains ? formattedHoldings.reduce((sum, h) => sum + (h.gain_loss || 0), 0) : undefined,
+      total_positions: formattedHoldings.length
+    };
+
+    // Format as text for readability
+    const formattedText = formatHoldingsAsText(formattedHoldings, totals, asOfDate);
+
+    return {
+      content: [{
+        type: 'text',
+        text: JSON.stringify({
+          success: true,
+          as_of_date: asOfDate,
+          holdings: formattedHoldings,
+          totals: totals,
+          formatted: formattedText
+        }, null, 2)
+      }]
+    };
+  } catch (error) {
+    return {
+      content: [{
+        type: 'text',
+        text: JSON.stringify({
+          error: 'Failed to get holdings',
+          message: error.message
+        }, null, 2)
+      }],
+      isError: true
+    };
+  }
+}
+
+/**
+ * Handle get_dividend_history tool call
+ */
+async function handleGetDividendHistory(args, env) {
+  try {
+    const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY);
+
+    // Extract and validate parameters
+    const today = new Date().toISOString().split('T')[0];
+    const currentYear = new Date().getFullYear();
+    const startDate = args.start_date || `${currentYear}-01-01`;
+    const endDate = args.end_date || today;
+    const groupBy = args.group_by || 'fund';
+    const calculateYield = args.calculate_yield || false;
+
+    // Query dividends
+    const { data: dividends, error } = await supabase
+      .from('dividends')
+      .select('*')
+      .gte('date', startDate)
+      .lte('date', endDate)
+      .order('date', { ascending: false });
+
+    if (error) {
+      throw new Error(`Database error: ${error.message}`);
+    }
+
+    if (!dividends || dividends.length === 0) {
+      return {
+        content: [{
+          type: 'text',
+          text: JSON.stringify({
+            message: `No dividends found between ${startDate} and ${endDate}`,
+            start_date: startDate,
+            end_date: endDate
+          }, null, 2)
+        }]
+      };
+    }
+
+    // Group dividends based on groupBy parameter
+    const grouped = {};
+    let totalAmount = 0;
+
+    dividends.forEach(div => {
+      totalAmount += parseFloat(div.amount);
+      let key;
+
+      if (groupBy === 'fund') {
+        key = div.fund;
+      } else if (groupBy === 'month') {
+        const date = new Date(div.date);
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      } else if (groupBy === 'quarter') {
+        const date = new Date(div.date);
+        const quarter = Math.floor(date.getMonth() / 3) + 1;
+        key = `${date.getFullYear()}-Q${quarter}`;
+      }
+
+      if (!grouped[key]) {
+        grouped[key] = {
+          group: key,
+          dividends: [],
+          total_amount: 0,
+          count: 0
+        };
+      }
+
+      grouped[key].dividends.push({
+        date: div.date,
+        fund: div.fund,
+        account: div.account,
+        amount: parseFloat(div.amount),
+        dividend_type: div.dividend_type,
+        payment_frequency: div.payment_frequency
+      });
+      grouped[key].total_amount += parseFloat(div.amount);
+      grouped[key].count++;
+    });
+
+    // Convert to array and sort
+    const groupedArray = Object.values(grouped);
+    groupedArray.sort((a, b) => b.total_amount - a.total_amount);
+
+    // Calculate yield if requested
+    let yieldData = null;
+    if (calculateYield) {
+      // Get current holdings for yield calculation
+      const { data: holdings } = await supabase
+        .from('holdings_snapshots')
+        .select('*')
+        .order('snapshot_date', { ascending: false })
+        .limit(10); // Get latest snapshot per fund
+
+      if (holdings && holdings.length > 0) {
+        const latestHoldings = {};
+        holdings.forEach(h => {
+          if (!latestHoldings[h.fund]) {
+            latestHoldings[h.fund] = h;
+          }
+        });
+
+        yieldData = {};
+        Object.keys(latestHoldings).forEach(fund => {
+          const fundDividends = dividends.filter(d => d.fund === fund);
+          const annualDividends = fundDividends.reduce((sum, d) => sum + parseFloat(d.amount), 0);
+          const currentValue = parseFloat(latestHoldings[fund].market_value);
+          if (currentValue > 0) {
+            yieldData[fund] = {
+              annual_dividends: annualDividends,
+              current_value: currentValue,
+              yield_percent: ((annualDividends / currentValue) * 100).toFixed(2)
+            };
+          }
+        });
+      }
+    }
+
+    // Format as text
+    const formattedText = formatDividendsAsText(groupedArray, totalAmount, startDate, endDate, groupBy, yieldData);
+
+    return {
+      content: [{
+        type: 'text',
+        text: JSON.stringify({
+          success: true,
+          start_date: startDate,
+          end_date: endDate,
+          group_by: groupBy,
+          total_amount: totalAmount,
+          total_payments: dividends.length,
+          grouped: groupedArray,
+          yield_data: yieldData,
+          formatted: formattedText
+        }, null, 2)
+      }]
+    };
+  } catch (error) {
+    return {
+      content: [{
+        type: 'text',
+        text: JSON.stringify({
+          error: 'Failed to get dividend history',
+          message: error.message
+        }, null, 2)
+      }],
+      isError: true
+    };
+  }
+}
+
+/**
+ * Handle search_transactions tool call
+ */
+async function handleSearchTransactions(args, env) {
+  try {
+    const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY);
+
+    // Extract and validate parameters
+    const startDate = args.start_date;
+    const endDate = args.end_date;
+    const fund = args.fund;
+    const activity = args.activity;
+    const moneySource = args.money_source;
+    const limit = Math.min(args.limit || 50, 500); // Cap at 500
+    const sort = args.sort || 'date_desc';
+
+    // Build query
+    let query = supabase.from('transactions').select('*');
+
+    // Apply filters
+    if (startDate) {
+      query = query.gte('date', startDate);
+    }
+    if (endDate) {
+      query = query.lte('date', endDate);
+    }
+    if (fund) {
+      query = query.ilike('fund', `%${fund}%`);
+    }
+    if (activity) {
+      query = query.eq('activity', activity);
+    }
+    if (moneySource) {
+      query = query.eq('money_source', moneySource);
+    }
+
+    // Apply sorting
+    if (sort === 'date_desc') {
+      query = query.order('date', { ascending: false });
+    } else if (sort === 'date_asc') {
+      query = query.order('date', { ascending: true });
+    } else if (sort === 'amount_desc') {
+      query = query.order('amount', { ascending: false });
+    }
+
+    // Apply limit
+    query = query.limit(limit);
+
+    const { data: transactions, error } = await query;
+
+    if (error) {
+      throw new Error(`Database error: ${error.message}`);
+    }
+
+    if (!transactions || transactions.length === 0) {
+      return {
+        content: [{
+          type: 'text',
+          text: JSON.stringify({
+            message: 'No transactions found matching the criteria',
+            filters: { startDate, endDate, fund, activity, moneySource }
+          }, null, 2)
+        }]
+      };
+    }
+
+    // Format transactions
+    const formattedTransactions = transactions.map(t => ({
+      date: t.date,
+      fund: t.fund,
+      activity: t.activity,
+      money_source: t.money_source,
+      shares: t.units ? parseFloat(t.units) : null,
+      unit_price: t.unit_price ? parseFloat(t.unit_price) : null,
+      amount: parseFloat(t.amount),
+      source_type: t.source_type
+    }));
+
+    // Calculate summary
+    const summary = {
+      count: transactions.length,
+      total_amount: formattedTransactions.reduce((sum, t) => sum + t.amount, 0),
+      date_range: {
+        earliest: transactions[transactions.length - 1]?.date,
+        latest: transactions[0]?.date
+      },
+      by_activity: {}
+    };
+
+    // Group by activity for summary
+    formattedTransactions.forEach(t => {
+      if (!summary.by_activity[t.activity]) {
+        summary.by_activity[t.activity] = { count: 0, total: 0 };
+      }
+      summary.by_activity[t.activity].count++;
+      summary.by_activity[t.activity].total += t.amount;
+    });
+
+    // Format as text
+    const formattedText = formatTransactionsAsText(formattedTransactions, summary, { startDate, endDate, fund, activity, moneySource });
+
+    return {
+      content: [{
+        type: 'text',
+        text: JSON.stringify({
+          success: true,
+          filters: { startDate, endDate, fund, activity, moneySource },
+          transactions: formattedTransactions,
+          summary: summary,
+          formatted: formattedText
+        }, null, 2)
+      }]
+    };
+  } catch (error) {
+    return {
+      content: [{
+        type: 'text',
+        text: JSON.stringify({
+          error: 'Failed to search transactions',
+          message: error.message
+        }, null, 2)
+      }],
+      isError: true
+    };
+  }
+}
+
 // ============================================================================
 // CLOUDFLARE WORKER HANDLER
 // ============================================================================
@@ -570,6 +1139,12 @@ export default {
           result = await handleImportTransactions(args, env);
         } else if (name === 'get_portfolio_summary') {
           result = await handleGetPortfolioSummary(args, env);
+        } else if (name === 'get_holdings') {
+          result = await handleGetHoldings(args, env);
+        } else if (name === 'get_dividend_history') {
+          result = await handleGetDividendHistory(args, env);
+        } else if (name === 'search_transactions') {
+          result = await handleSearchTransactions(args, env);
         } else {
           result = {
             content: [{
