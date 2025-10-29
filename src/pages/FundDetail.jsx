@@ -146,40 +146,74 @@ export default function FundDetail() {
     let totalShares = 0;
     let totalCostBasis = 0;
 
+    // Group transactions by date first to avoid duplicate chart points
+    const txByDate = new Map();
     fundTransactions.forEach(tx => {
-      const shares = parseFloat(tx.units) || 0;
-      const price = parseFloat(tx.unit_price) || 0;
-      const amount = parseFloat(tx.amount) || Math.abs(shares * price);
-      const activity = (tx.activity || '').toLowerCase();
-
-      const isBuy = activity.includes('buy') ||
-                    activity.includes('purchase') ||
-                    activity.includes('contribution') ||
-                    activity.includes('transfer in');
-      const isSell = activity.includes('sell') ||
-                     activity.includes('sold') ||
-                     activity.includes('transfer out') ||
-                     activity.includes('fee');
-
-      if (isBuy) {
-        totalShares += shares;
-        totalCostBasis += amount;
-      } else if (isSell) {
-        totalShares -= shares;
-        const sellRatio = shares / (totalShares + shares);
-        totalCostBasis -= totalCostBasis * sellRatio;
+      const date = tx.date;
+      if (!txByDate.has(date)) {
+        txByDate.set(date, []);
       }
-
-      transactionTimeline.push({
-        date: tx.date,
-        shares: totalShares,
-        costBasis: totalCostBasis,
-        avgCost: totalShares > 0 ? totalCostBasis / totalShares : 0,
-        price: price,
-        marketValue: totalShares * price,
-        activity: activity,
-      });
+      txByDate.get(date).push(tx);
     });
+
+    // Process each date group
+    Array.from(txByDate.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .forEach(([date, txGroup]) => {
+        let dateShares = 0;
+        let dateAmount = 0;
+        let dateWeightedPrice = 0;
+        let dateActivity = '';
+
+        // Sum all transactions on this date
+        txGroup.forEach(tx => {
+          const shares = parseFloat(tx.units) || 0;
+          const price = parseFloat(tx.unit_price) || 0;
+          const amount = parseFloat(tx.amount) || Math.abs(shares * price);
+          const activity = (tx.activity || '').toLowerCase();
+
+          dateShares += shares;
+          dateAmount += amount;
+          dateWeightedPrice += price * Math.abs(shares);
+
+          // Use first activity type as representative
+          if (!dateActivity) dateActivity = activity;
+        });
+
+        // Calculate weighted average price for this date
+        const avgPrice = Math.abs(dateShares) > 0
+          ? dateWeightedPrice / Math.abs(dateShares)
+          : 0;
+
+        const isBuy = dateActivity.includes('buy') ||
+                      dateActivity.includes('purchase') ||
+                      dateActivity.includes('contribution') ||
+                      dateActivity.includes('transfer in');
+        const isSell = dateActivity.includes('sell') ||
+                       dateActivity.includes('sold') ||
+                       dateActivity.includes('transfer out') ||
+                       dateActivity.includes('fee');
+
+        if (isBuy) {
+          totalShares += dateShares;
+          totalCostBasis += dateAmount;
+        } else if (isSell) {
+          totalShares -= Math.abs(dateShares);
+          const sellRatio = Math.abs(dateShares) / (totalShares + Math.abs(dateShares));
+          totalCostBasis -= totalCostBasis * sellRatio;
+        }
+
+        // Add one timeline point per date
+        transactionTimeline.push({
+          date: date,
+          shares: totalShares,
+          costBasis: totalCostBasis,
+          avgCost: totalShares > 0 ? totalCostBasis / totalShares : 0,
+          price: avgPrice,
+          marketValue: totalShares * avgPrice,
+          activity: dateActivity,
+        });
+      });
 
     // If we have fund snapshots, use those for the Value Growth timeline
     if (fundSnapshots && fundSnapshots.timeline && fundSnapshots.timeline.length > 0) {
