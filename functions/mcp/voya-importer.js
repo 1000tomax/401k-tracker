@@ -523,7 +523,19 @@ export default {
       let result;
 
       // Handle MCP methods
-      if (method === 'tools/list') {
+      if (method === 'initialize') {
+        // MCP initialization handshake
+        result = {
+          protocolVersion: '2024-11-05',
+          serverInfo: {
+            name: 'voya-importer',
+            version: '1.0.0'
+          },
+          capabilities: {
+            tools: {}
+          }
+        };
+      } else if (method === 'tools/list') {
         result = handleToolsList();
       } else if (method === 'tools/call') {
         const { name, arguments: args } = params;
