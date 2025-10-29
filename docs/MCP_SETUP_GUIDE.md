@@ -187,6 +187,12 @@ Claude should parse it and ask for confirmation before importing!
 - Check that the data is tab-separated (it should be if you copied from the website)
 - Try copying the header row along with the data
 
+### "Invalid supabaseUrl: Must be a valid HTTP or HTTPS URL"
+
+- Make sure `SUPABASE_URL` is set to the **full URL** format: `https://your-project-id.supabase.co`
+- Common mistake: Setting it to just the project ID (`ovkdmeiyrnqbzvotwaso`) instead of the full URL
+- Fix: `echo "https://your-project-id.supabase.co" | wrangler secret put SUPABASE_URL`
+
 ### "Database error"
 
 - Check that your Supabase credentials are correct
