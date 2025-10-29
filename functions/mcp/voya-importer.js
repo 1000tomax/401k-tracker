@@ -165,18 +165,27 @@ function generateSummary(transactions) {
 }
 
 /**
+ * A simple, non-cryptographic hashing function for generating short hashes from strings.
+ * @param {string} str - The input string.
+ * @returns {string} A short hexadecimal hash string.
+ */
+function simpleHash(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash).toString(16).slice(0, 8);
+}
+
+/**
  * Create transaction hash for duplicate detection
+ * Must match the format used by the web API for consistency
  */
 function createTransactionHash(tx) {
-  const parts = [
-    tx.date,
-    tx.fund,
-    tx.moneySource || '',
-    tx.activity,
-    tx.units?.toFixed(8) || '0',
-    tx.amount?.toFixed(2) || '0'
-  ];
-  return parts.join('|').toLowerCase();
+  const primaryData = `${tx.date}|${tx.amount}|${tx.fund?.toLowerCase() || ''}|${tx.activity?.toLowerCase() || ''}`;
+  return simpleHash(primaryData);
 }
 
 // ============================================================================
