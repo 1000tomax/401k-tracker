@@ -139,7 +139,7 @@ export async function onRequestPost(context) {
     console.log(`Connections to process: ${connections.length}`);
 
     const endDate = new Date().toISOString().split('T')[0];
-    const startDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     console.log(`Date range: ${startDate} to ${endDate}`);
     console.log('='.repeat(80) + '\n');
 
