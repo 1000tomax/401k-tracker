@@ -539,6 +539,17 @@ export default {
             tools: {}
           }
         };
+      } else if (method === 'notifications/initialized') {
+        // Client notification after initialization - no response needed
+        // Just return empty result (notification acknowledgment)
+        console.log('Client initialized notification received');
+        return new Response(JSON.stringify({
+          jsonrpc: '2.0',
+          result: {},
+          id: id
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
       } else if (method === 'tools/list') {
         result = handleToolsList();
       } else if (method === 'tools/call') {
