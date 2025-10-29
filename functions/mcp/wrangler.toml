@@ -1,0 +1,23 @@
+name = "401k-mcp-voya-importer"
+main = "voya-importer.js"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+# This worker handles MCP protocol requests for Voya transaction imports
+# Accessible at: https://401k-mcp.mreedon.workers.dev
+# Or via custom domain route
+
+# Secrets (set via: wrangler secret put SECRET_NAME):
+# - MCP_AUTH_TOKEN: Bearer token for protecting the endpoint
+# - SUPABASE_URL: Your Supabase project URL
+# - SUPABASE_ANON_KEY: Your Supabase anon key
+# - VITE_401K_TOKEN: Your 401k API token (if needed for future features)
+
+[env.production]
+name = "401k-mcp-voya-importer"
+
+# Optional: Add custom domain route
+# Requires setting up a route in Cloudflare dashboard or via API
+# routes = [
+#   { pattern = "401k.mreedon.com/mcp/*", zone_name = "mreedon.com" }
+# ]
