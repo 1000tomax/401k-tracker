@@ -67,9 +67,108 @@ function smartSplit(line) {
 }
 
 /**
- * Parse Voya transaction text (tab-separated format)
+ * Parse a CSV line respecting quoted fields
  */
-function parseVoyaTransactions(rawText) {
+function parseCSVLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+
+    if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === ',' && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+
+  result.push(current.trim());
+  return result;
+}
+
+/**
+ * Detect if text is CSV format
+ */
+function isCSVFormat(text) {
+  if (!text) return false;
+
+  // Check for quoted comma-separated values pattern
+  const hasQuotedCommas = text.includes('","') || /^".*",".*",".*"/m.test(text);
+
+  // Check for CSV header pattern
+  const hasCSVHeader = /Activity Date.*,.*Activity.*,.*Fund.*,.*Money Source/i.test(text);
+
+  return hasQuotedCommas || hasCSVHeader;
+}
+
+/**
+ * Parse Voya CSV format (exported from Voya website)
+ */
+function parseVoyaCSV(rawText) {
+  if (!rawText) return [];
+
+  const lines = rawText
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(Boolean);
+
+  if (!lines.length) return [];
+
+  // Skip header line and any company info lines
+  const dataLines = lines.filter((line, index) => {
+    // Skip first line if it looks like company info
+    if (index === 0 && !line.startsWith('"')) return false;
+
+    // Skip CSV header row
+    if (/Activity Date.*,.*Activity.*,.*Fund/i.test(line)) return false;
+
+    // Must start with quote (data rows)
+    return line.startsWith('"');
+  });
+
+  const transactions = [];
+
+  for (const line of dataLines) {
+    const parts = parseCSVLine(line);
+
+    // CSV format: Date, Activity, Fund, Money Source, Units, Unit Price, Amount, [extra columns...]
+    // We only need first 7 columns
+    if (parts.length < 7) continue;
+
+    const [rawDate, activity, fund, moneySource, unitsStr, priceStr, amountStr] = parts;
+
+    const date = normalizeDate(rawDate);
+    if (!date) continue;
+
+    const units = toNumber(unitsStr);
+    const unitPrice = toNumber(priceStr);
+    const amount = toNumber(amountStr);
+
+    transactions.push({
+      date,
+      activity: activity.trim(),
+      fund: fund.trim(),
+      moneySource: moneySource.trim(),
+      units,
+      unitPrice,
+      amount,
+      sourceType: 'voya',
+      sourceId: 'voya_401k',
+    });
+  }
+
+  return transactions;
+}
+
+/**
+ * Parse Voya plain text format (copy-pasted from website table)
+ */
+function parseVoyaPlainText(rawText) {
   if (!rawText) return [];
 
   const lines = rawText
@@ -119,6 +218,20 @@ function parseVoyaTransactions(rawText) {
   }
 
   return transactions;
+}
+
+/**
+ * Parse Voya transaction text (auto-detects CSV or plain text format)
+ */
+function parseVoyaTransactions(rawText) {
+  if (!rawText) return [];
+
+  // Auto-detect format and parse accordingly
+  if (isCSVFormat(rawText)) {
+    return parseVoyaCSV(rawText);
+  } else {
+    return parseVoyaPlainText(rawText);
+  }
 }
 
 /**
