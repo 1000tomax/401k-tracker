@@ -508,8 +508,12 @@ export default {
       const body = await request.json();
       const { jsonrpc, method, params, id } = body;
 
+      // Log incoming method for debugging
+      console.log(`MCP Request: method=${method}, id=${id}`);
+
       // Validate JSON-RPC format
       if (jsonrpc !== '2.0') {
+        console.error('Invalid JSON-RPC version:', jsonrpc);
         return new Response(JSON.stringify({
           jsonrpc: '2.0',
           error: { code: -32600, message: 'Invalid Request' },
