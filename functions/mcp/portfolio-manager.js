@@ -291,6 +291,116 @@ function formatTransactionsAsText(transactions, summary, filters) {
   return text;
 }
 
+/**
+ * Format performance history as readable text
+ */
+function formatPerformanceHistoryAsText(metrics, timeline, includeContributions) {
+  let text = `Portfolio Performance History\n`;
+  text += `${metrics.start_date} to ${metrics.end_date} (${metrics.interval} data)\n`;
+  text += `${'='.repeat(80)}\n\n`;
+
+  text += `Overall Performance:\n`;
+  text += `  Starting Value: $${metrics.starting_value.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n`;
+  text += `  Ending Value: $${metrics.ending_value.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n`;
+  text += `  Total Change: $${metrics.total_change.toLocaleString('en-US', { minimumFractionDigits: 2 })} (${metrics.total_change_percent}%)\n`;
+
+  if (includeContributions && metrics.contributions_added !== undefined) {
+    text += `\n  Money In (Contributions): $${metrics.contributions_added.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n`;
+    text += `  Market Gain: $${metrics.market_gain.toLocaleString('en-US', { minimumFractionDigits: 2 })} (${metrics.market_gain_percent}%)\n`;
+  }
+
+  if (metrics.cagr) {
+    text += `\n  CAGR (Annualized): ${metrics.cagr}%\n`;
+  }
+
+  if (metrics.best_period) {
+    text += `\n  Best Period: ${metrics.best_period.date}\n`;
+    text += `    Change: $${metrics.best_period.change.toLocaleString('en-US', { minimumFractionDigits: 2 })} (${metrics.best_period.changePercent}%)\n`;
+  }
+
+  if (metrics.worst_period) {
+    text += `\n  Worst Period: ${metrics.worst_period.date}\n`;
+    text += `    Change: $${metrics.worst_period.change.toLocaleString('en-US', { minimumFractionDigits: 2 })} (${metrics.worst_period.changePercent}%)\n`;
+  }
+
+  text += `\n${'='.repeat(80)}\n`;
+  text += `Data Points: ${metrics.data_points}\n`;
+
+  // Show recent timeline (last 10 data points)
+  if (timeline.length > 0) {
+    text += `\nRecent Timeline (last ${Math.min(10, timeline.length)} points):\n`;
+    const recentTimeline = timeline.slice(-10);
+    recentTimeline.forEach(t => {
+      text += `  ${t.date}: $${t.market_value.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+      if (includeContributions && t.cumulative_contributions !== undefined) {
+        text += ` (contributions: $${t.cumulative_contributions.toLocaleString('en-US', { minimumFractionDigits: 2 })})`;
+      }
+      text += `\n`;
+    });
+  }
+
+  return text;
+}
+
+/**
+ * Format fund performance as readable text
+ */
+function formatFundPerformanceAsText(fundPerformance, compareFunds) {
+  let text = `Fund Performance Analysis\n`;
+  text += `${'='.repeat(80)}\n\n`;
+
+  fundPerformance.forEach((fund, index) => {
+    text += `${index + 1}. ${fund.fund_name} (${fund.ticker})\n`;
+    text += `   Period: ${fund.start_date} to ${fund.end_date}\n`;
+    text += `   Starting Value: $${fund.start_value.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n`;
+    text += `   Ending Value: $${fund.end_value.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n`;
+    text += `   Total Return: $${fund.total_return.toLocaleString('en-US', { minimumFractionDigits: 2 })} (${fund.total_return_percent}%)\n`;
+
+    if (fund.cagr) {
+      text += `   CAGR: ${fund.cagr}%\n`;
+    }
+
+    text += `\n   Shares: ${fund.start_shares.toFixed(4)} → ${fund.end_shares.toFixed(4)} (${fund.share_change >= 0 ? '+' : ''}${fund.share_change.toFixed(4)})\n`;
+    text += `   Price: $${fund.start_price.toFixed(2)} → $${fund.end_price.toFixed(2)} (${fund.price_change >= 0 ? '+' : ''}${fund.price_change.toFixed(2)}, ${fund.price_change_percent}%)\n`;
+    text += `   Data Points: ${fund.data_points}\n\n`;
+  });
+
+  text += `${'='.repeat(80)}\n`;
+  text += `Total Funds Analyzed: ${fundPerformance.length}\n`;
+
+  if (compareFunds && fundPerformance.length > 1) {
+    text += `\nPerformance Ranking (by total return %):\n`;
+    fundPerformance.forEach((fund, index) => {
+      text += `  ${index + 1}. ${fund.ticker}: ${fund.total_return_percent}%\n`;
+    });
+  }
+
+  return text;
+}
+
+/**
+ * Format current prices as readable text
+ */
+function formatCurrentPricesAsText(prices) {
+  let text = `Current Market Prices\n`;
+  text += `${'='.repeat(80)}\n\n`;
+
+  prices.forEach(p => {
+    text += `${p.ticker}\n`;
+    text += `  Price: $${p.price.toFixed(2)}\n`;
+    if (p.change_percent !== null) {
+      const sign = p.change_percent >= 0 ? '+' : '';
+      text += `  Change: ${sign}${p.change_percent.toFixed(2)}%\n`;
+    }
+    text += `  Updated: ${p.updated_at}\n\n`;
+  });
+
+  text += `${'='.repeat(80)}\n`;
+  text += `Total Prices: ${prices.length}\n`;
+
+  return text;
+}
+
 // ============================================================================
 // MCP PROTOCOL HANDLER
 // ============================================================================
@@ -421,6 +531,81 @@ function handleToolsList() {
               type: 'string',
               enum: ['date_desc', 'date_asc', 'amount_desc'],
               description: 'How to sort results. Defaults to "date_desc".'
+            }
+          },
+          required: []
+        }
+      },
+      {
+        name: 'get_performance_history',
+        description: 'Track portfolio value and performance over time. Shows growth trends, returns by period, and contribution vs market gain analysis. Supports different time intervals.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            start_date: {
+              type: 'string',
+              description: 'Start date for performance history (YYYY-MM-DD format). Defaults to 1 year ago.'
+            },
+            end_date: {
+              type: 'string',
+              description: 'End date for performance history (YYYY-MM-DD format). Defaults to today.'
+            },
+            interval: {
+              type: 'string',
+              enum: ['daily', 'weekly', 'monthly'],
+              description: 'Data point interval. Defaults to "daily".'
+            },
+            include_contributions: {
+              type: 'boolean',
+              description: 'Include contribution tracking to separate money in vs growth. Defaults to true.'
+            },
+            calculate_returns: {
+              type: 'boolean',
+              description: 'Calculate percentage returns and growth rates. Defaults to true.'
+            }
+          },
+          required: []
+        }
+      },
+      {
+        name: 'get_fund_performance',
+        description: 'Analyze individual fund performance over time. Compare multiple funds, track growth rates, and see fund-specific returns. Uses fund snapshots for detailed fund-level analysis.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            start_date: {
+              type: 'string',
+              description: 'Start date for fund performance (YYYY-MM-DD format). Defaults to 1 year ago.'
+            },
+            end_date: {
+              type: 'string',
+              description: 'End date for fund performance (YYYY-MM-DD format). Defaults to today.'
+            },
+            ticker: {
+              type: 'string',
+              description: 'Filter by specific fund ticker (e.g., "VOYA_0899", "VTI"). Optional - omit to see all funds.'
+            },
+            compare_funds: {
+              type: 'boolean',
+              description: 'Compare performance of multiple funds side-by-side. Defaults to false.'
+            },
+            calculate_cagr: {
+              type: 'boolean',
+              description: 'Calculate Compound Annual Growth Rate (CAGR) for each fund. Defaults to true.'
+            }
+          },
+          required: []
+        }
+      },
+      {
+        name: 'get_current_prices',
+        description: 'Get current market prices for ETFs and funds. Shows latest prices, daily changes, and last update time. Useful for checking live market values.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            ticker: {
+              type: 'string',
+              description: 'Filter by specific ticker (e.g., "VTI", "SCHD"). Optional - omit to see all tracked prices.'
             }
           },
           required: []
@@ -1029,6 +1214,405 @@ async function handleSearchTransactions(args, env) {
   }
 }
 
+/**
+ * Handle get_performance_history tool call
+ */
+async function handleGetPerformanceHistory(args, env) {
+  try {
+    const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY);
+
+    // Extract and validate parameters
+    const today = new Date().toISOString().split('T')[0];
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+    const defaultStart = oneYearAgo.toISOString().split('T')[0];
+
+    const startDate = args.start_date || defaultStart;
+    const endDate = args.end_date || today;
+    const interval = args.interval || 'daily';
+    const includeContributions = args.include_contributions !== false; // default true
+    const calculateReturns = args.calculate_returns !== false; // default true
+
+    // Query portfolio snapshots
+    const { data: snapshots, error } = await supabase
+      .from('portfolio_snapshots')
+      .select('*')
+      .gte('snapshot_date', startDate)
+      .lte('snapshot_date', endDate)
+      .order('snapshot_date', { ascending: true });
+
+    if (error) {
+      throw new Error(`Database error: ${error.message}`);
+    }
+
+    if (!snapshots || snapshots.length === 0) {
+      return {
+        content: [{
+          type: 'text',
+          text: JSON.stringify({
+            message: `No portfolio snapshots found between ${startDate} and ${endDate}`,
+            start_date: startDate,
+            end_date: endDate
+          }, null, 2)
+        }]
+      };
+    }
+
+    // Apply interval filtering
+    let filteredSnapshots = snapshots;
+    if (interval === 'weekly') {
+      // Take one snapshot per week (last snapshot of each week)
+      const weeklySnapshots = {};
+      snapshots.forEach(s => {
+        const date = new Date(s.snapshot_date);
+        const weekKey = `${date.getFullYear()}-W${Math.ceil(date.getDate() / 7)}`;
+        weeklySnapshots[weekKey] = s;
+      });
+      filteredSnapshots = Object.values(weeklySnapshots);
+    } else if (interval === 'monthly') {
+      // Take one snapshot per month (last snapshot of each month)
+      const monthlySnapshots = {};
+      snapshots.forEach(s => {
+        const date = new Date(s.snapshot_date);
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        if (!monthlySnapshots[monthKey] || s.snapshot_date > monthlySnapshots[monthKey].snapshot_date) {
+          monthlySnapshots[monthKey] = s;
+        }
+      });
+      filteredSnapshots = Object.values(monthlySnapshots).sort((a, b) =>
+        a.snapshot_date.localeCompare(b.snapshot_date)
+      );
+    }
+
+    // Calculate performance metrics
+    const firstSnapshot = filteredSnapshots[0];
+    const lastSnapshot = filteredSnapshots[filteredSnapshots.length - 1];
+
+    const startingValue = parseFloat(firstSnapshot.total_market_value);
+    const endingValue = parseFloat(lastSnapshot.total_market_value);
+    const totalChange = endingValue - startingValue;
+    const totalChangePercent = ((totalChange / startingValue) * 100).toFixed(2);
+
+    const startContributions = parseFloat(firstSnapshot.cumulative_contributions || 0);
+    const endContributions = parseFloat(lastSnapshot.cumulative_contributions || 0);
+    const contributionsAdded = endContributions - startContributions;
+    const marketGain = totalChange - contributionsAdded;
+    const marketGainPercent = startingValue > 0 ? ((marketGain / startingValue) * 100).toFixed(2) : '0.00';
+
+    // Find best and worst periods
+    let bestPeriod = null;
+    let worstPeriod = null;
+    for (let i = 1; i < filteredSnapshots.length; i++) {
+      const prev = parseFloat(filteredSnapshots[i-1].total_market_value);
+      const curr = parseFloat(filteredSnapshots[i].total_market_value);
+      const change = curr - prev;
+
+      if (!bestPeriod || change > bestPeriod.change) {
+        bestPeriod = {
+          date: filteredSnapshots[i].snapshot_date,
+          change: change,
+          changePercent: ((change / prev) * 100).toFixed(2)
+        };
+      }
+      if (!worstPeriod || change < worstPeriod.change) {
+        worstPeriod = {
+          date: filteredSnapshots[i].snapshot_date,
+          change: change,
+          changePercent: ((change / prev) * 100).toFixed(2)
+        };
+      }
+    }
+
+    // Calculate CAGR if more than 1 year
+    let cagr = null;
+    if (calculateReturns) {
+      const daysDiff = (new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24);
+      const yearsDiff = daysDiff / 365.25;
+      if (yearsDiff >= 1 && startingValue > 0) {
+        cagr = (Math.pow(endingValue / startingValue, 1 / yearsDiff) - 1) * 100;
+        cagr = cagr.toFixed(2);
+      }
+    }
+
+    // Format timeline data
+    const timeline = filteredSnapshots.map(s => ({
+      date: s.snapshot_date,
+      market_value: parseFloat(s.total_market_value),
+      cost_basis: parseFloat(s.total_cost_basis),
+      gain_loss: parseFloat(s.total_gain_loss),
+      cumulative_contributions: includeContributions ? parseFloat(s.cumulative_contributions || 0) : undefined
+    }));
+
+    const metrics = {
+      start_date: startDate,
+      end_date: endDate,
+      interval: interval,
+      starting_value: startingValue,
+      ending_value: endingValue,
+      total_change: totalChange,
+      total_change_percent: totalChangePercent,
+      contributions_added: includeContributions ? contributionsAdded : undefined,
+      market_gain: includeContributions ? marketGain : undefined,
+      market_gain_percent: includeContributions ? marketGainPercent : undefined,
+      best_period: bestPeriod,
+      worst_period: worstPeriod,
+      cagr: cagr,
+      data_points: filteredSnapshots.length
+    };
+
+    // Format as text
+    const formattedText = formatPerformanceHistoryAsText(metrics, timeline, includeContributions);
+
+    return {
+      content: [{
+        type: 'text',
+        text: JSON.stringify({
+          success: true,
+          metrics: metrics,
+          timeline: timeline,
+          formatted: formattedText
+        }, null, 2)
+      }]
+    };
+  } catch (error) {
+    return {
+      content: [{
+        type: 'text',
+        text: JSON.stringify({
+          error: 'Failed to get performance history',
+          message: error.message
+        }, null, 2)
+      }],
+      isError: true
+    };
+  }
+}
+
+/**
+ * Handle get_fund_performance tool call
+ */
+async function handleGetFundPerformance(args, env) {
+  try {
+    const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY);
+
+    // Extract and validate parameters
+    const today = new Date().toISOString().split('T')[0];
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+    const defaultStart = oneYearAgo.toISOString().split('T')[0];
+
+    const startDate = args.start_date || defaultStart;
+    const endDate = args.end_date || today;
+    const ticker = args.ticker;
+    const compareFunds = args.compare_funds || false;
+    const calculateCagr = args.calculate_cagr !== false; // default true
+
+    // Build query
+    let query = supabase
+      .from('fund_snapshots')
+      .select('*')
+      .gte('snapshot_date', startDate)
+      .lte('snapshot_date', endDate)
+      .order('snapshot_date', { ascending: true });
+
+    if (ticker) {
+      query = query.eq('ticker', ticker);
+    }
+
+    const { data: fundSnapshots, error } = await query;
+
+    if (error) {
+      throw new Error(`Database error: ${error.message}`);
+    }
+
+    if (!fundSnapshots || fundSnapshots.length === 0) {
+      return {
+        content: [{
+          type: 'text',
+          text: JSON.stringify({
+            message: ticker ?
+              `No fund snapshots found for ${ticker} between ${startDate} and ${endDate}` :
+              `No fund snapshots found between ${startDate} and ${endDate}`,
+            start_date: startDate,
+            end_date: endDate
+          }, null, 2)
+        }]
+      };
+    }
+
+    // Group by ticker/fund
+    const fundGroups = {};
+    fundSnapshots.forEach(snap => {
+      const key = snap.ticker;
+      if (!fundGroups[key]) {
+        fundGroups[key] = {
+          ticker: snap.ticker,
+          fund_name: snap.fund_name,
+          snapshots: []
+        };
+      }
+      fundGroups[key].snapshots.push(snap);
+    });
+
+    // Calculate performance for each fund
+    const fundPerformance = Object.values(fundGroups).map(fund => {
+      const snapshots = fund.snapshots;
+      const first = snapshots[0];
+      const last = snapshots[snapshots.length - 1];
+
+      const startValue = parseFloat(first.market_value);
+      const endValue = parseFloat(last.market_value);
+      const totalReturn = endValue - startValue;
+      const totalReturnPercent = startValue > 0 ? ((totalReturn / startValue) * 100).toFixed(2) : '0.00';
+
+      const startShares = parseFloat(first.shares);
+      const endShares = parseFloat(last.shares);
+      const shareChange = endShares - startShares;
+
+      const startPrice = parseFloat(first.current_price);
+      const endPrice = parseFloat(last.current_price);
+      const priceChange = endPrice - startPrice;
+      const priceChangePercent = startPrice > 0 ? ((priceChange / startPrice) * 100).toFixed(2) : '0.00';
+
+      // Calculate CAGR if requested
+      let cagr = null;
+      if (calculateCagr) {
+        const daysDiff = (new Date(last.snapshot_date) - new Date(first.snapshot_date)) / (1000 * 60 * 60 * 24);
+        const yearsDiff = daysDiff / 365.25;
+        if (yearsDiff >= 1 && startValue > 0) {
+          cagr = (Math.pow(endValue / startValue, 1 / yearsDiff) - 1) * 100;
+          cagr = cagr.toFixed(2);
+        }
+      }
+
+      return {
+        ticker: fund.ticker,
+        fund_name: fund.fund_name,
+        start_date: first.snapshot_date,
+        end_date: last.snapshot_date,
+        start_value: startValue,
+        end_value: endValue,
+        total_return: totalReturn,
+        total_return_percent: totalReturnPercent,
+        start_shares: startShares,
+        end_shares: endShares,
+        share_change: shareChange,
+        start_price: startPrice,
+        end_price: endPrice,
+        price_change: priceChange,
+        price_change_percent: priceChangePercent,
+        cagr: cagr,
+        data_points: snapshots.length
+      };
+    });
+
+    // Sort by total return (best performers first)
+    fundPerformance.sort((a, b) => parseFloat(b.total_return_percent) - parseFloat(a.total_return_percent));
+
+    // Format as text
+    const formattedText = formatFundPerformanceAsText(fundPerformance, compareFunds);
+
+    return {
+      content: [{
+        type: 'text',
+        text: JSON.stringify({
+          success: true,
+          start_date: startDate,
+          end_date: endDate,
+          funds: fundPerformance,
+          formatted: formattedText
+        }, null, 2)
+      }]
+    };
+  } catch (error) {
+    return {
+      content: [{
+        type: 'text',
+        text: JSON.stringify({
+          error: 'Failed to get fund performance',
+          message: error.message
+        }, null, 2)
+      }],
+      isError: true
+    };
+  }
+}
+
+/**
+ * Handle get_current_prices tool call
+ */
+async function handleGetCurrentPrices(args, env) {
+  try {
+    const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY);
+
+    const ticker = args.ticker;
+
+    // Build query
+    let query = supabase
+      .from('current_etf_prices')
+      .select('*')
+      .order('ticker', { ascending: true });
+
+    if (ticker) {
+      query = query.eq('ticker', ticker);
+    }
+
+    const { data: prices, error } = await query;
+
+    if (error) {
+      throw new Error(`Database error: ${error.message}`);
+    }
+
+    if (!prices || prices.length === 0) {
+      return {
+        content: [{
+          type: 'text',
+          text: JSON.stringify({
+            message: ticker ?
+              `No price data found for ${ticker}` :
+              'No current prices available',
+            ticker: ticker
+          }, null, 2)
+        }]
+      };
+    }
+
+    // Format price data
+    const formattedPrices = prices.map(p => ({
+      ticker: p.ticker,
+      price: parseFloat(p.price),
+      change_percent: p.change_percent ? parseFloat(p.change_percent) : null,
+      updated_at: p.updated_at
+    }));
+
+    // Format as text
+    const formattedText = formatCurrentPricesAsText(formattedPrices);
+
+    return {
+      content: [{
+        type: 'text',
+        text: JSON.stringify({
+          success: true,
+          prices: formattedPrices,
+          last_update: prices[0]?.updated_at,
+          formatted: formattedText
+        }, null, 2)
+      }]
+    };
+  } catch (error) {
+    return {
+      content: [{
+        type: 'text',
+        text: JSON.stringify({
+          error: 'Failed to get current prices',
+          message: error.message
+        }, null, 2)
+      }],
+      isError: true
+    };
+  }
+}
+
 // ============================================================================
 // CLOUDFLARE WORKER HANDLER
 // ============================================================================
@@ -1145,6 +1729,12 @@ export default {
           result = await handleGetDividendHistory(args, env);
         } else if (name === 'search_transactions') {
           result = await handleSearchTransactions(args, env);
+        } else if (name === 'get_performance_history') {
+          result = await handleGetPerformanceHistory(args, env);
+        } else if (name === 'get_fund_performance') {
+          result = await handleGetFundPerformance(args, env);
+        } else if (name === 'get_current_prices') {
+          result = await handleGetCurrentPrices(args, env);
         } else {
           result = {
             content: [{
