@@ -469,9 +469,15 @@ export default {
       return new Response(null, { headers: corsHeaders });
     }
 
-    // Verify auth token
+    // Verify auth token (supports both header and URL parameter)
+    const url = new URL(request.url);
+    const urlToken = url.searchParams.get('auth_token');
     const authHeader = request.headers.get('Authorization');
-    if (!authHeader || authHeader !== `Bearer ${env.MCP_AUTH_TOKEN}`) {
+
+    const isValidHeader = authHeader === `Bearer ${env.MCP_AUTH_TOKEN}`;
+    const isValidUrlParam = urlToken === env.MCP_AUTH_TOKEN;
+
+    if (!isValidHeader && !isValidUrlParam) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
