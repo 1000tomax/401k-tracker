@@ -484,7 +484,19 @@ export default {
       });
     }
 
-    // Only allow POST requests
+    // Handle GET requests (for health checks / connection tests)
+    if (request.method === 'GET') {
+      return new Response(JSON.stringify({
+        status: 'ok',
+        message: 'Voya MCP Server',
+        version: '1.0.0',
+        tools: ['parse_voya_transactions', 'import_voya_transactions', 'get_portfolio_summary']
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Only allow POST requests for MCP protocol
     if (request.method !== 'POST') {
       return new Response(JSON.stringify({ error: 'Method not allowed' }), {
         status: 405,
