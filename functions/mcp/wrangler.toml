@@ -1,10 +1,11 @@
-name = "401k-mcp-voya-importer"
-main = "voya-importer.js"
+name = "401k-mcp-portfolio-manager"
+main = "portfolio-manager.js"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 
-# This worker handles MCP protocol requests for Voya transaction imports
-# Accessible at: https://401k-mcp.mreedon.workers.dev
+# This worker handles MCP protocol requests for portfolio management
+# Features: transaction imports, portfolio analysis, holdings queries
+# Accessible at: https://401k-mcp-portfolio-manager.tcoudal.workers.dev
 # Or via custom domain route
 
 # Secrets (set via: wrangler secret put SECRET_NAME):
@@ -14,7 +15,7 @@ compatibility_flags = ["nodejs_compat"]
 # - VITE_401K_TOKEN: Your 401k API token (if needed for future features)
 
 [env.production]
-name = "401k-mcp-voya-importer"
+name = "401k-mcp-portfolio-manager"
 
 # Optional: Add custom domain route
 # Requires setting up a route in Cloudflare dashboard or via API

@@ -1,9 +1,9 @@
 {
-  "name": "401k-mcp-voya-importer",
+  "name": "401k-mcp-portfolio-manager",
   "version": "1.0.0",
-  "description": "MCP server for importing Voya 401k transactions via Claude",
+  "description": "MCP server for 401k portfolio management: import transactions, analyze holdings, query portfolio data via Claude",
   "type": "module",
-  "main": "voya-importer.js",
+  "main": "portfolio-manager.js",
   "scripts": {
     "deploy": "wrangler deploy",
     "dev": "wrangler dev",

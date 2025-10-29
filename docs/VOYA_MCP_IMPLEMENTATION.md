@@ -1,11 +1,11 @@
-# Voya Transaction Import via MCP Server
+# 401k Portfolio Manager - MCP Server
 ## Comprehensive Implementation Plan
 
 **Created**: October 28, 2025
-**Updated**: October 28, 2025 (Simplified to Option C)
-**Purpose**: Enable Voya 401k transaction imports via Claude Code (desktop) and Claude Chat (mobile) using a custom MCP server
+**Updated**: October 29, 2025 (Renamed to portfolio-manager, expanded scope)
+**Purpose**: Enable 401k portfolio management via Claude Code (desktop) and Claude Chat (mobile) using a custom MCP server - including transaction imports, portfolio analysis, and holdings queries
 
-**Chosen Approach**: Option C - Streamlined cloud MCP with explicit commands
+**Chosen Approach**: Cloud-based MCP with explicit tool calls
 
 ---
 
@@ -77,7 +77,7 @@ After review and consideration of Claude Chat's feedback, we chose the **streaml
 │  Claude Code (VSCode)                         │
 │                                               │
 │  ┌─────────────────────────────────────┐     │
-│  │ Skill: voya-importer                 │     │
+│  │ Skill: portfolio-manager                 │     │
 │  │ - Recognizes pasted Voya data        │     │
 │  │ - Auto-invokes MCP tools             │     │
 │  └─────────────────────────────────────┘     │
@@ -113,7 +113,7 @@ After review and consideration of Claude Chat's feedback, we chose the **streaml
 │ Claude Chat (Desktop)    │      │                          │
 └───────────┬──────────────┘      └───────────┬──────────────┘
             │                                  │
-            │    Skill: voya-importer          │
+            │    Skill: portfolio-manager          │
             │    (same skill works everywhere) │
             │                                  │
             └──────────────┬───────────────────┘
@@ -147,7 +147,7 @@ After review and consideration of Claude Chat's feedback, we chose the **streaml
 ## Components
 
 ### 1. Claude Skill
-**Location**: `.claude/skills/voya-importer.md`
+**Location**: `.claude/skills/portfolio-manager.md`
 
 **Purpose**: Gives Claude context about Voya data format and how to handle it
 
@@ -185,7 +185,7 @@ Want me to import these?"
 ```
 
 ### 2. Local MCP Server
-**Location**: `mcp-servers/voya-importer/server.js`
+**Location**: `mcp-servers/portfolio-manager/server.js`
 
 **Dependencies**:
 ```json
@@ -207,7 +207,7 @@ Want me to import these?"
 - Returns structured summaries
 
 ### 3. Cloud MCP Server
-**Location**: `functions/mcp/voya-importer.js` (Cloudflare Worker)
+**Location**: `functions/mcp/portfolio-manager.js` (Cloudflare Worker)
 
 **Same tools as local**, but:
 - Runs as HTTP endpoint instead of stdio
@@ -327,7 +327,7 @@ wrangler secret put SUPABASE_ANON_KEY
 ```json
 {
   "mcpServers": {
-    "voya-importer": {
+    "portfolio-manager": {
       "url": "https://401k-mcp.mreedon.com",
       "headers": {
         "Authorization": "Bearer <MCP_AUTH_TOKEN_VALUE>"
@@ -375,12 +375,12 @@ wrangler secret put SUPABASE_ANON_KEY
 **Total Time**: ~105 minutes
 
 ### Deliverables
-- `mcp-servers/voya-importer/` - Working MCP server
-- `.claude/skills/voya-importer.md` - Claude Skill
+- `mcp-servers/portfolio-manager/` - Working MCP server
+- `.claude/skills/portfolio-manager.md` - Claude Skill
 - Updated `src/pages/Accounts.jsx` - Cleaner UI
 - `docs/MCP_SETUP_GUIDE.md` - User documentation
-- `mcp-servers/voya-importer/package.json` - Dependencies
-- `mcp-servers/voya-importer/.env.example` - Template
+- `mcp-servers/portfolio-manager/package.json` - Dependencies
+- `mcp-servers/portfolio-manager/.env.example` - Template
 
 ---
 
@@ -414,7 +414,7 @@ wrangler secret put SUPABASE_ANON_KEY
 **Total Time**: ~75 minutes
 
 ### Deliverables
-- `functions/mcp/voya-importer.js` - Cloudflare Worker
+- `functions/mcp/portfolio-manager.js` - Cloudflare Worker
 - `wrangler.toml` - Worker configuration
 - Updated `docs/MCP_SETUP_GUIDE.md` - Cloud setup section
 - Claude Chat MCP config documented
@@ -425,7 +425,7 @@ wrangler secret put SUPABASE_ANON_KEY
 
 ### Flow 1: First Time Setup (Local)
 1. User reads setup guide
-2. User runs `npm install` in `mcp-servers/voya-importer/`
+2. User runs `npm install` in `mcp-servers/portfolio-manager/`
 3. User copies `.env.example` to `.env`, fills in credentials
 4. User adds MCP to VSCode Claude Code config
 5. User restarts VSCode
@@ -506,10 +506,10 @@ Could you check that you copied all columns from the Voya website?
 401K-Tracker/
 ├── .claude/
 │   └── skills/
-│       └── voya-importer.md           # NEW: Claude Skill
+│       └── portfolio-manager.md           # NEW: Claude Skill
 │
 ├── mcp-servers/                        # NEW: MCP servers directory
-│   └── voya-importer/
+│   └── portfolio-manager/
 │       ├── package.json
 │       ├── .env.example
 │       ├── .env                        # Gitignored
@@ -518,7 +518,7 @@ Could you check that you copied all columns from the Voya website?
 │
 ├── functions/
 │   └── mcp/                            # NEW: Cloud MCP (Stage 2)
-│       └── voya-importer.js
+│       └── portfolio-manager.js
 │
 ├── src/
 │   ├── pages/
@@ -547,9 +547,9 @@ Could you check that you copied all columns from the Voya website?
 {
   "mcp": {
     "servers": {
-      "voya-importer": {
+      "portfolio-manager": {
         "command": "node",
-        "args": ["./mcp-servers/voya-importer/server.js"],
+        "args": ["./mcp-servers/portfolio-manager/server.js"],
         "cwd": "${workspaceFolder}",
         "autostart": true,
         "env": {
@@ -561,7 +561,7 @@ Could you check that you copied all columns from the Voya website?
 }
 ```
 
-**Environment Variables** (`mcp-servers/voya-importer/.env`):
+**Environment Variables** (`mcp-servers/portfolio-manager/.env`):
 ```bash
 # Supabase credentials
 SUPABASE_URL=https://your-project.supabase.co
@@ -596,7 +596,7 @@ wrangler secret put SUPABASE_ANON_KEY
 3. Add new server:
    ```json
    {
-     "name": "voya-importer",
+     "name": "portfolio-manager",
      "url": "https://401k-mcp.mreedon.com",
      "headers": {
        "Authorization": "Bearer <YOUR_MCP_AUTH_TOKEN>"

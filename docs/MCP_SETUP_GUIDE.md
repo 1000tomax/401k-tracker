@@ -1,18 +1,19 @@
-# Voya MCP Server Setup Guide
+# 401k Portfolio Manager - MCP Server Setup Guide
 
-**Import Voya transactions directly in Claude Code or Claude Chat!**
+**Manage your 401k portfolio directly in Claude Code or Claude Chat!**
 
-This guide shows you how to set up the custom MCP (Model Context Protocol) server for importing Voya 401k transactions.
+This guide shows you how to set up the custom MCP (Model Context Protocol) server for managing your 401k portfolio: import transactions, analyze holdings, and query portfolio data.
 
 ---
 
 ## What You'll Get
 
-✅ Import transactions by pasting data directly in Claude
+✅ Import transactions by pasting data directly in Claude (supports Voya and other formats)
+✅ Analyze portfolio holdings and performance
+✅ Query transaction history and balances
 ✅ Works on desktop (Claude Code) and mobile (Claude Chat)
 ✅ Automatic duplicate detection
 ✅ Instant portfolio updates
-✅ No need to navigate to the website
 
 ---
 
@@ -81,8 +82,8 @@ Add the MCP worker route to your `wrangler.toml`:
 # ... existing configuration ...
 
 [[workers]]
-name = "401k-mcp-voya-importer"
-main = "functions/mcp/voya-importer.js"
+name = "401k-mcp-portfolio-manager"
+main = "functions/mcp/portfolio-manager.js"
 compatibility_date = "2024-01-01"
 
 [[workers.routes]]
@@ -98,8 +99,8 @@ wrangler deploy
 
 You should see output like:
 ```
-✨ Successfully deployed 401k-mcp-voya-importer
-   https://401k.mreedon.com/mcp/voya-importer
+✨ Successfully deployed 401k-mcp-portfolio-manager
+   https://401k.mreedon.com/mcp/portfolio-manager
 ```
 
 ### Step 6: Configure Claude Chat
@@ -108,8 +109,8 @@ You should see output like:
 2. Go to Settings → MCP Servers
 3. Click "Add Server"
 4. Enter:
-   - **Name**: `voya-importer`
-   - **URL**: `https://401k.mreedon.com/mcp/voya-importer`
+   - **Name**: `portfolio-manager`
+   - **URL**: `https://401k.mreedon.com/mcp/portfolio-manager`
    - **Headers**:
      ```json
      {
@@ -203,7 +204,7 @@ Claude should parse it and ask for confirmation before importing!
 
 - Check that the worker deployed successfully: `wrangler tail`
 - Verify the URL in Claude Chat matches your deployment
-- Try accessing `https://401k.mreedon.com/mcp/voya-importer` in a browser (should return a JSON-RPC error, which is fine)
+- Try accessing `https://401k.mreedon.com/mcp/portfolio-manager` in a browser (should return a JSON-RPC error, which is fine)
 
 ---
 
@@ -269,13 +270,13 @@ If imports fail, check:
 ### Remove from Claude Chat
 
 1. Settings → MCP Servers
-2. Find `voya-importer`
+2. Find `portfolio-manager`
 3. Click Remove
 
 ### Remove from Cloudflare
 
 ```bash
-wrangler delete 401k-mcp-voya-importer
+wrangler delete 401k-mcp-portfolio-manager
 ```
 
 ### Delete Secrets
