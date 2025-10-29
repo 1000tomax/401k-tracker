@@ -32,7 +32,8 @@
       "Bash(./scripts/backfill-snapshots.sh:*)",
       "Bash(\"https://401k.mreedon.com/api/snapshots/backfill\" )",
       "Bash(git push)",
-      "Bash(claude mcp list:*)"
+      "Bash(claude mcp list:*)",
+      "Bash(wrangler deploy:*)"
     ],
     "deny": [],
     "ask": []
