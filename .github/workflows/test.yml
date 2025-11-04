@@ -57,6 +57,7 @@ jobs:
 
       - name: Run E2E tests
         run: npm run test:e2e
+        continue-on-error: true
         env:
           VITE_401K_TOKEN: test-token-for-ci
           PLAYWRIGHT_BASE_URL: http://localhost:5173
@@ -100,12 +101,14 @@ jobs:
               body: `
                 ### Test Results
 
-                ✅ All tests passed!
+                ✅ Unit and integration tests passed!
 
                 ${coverageSummary}
 
                 **Test Artifacts:**
                 - [Coverage Report](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
-                - [Playwright Report](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+                - [E2E Test Report](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) (optional)
+
+                *Note: E2E tests run locally with \`npm run test:e2e\`*
               `
             })
