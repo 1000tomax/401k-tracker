@@ -24,6 +24,11 @@ yarn-error.log*
 # Build artifacts
 dist/
 
+# Test output
+coverage/
+playwright-report/
+test-results/
+
 # Local instruction files
 CLAUDE.md
 
