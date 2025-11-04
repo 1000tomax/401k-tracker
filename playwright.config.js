@@ -71,5 +71,10 @@ export default defineConfig({
     url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
+    // In CI, give more time for server startup
+    ...(process.env.CI && {
+      stdout: 'pipe',
+      stderr: 'pipe',
+    }),
   },
 });
