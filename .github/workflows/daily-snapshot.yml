@@ -1,11 +1,12 @@
 name: Daily Portfolio Snapshot
 
 on:
-  # Run daily at 4:05 PM ET (after market close)
-  # End-of-day processing: Sync Plaid → Fetch prices → Create snapshot
-  # 20:05 UTC = 4:05 PM ET
+  # Run daily at 9:00 AM ET (before market open) for PREVIOUS day
+  # This gives Plaid overnight to sync all of yesterday's transactions
+  # Process flow: Sync Plaid → Fetch prices → Create snapshot for yesterday
+  # 14:00 UTC = 9:00 AM ET
   schedule:
-    - cron: '5 20 * * 1-5'  # Mon-Fri at 4:05 PM ET
+    - cron: '0 14 * * 2-6'  # Tue-Sat at 9:00 AM ET (creates Mon-Fri snapshots)
 
   # Allow manual trigger for testing
   workflow_dispatch:
@@ -22,7 +23,7 @@ jobs:
     steps:
       - name: Sync Plaid transactions
         run: |
-          echo "🔄 Syncing Plaid transactions (optimistic - may catch same-day trades)..."
+          echo "🔄 Syncing Plaid transactions (overnight sync ensures all yesterday's trades captured)..."
 
           response=$(curl -s -w "\n%{http_code}" -X POST \
             https://401k.mreedon.com/api/sync/transactions \
@@ -49,7 +50,7 @@ jobs:
           else
             echo "⚠️ Plaid sync failed with status $http_code, continuing anyway"
             echo "Response: $body"
-            # Don't fail workflow - snapshot can still use yesterday's transactions
+            # Don't fail workflow - snapshot uses yesterday's date, transactions already in DB
           fi
 
       - name: Fetch closing prices
@@ -82,14 +83,17 @@ jobs:
 
       - name: Create daily portfolio snapshot
         run: |
-          echo "📸 Creating portfolio snapshot..."
+          echo "📸 Creating portfolio snapshot for yesterday..."
 
-          # Build request body
+          # Calculate yesterday's date (snapshot is for previous day)
           if [ -n "${{ github.event.inputs.date }}" ]; then
-            body='{"date": "${{ github.event.inputs.date }}", "source": "github-actions"}'
+            snapshot_date="${{ github.event.inputs.date }}"
           else
-            body='{"source": "github-actions"}'
+            snapshot_date=$(date -u -d 'yesterday' '+%Y-%m-%d')
           fi
+
+          echo "Snapshot date: $snapshot_date"
+          body="{\"date\": \"$snapshot_date\", \"source\": \"github-actions\"}"
 
           response=$(curl -s -w "\n%{http_code}" -X POST \
             https://401k.mreedon.com/api/snapshots/save \
