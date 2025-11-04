@@ -9,7 +9,16 @@
     "build:analyze": "vite build && node scripts/analyze-bundle.js",
     "preview": "vite preview",
     "deploy": "npm run build && export $(cat .env | xargs) && wrangler pages deploy dist --project-name=401k-tracker",
-    "perf:analyze": "node scripts/analyze-bundle.js"
+    "perf:analyze": "node scripts/analyze-bundle.js",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:all": "npm run test && npm run test:e2e",
+    "test:ci": "npm run test:coverage && npm run test:e2e"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.58.0",
@@ -27,10 +36,20 @@
     "zod": "^4.1.9"
   },
   "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "@vitejs/plugin-react": "^4.3.0",
+    "@vitest/coverage-v8": "^4.0.7",
+    "@vitest/ui": "^4.0.7",
+    "happy-dom": "^20.0.10",
+    "jsdom": "^27.1.0",
+    "msw": "^2.11.6",
     "rollup-plugin-visualizer": "^6.0.4",
     "sharp": "^0.34.4",
     "vite": "^7.1.6",
-    "vite-plugin-pwa": "^1.0.3"
+    "vite-plugin-pwa": "^1.0.3",
+    "vitest": "^4.0.7"
   }
 }
