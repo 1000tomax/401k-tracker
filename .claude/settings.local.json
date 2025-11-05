@@ -38,7 +38,8 @@
       "Bash(sudo chmod:*)",
       "Bash(sudo tee:*)",
       "Bash(npm test:*)",
-      "Bash(gh run view:*)"
+      "Bash(gh run view:*)",
+      "Bash(sudo npx playwright install-deps:*)"
     ],
     "deny": [],
     "ask": []
