@@ -320,11 +320,13 @@ export class DividendService {
         key = dividend.date;
       }
 
-      // Store the latest cumulative value for this period
+      // Store the latest cumulative value for this period, tracking funds that paid
+      const existing = grouped.get(key);
       grouped.set(key, {
         date: key,
         cumulative: cumulative,
-        amount: (grouped.get(key)?.amount || 0) + parseFloat(dividend.amount),
+        amount: (existing?.amount || 0) + parseFloat(dividend.amount),
+        funds: existing?.funds ? [...existing.funds, dividend.fund] : [dividend.fund],
       });
     }
 

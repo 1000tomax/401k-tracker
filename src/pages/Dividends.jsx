@@ -204,6 +204,35 @@ export default function Dividends() {
     );
   };
 
+  const renderCumulativeTooltip = ({ active, payload, label }) => {
+    if (!active || !payload || !payload.length) {
+      return null;
+    }
+
+    const dataPoint = payload[0].payload;
+    const funds = dataPoint.funds || [];
+
+    return (
+      <div className="chart-tooltip">
+        <div className="chart-tooltip-label">{label}</div>
+        <ul>
+          {payload.map((item, index) => (
+            <li key={index}>
+              <span className="dot" style={{ background: item.color || item.stroke }} />
+              <span className="name">{item.name}</span>
+              <span className="value">{formatCurrency(item.value ?? 0)}</span>
+            </li>
+          ))}
+        </ul>
+        {funds.length > 0 && (
+          <div className="chart-tooltip-meta">
+            <strong>From:</strong> {funds.join(', ')}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   if (isLoading) {
     return (
       <div className="dividends-page">
@@ -334,7 +363,7 @@ export default function Dividends() {
                 }}
               />
               <YAxis stroke="#888" tickFormatter={tickFormatter} />
-              <Tooltip content={renderTooltip} />
+              <Tooltip content={renderCumulativeTooltip} />
               <Legend />
               <Line
                 type="stepAfter"
