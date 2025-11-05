@@ -4,7 +4,6 @@ import {
   ResponsiveContainer,
   LineChart,
   BarChart,
-  ComposedChart,
   Bar,
   Line,
   XAxis,
@@ -338,12 +337,13 @@ export default function Dividends() {
               <Tooltip content={renderTooltip} />
               <Legend />
               <Line
-                type="monotone"
+                type="stepAfter"
                 dataKey="cumulative"
                 name="Cumulative Dividends"
                 stroke="#4ade80"
                 strokeWidth={2}
-                dot={false}
+                dot={true}
+                dotSize={4}
               />
             </LineChart>
           </ResponsiveContainer>
@@ -360,22 +360,25 @@ export default function Dividends() {
 
           <div className="chart-container">
             <ResponsiveContainer width="100%" height={300}>
-              <ComposedChart data={monthlyData}>
+              <BarChart data={monthlyData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#333" />
                 <XAxis dataKey="month" stroke="#888" />
                 <YAxis stroke="#888" tickFormatter={tickFormatter} />
                 <Tooltip content={renderTooltip} />
                 <Legend />
                 <Bar dataKey="amount" name="Monthly Dividends" fill="#60a5fa" />
-                <Line
-                  type="monotone"
-                  dataKey="runningAvg"
-                  name="Monthly Average"
-                  stroke="#4ade80"
-                  strokeWidth={2}
-                  dot={false}
-                />
-              </ComposedChart>
+                {/* Running average line hidden until 6+ months of data */}
+                {monthlyData.length >= 6 && (
+                  <Line
+                    type="monotone"
+                    dataKey="runningAvg"
+                    name="Monthly Average"
+                    stroke="#4ade80"
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                )}
+              </BarChart>
             </ResponsiveContainer>
           </div>
         </section>
