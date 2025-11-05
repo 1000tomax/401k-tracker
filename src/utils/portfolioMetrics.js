@@ -79,9 +79,10 @@ export function calculateWeightedExpenseRatio(holdings) {
  * Calculates portfolio dividend yield and projected annual income.
  * @param {Array} holdings - Array of holdings with fund and marketValue
  * @param {Array} dividends - Array of dividend payments
+ * @param {Date} currentDate - Optional current date for testing (defaults to now)
  * @returns {Object} Dividend metrics
  */
-export function calculateDividendMetrics(holdings, dividends) {
+export function calculateDividendMetrics(holdings, dividends, currentDate = null) {
   if (!holdings || holdings.length === 0 || !dividends || dividends.length === 0) {
     return {
       portfolioYield: 0,
@@ -93,7 +94,7 @@ export function calculateDividendMetrics(holdings, dividends) {
   }
 
   // Calculate trailing 12 months (TTM) and YTD
-  const now = new Date();
+  const now = currentDate || new Date();
   const oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
   const ytdStart = new Date(now.getFullYear(), 0, 1);
 
@@ -102,7 +103,13 @@ export function calculateDividendMetrics(holdings, dividends) {
   const fundDividends = new Map();
 
   for (const div of dividends) {
-    const divDate = new Date(div.date);
+    // Parse date as local date to avoid timezone issues
+    const dateParts = div.date.split(/[-T]/);
+    const divDate = new Date(
+      parseInt(dateParts[0]),
+      parseInt(dateParts[1]) - 1,
+      parseInt(dateParts[2])
+    );
     const amount = parseFloat(div.amount) || 0;
     const fund = div.fund || 'Unknown';
 

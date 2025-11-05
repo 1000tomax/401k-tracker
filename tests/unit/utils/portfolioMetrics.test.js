@@ -138,7 +138,7 @@ describe('calculateDividendMetrics', () => {
       { date: '2024-10-01', amount: '100', fund: 'VTI' }, // Outside TTM
     ];
 
-    const result = calculateDividendMetrics(holdings, dividends);
+    const result = calculateDividendMetrics(holdings, dividends, now);
 
     expect(result.ttm).toBe(400); // 4 most recent dividends
     expect(result.ytd).toBe(400); // All from 2025
@@ -156,7 +156,7 @@ describe('calculateDividendMetrics', () => {
       { date: '2025-01-01', amount: '100', fund: 'VTI' },
     ];
 
-    const result = calculateDividendMetrics(holdings, dividends);
+    const result = calculateDividendMetrics(holdings, dividends, now);
 
     // Portfolio yield = (TTM dividends / total value) * 100
     // = (400 / 10000) * 100 = 4%
@@ -174,7 +174,7 @@ describe('calculateDividendMetrics', () => {
       { date: '2025-10-01', amount: '50', fund: 'QQQM' },
     ];
 
-    const result = calculateDividendMetrics(holdings, dividends);
+    const result = calculateDividendMetrics(holdings, dividends, now);
 
     expect(result.byFund).toHaveLength(2);
 
@@ -198,7 +198,7 @@ describe('calculateDividendMetrics', () => {
       { date: '2025-10-01', amount: '100', fund: 'QQQM' },
     ];
 
-    const result = calculateDividendMetrics(holdings, dividends);
+    const result = calculateDividendMetrics(holdings, dividends, now);
 
     expect(result.byFund[0].fund).toBe('QQQM'); // Higher dividends first
     expect(result.byFund[1].fund).toBe('VTI');
@@ -237,7 +237,7 @@ describe('calculateDividendMetrics', () => {
       { date: '2025-10-01', amount: '100', fund: 'UNKNOWN_FUND' },
     ];
 
-    const result = calculateDividendMetrics(holdings, dividends);
+    const result = calculateDividendMetrics(holdings, dividends, now);
 
     // Unknown fund dividends should still count in TTM/YTD totals
     expect(result.ttm).toBe(100);
