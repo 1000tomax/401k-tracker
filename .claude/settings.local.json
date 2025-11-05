@@ -33,7 +33,12 @@
       "Bash(\"https://401k.mreedon.com/api/snapshots/backfill\" )",
       "Bash(git push)",
       "Bash(claude mcp list:*)",
-      "Bash(wrangler deploy:*)"
+      "Bash(wrangler deploy:*)",
+      "Bash(sudo dd:*)",
+      "Bash(sudo chmod:*)",
+      "Bash(sudo tee:*)",
+      "Bash(npm test:*)",
+      "Bash(gh run view:*)"
     ],
     "deny": [],
     "ask": []
