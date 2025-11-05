@@ -2,12 +2,19 @@ name: Sync ETF Prices
 
 on:
   # Run every 15 minutes during market hours (9:30 AM - 4:15 PM ET)
-  # Times in UTC using EDT (Mar-Nov), will be 1 hour off during EST (Nov-Mar)
-  # Market hours: 9:30 AM - 4:00 PM ET, with final fetch at 4:15 PM for closing prices
+  # Dual schedule approach: runs both EST and EDT schedules year-round
+  # This ensures correct coverage regardless of daylight saving time
+  # During the "wrong" season, one schedule runs 1 hour off but provides extra coverage
   schedule:
-    - cron: '30,45 13 * * 1-5'    # 9:30 AM, 9:45 AM EDT (market open)
+    # EDT Schedule (correct Mar-Nov, 1 hour early during EST)
+    - cron: '30,45 13 * * 1-5'    # 9:30 AM, 9:45 AM EDT
     - cron: '*/15 14-19 * * 1-5'  # Every 15 min: 10:00 AM - 3:45 PM EDT
-    - cron: '0,15 20 * * 1-5'     # 4:00 PM, 4:15 PM EDT (market close + final fetch)
+    - cron: '0,15 20 * * 1-5'     # 4:00 PM, 4:15 PM EDT
+
+    # EST Schedule (correct Nov-Mar, 1 hour late during EDT)
+    - cron: '30,45 14 * * 1-5'    # 9:30 AM, 9:45 AM EST
+    - cron: '*/15 15-20 * * 1-5'  # Every 15 min: 10:00 AM - 3:45 PM EST
+    - cron: '0,15 21 * * 1-5'     # 4:00 PM, 4:15 PM EST
 
   # Allow manual trigger for testing
   workflow_dispatch:
