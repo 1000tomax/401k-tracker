@@ -13,6 +13,7 @@ jobs:
     permissions:
       contents: read
       deployments: write
+      pull-requests: write  # Required for commenting on PRs
 
     steps:
       - name: Checkout repository
