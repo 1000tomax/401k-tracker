@@ -24,7 +24,96 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Check if we should run based on DST
+        id: dst_check
+        run: |
+          echo "🕐 Checking current time and DST status..."
+
+          # Get current UTC time
+          current_hour=$(date -u +%H)
+          current_minute=$(date -u +%M)
+          current_time="${current_hour}:${current_minute}"
+
+          # Determine if we're in DST (second Sunday in March to first Sunday in November)
+          year=$(date -u +%Y)
+
+          # Find second Sunday in March
+          march_first_day=$(date -u -d "${year}-03-01" +%u)  # 1=Mon, 7=Sun
+          if [ $march_first_day -eq 7 ]; then
+            second_sunday_march=8
+          else
+            second_sunday_march=$((8 + (7 - march_first_day)))
+          fi
+          dst_start=$(date -u -d "${year}-03-${second_sunday_march} 07:00" +%s)  # 2 AM EST = 7 AM UTC
+
+          # Find first Sunday in November
+          nov_first_day=$(date -u -d "${year}-11-01" +%u)
+          if [ $nov_first_day -eq 7 ]; then
+            first_sunday_nov=1
+          else
+            first_sunday_nov=$((1 + (7 - nov_first_day)))
+          fi
+          dst_end=$(date -u -d "${year}-11-${first_sunday_nov} 06:00" +%s)  # 2 AM EDT = 6 AM UTC
+
+          current_timestamp=$(date -u +%s)
+
+          if [ $current_timestamp -ge $dst_start ] && [ $current_timestamp -lt $dst_end ]; then
+            is_dst=true
+            echo "📅 Currently in EDT (Daylight Saving Time)"
+          else
+            is_dst=false
+            echo "📅 Currently in EST (Standard Time)"
+          fi
+
+          # Determine which schedule triggered this run based on UTC hour
+          # EDT schedule runs at hours 13-20 UTC
+          # EST schedule runs at hours 14-21 UTC
+          if [ $current_hour -ge 13 ] && [ $current_hour -le 20 ]; then
+            could_be_edt=true
+          else
+            could_be_edt=false
+          fi
+
+          if [ $current_hour -ge 14 ] && [ $current_hour -le 21 ]; then
+            could_be_est=true
+          else
+            could_be_est=false
+          fi
+
+          # Decide if we should skip
+          should_skip=false
+          if [ "$is_dst" = true ]; then
+            # We're in EDT season
+            if [ "$could_be_edt" = true ] && [ "$could_be_est" = false ]; then
+              # Must be EDT schedule (hour 13)
+              echo "✅ EDT schedule running during EDT season - proceeding"
+            elif [ "$could_be_est" = true ] && [ "$could_be_edt" = false ]; then
+              # Must be EST schedule (hour 21)
+              echo "⏭️  EST schedule running during EDT season - skipping"
+              should_skip=true
+            else
+              # Overlapping hours (14-20) - always run to ensure coverage
+              echo "✅ Overlapping hour ($current_hour UTC) - proceeding"
+            fi
+          else
+            # We're in EST season
+            if [ "$could_be_est" = true ] && [ "$could_be_edt" = false ]; then
+              # Must be EST schedule (hour 21)
+              echo "✅ EST schedule running during EST season - proceeding"
+            elif [ "$could_be_edt" = true ] && [ "$could_be_est" = false ]; then
+              # Must be EDT schedule (hour 13)
+              echo "⏭️  EDT schedule running during EST season - skipping"
+              should_skip=true
+            else
+              # Overlapping hours (14-20) - always run to ensure coverage
+              echo "✅ Overlapping hour ($current_hour UTC) - proceeding"
+            fi
+          fi
+
+          echo "should_skip=$should_skip" >> $GITHUB_OUTPUT
+
       - name: Sync ETF prices from Finnhub
+        if: steps.dst_check.outputs.should_skip != 'true'
         run: |
           echo "🔄 Triggering price refresh..."
 
