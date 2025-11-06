@@ -14,8 +14,35 @@ const ROTH_IRA_TICKERS = ['VTI', 'SCHD', 'QQQM', 'DES', 'VOO'];
 const VOYA_CONVERSION_RATIO = 15.577; // VOO to Voya 0899 conversion ratio (calculated from Oct 2025 data)
 
 /**
+ * Determines if a given date is in US Eastern Daylight Time (EDT) or Eastern Standard Time (EST).
+ * US DST rules (since 2007):
+ * - Starts: Second Sunday in March at 2:00 AM
+ * - Ends: First Sunday in November at 2:00 AM
+ * @param {Date} date - The date to check
+ * @returns {boolean} `true` if EDT (daylight time), `false` if EST (standard time)
+ */
+function isDaylightSavingTime(date) {
+  const year = date.getUTCFullYear();
+
+  // Find second Sunday in March
+  const march = new Date(Date.UTC(year, 2, 1)); // March 1
+  const marchDay = march.getUTCDay();
+  const secondSundayMarch = 8 + (7 - marchDay) % 7; // Second Sunday
+  const dstStart = new Date(Date.UTC(year, 2, secondSundayMarch, 7, 0, 0)); // 2 AM EST = 7 AM UTC
+
+  // Find first Sunday in November
+  const november = new Date(Date.UTC(year, 10, 1)); // November 1
+  const novemberDay = november.getUTCDay();
+  const firstSundayNovember = 1 + (7 - novemberDay) % 7; // First Sunday
+  const dstEnd = new Date(Date.UTC(year, 10, firstSundayNovember, 6, 0, 0)); // 2 AM EDT = 6 AM UTC
+
+  return date >= dstStart && date < dstEnd;
+}
+
+/**
  * Checks if the US stock market is currently open based on UTC time.
  * Market hours are considered to be Monday-Friday, 9:30 AM - 4:00 PM ET.
+ * Automatically adjusts for Eastern Daylight Time (EDT) vs Eastern Standard Time (EST).
  * @returns {boolean} `true` if the market is open, `false` otherwise.
  */
 function isMarketOpen() {
@@ -31,8 +58,20 @@ function isMarketOpen() {
 
   // Convert to minutes since midnight UTC for easier comparison
   const currentMinutes = hour * 60 + minute;
-  const marketOpen = 13 * 60 + 30; // 13:30 UTC (9:30 AM ET)
-  const marketClose = 20 * 60; // 20:00 UTC (4:00 PM ET)
+
+  // Determine if we're in EDT or EST and set market hours accordingly
+  const isEDT = isDaylightSavingTime(now);
+  let marketOpen, marketClose;
+
+  if (isEDT) {
+    // EDT: UTC-4
+    marketOpen = 13 * 60 + 30; // 13:30 UTC = 9:30 AM EDT
+    marketClose = 20 * 60; // 20:00 UTC = 4:00 PM EDT
+  } else {
+    // EST: UTC-5
+    marketOpen = 14 * 60 + 30; // 14:30 UTC = 9:30 AM EST
+    marketClose = 21 * 60; // 21:00 UTC = 4:00 PM EST
+  }
 
   return currentMinutes >= marketOpen && currentMinutes < marketClose;
 }
