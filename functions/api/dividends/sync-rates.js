@@ -1,48 +1,57 @@
 /**
  * @file functions/api/dividends/sync-rates.js
- * @description Fetches actual dividend per-share rates from Finnhub API and updates existing dividend records.
+ * @description Fetches actual dividend per-share rates from Alpha Vantage API and updates existing dividend records.
  * This replaces our calculated estimates with real dividend rates from the fund providers.
  */
 import { createSupabaseAdmin } from '../../../src/lib/supabaseAdmin.js';
 import { handleCors, requireSharedToken, jsonResponse } from '../../../src/utils/cors-workers.js';
 
 /**
- * Fetches dividend data for a ticker from Finnhub API
+ * Fetches dividend data for a ticker from Alpha Vantage API
  * @param {string} ticker - The ticker symbol
- * @param {string} apiKey - Finnhub API key
+ * @param {string} apiKey - Alpha Vantage API key
  * @param {string} fromDate - Start date (YYYY-MM-DD)
  * @param {string} toDate - End date (YYYY-MM-DD)
  * @returns {Promise<Array>} Array of dividend records
  */
 async function fetchDividendRates(ticker, apiKey, fromDate, toDate) {
-  const url = `https://finnhub.io/api/v1/stock/dividend?symbol=${ticker}&from=${fromDate}&to=${toDate}&token=${apiKey}`;
+  const url = `https://www.alphavantage.co/query?function=DIVIDENDS&symbol=${ticker}&apikey=${apiKey}`;
 
   try {
     const response = await fetch(url);
 
     if (!response.ok) {
       const errorBody = await response.text();
-      console.error(`Finnhub dividend API error for ${ticker}: ${response.status} - ${errorBody}`);
+      console.error(`Alpha Vantage dividend API error for ${ticker}: ${response.status} - ${errorBody}`);
       return [];
     }
 
     const data = await response.json();
 
-    // Finnhub returns array of: { date, amount, currency, etc }
-    if (!Array.isArray(data)) {
+    // Alpha Vantage returns: { data: [{ ex_dividend_date, payment_date, amount, ... }] }
+    if (!data.data || !Array.isArray(data.data)) {
       console.warn(`Unexpected dividend data format for ${ticker}:`, data);
       return [];
     }
 
-    return data.map(div => ({
-      date: div.date,
-      amount: div.amount,
-      currency: div.currency || 'USD',
-      exDate: div.exDate || div.date,
-      payDate: div.payDate || div.date,
-      recordDate: div.recordDate,
-      declaredDate: div.declaredDate,
-    }));
+    // Filter by date range
+    const fromDateObj = new Date(fromDate);
+    const toDateObj = new Date(toDate);
+
+    return data.data
+      .filter(div => {
+        const payDate = new Date(div.payment_date);
+        return payDate >= fromDateObj && payDate <= toDateObj;
+      })
+      .map(div => ({
+        date: div.payment_date,
+        amount: parseFloat(div.amount),
+        currency: 'USD',
+        exDate: div.ex_dividend_date,
+        payDate: div.payment_date,
+        recordDate: div.record_date,
+        declaredDate: div.declaration_date,
+      }));
   } catch (error) {
     console.error(`Failed to fetch dividends for ${ticker}:`, error.message);
     return [];
@@ -50,7 +59,7 @@ async function fetchDividendRates(ticker, apiKey, fromDate, toDate) {
 }
 
 /**
- * POST handler - Sync dividend rates from Finnhub for all holdings
+ * POST handler - Sync dividend rates from Alpha Vantage for all holdings
  */
 export async function onRequestPost(context) {
   const { request, env } = context;
@@ -66,10 +75,10 @@ export async function onRequestPost(context) {
   try {
     const supabase = createSupabaseAdmin(env);
 
-    // Get Finnhub API key
-    const apiKey = env.FINNHUB_API_KEY;
+    // Get Alpha Vantage API key
+    const apiKey = env.ALPHA_VANTAGE_API_KEY;
     if (!apiKey) {
-      throw new Error('FINNHUB_API_KEY not configured');
+      throw new Error('ALPHA_VANTAGE_API_KEY not configured');
     }
 
     // Parse request for date range (default to last 12 months)
@@ -136,13 +145,13 @@ export async function onRequestPost(context) {
         results.tickersChecked++;
 
         if (rates.length === 0) {
-          console.log(`ℹ️ No Finnhub dividend data found for ${ticker}`);
+          console.log(`ℹ️ No Alpha Vantage dividend data found for ${ticker}`);
           continue;
         }
 
-        console.log(`✅ Found ${rates.length} Finnhub dividend records for ${ticker}`);
+        console.log(`✅ Found ${rates.length} Alpha Vantage dividend records for ${ticker}`);
 
-        // Match Finnhub dividends to our records by date
+        // Match Alpha Vantage dividends to our records by date
         const tickerDividends = dividends.filter(d => d.fund === ticker);
 
         for (const ourDiv of tickerDividends) {
@@ -170,9 +179,9 @@ export async function onRequestPost(context) {
                 record_date: matched.recordDate,
                 metadata: {
                   ...ourDiv.metadata,
-                  finnhub_rate: matched.amount,
-                  finnhub_declared_date: matched.declaredDate,
-                  finnhub_synced_at: new Date().toISOString(),
+                  alpha_vantage_rate: matched.amount,
+                  alpha_vantage_declared_date: matched.declaredDate,
+                  alpha_vantage_synced_at: new Date().toISOString(),
                 },
               })
               .eq('id', ourDiv.id);
@@ -186,7 +195,7 @@ export async function onRequestPost(context) {
                 ticker,
                 date: ourDiv.date,
                 ourAmount: ourDiv.amount,
-                finnhubRate: matched.amount,
+                alphaVantageRate: matched.amount,
                 exDate: matched.exDate,
               });
             }

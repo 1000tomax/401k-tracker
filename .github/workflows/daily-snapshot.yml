@@ -53,9 +53,9 @@ jobs:
             # Don't fail workflow - snapshot uses yesterday's date, transactions already in DB
           fi
 
-      - name: Sync dividend rates from Finnhub
+      - name: Sync dividend rates from Alpha Vantage
         run: |
-          echo "💎 Syncing dividend per-share rates from Finnhub (last 90 days)..."
+          echo "💎 Syncing dividend per-share rates from Alpha Vantage (last 90 days)..."
 
           # Calculate date range (last 90 days)
           from_date=$(date -u -d '90 days ago' '+%Y-%m-%d')
@@ -79,7 +79,7 @@ jobs:
             matched=$(echo "$body" | jq -r '.results.matched // 0' 2>/dev/null)
             updated=$(echo "$body" | jq -r '.results.updated // 0' 2>/dev/null)
             if [ -n "$matched" ] && [ "$matched" != "0" ]; then
-              echo "📊 Matched $matched dividends, updated $updated records with Finnhub rates"
+              echo "📊 Matched $matched dividends, updated $updated records with Alpha Vantage rates"
             fi
           else
             echo "⚠️ Dividend sync failed with status $http_code, continuing anyway (non-critical)"
