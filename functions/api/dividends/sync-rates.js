@@ -23,7 +23,14 @@ async function fetchDividendRates(ticker, apiKey, fromDate, toDate) {
     if (!response.ok) {
       const errorBody = await response.text();
       console.error(`Alpha Vantage dividend API error for ${ticker}: ${response.status} - ${errorBody}`);
-      return [];
+      return {
+        rates: [],
+        debug: {
+          error: `HTTP ${response.status}: ${errorBody}`,
+          totalBeforeFilter: 0,
+          totalAfterFilter: 0,
+        }
+      };
     }
 
     const data = await response.json();
@@ -34,7 +41,16 @@ async function fetchDividendRates(ticker, apiKey, fromDate, toDate) {
     // Alpha Vantage returns: { data: [{ ex_dividend_date, payment_date, amount, ... }] }
     if (!data.data || !Array.isArray(data.data)) {
       console.warn(`Unexpected dividend data format for ${ticker}:`, data);
-      return [];
+      return {
+        rates: [],
+        debug: {
+          error: 'Unexpected API response format',
+          responseKeys: Object.keys(data || {}),
+          responseSample: JSON.stringify(data).substring(0, 200),
+          totalBeforeFilter: 0,
+          totalAfterFilter: 0,
+        }
+      };
     }
 
     console.log(`📊 Found ${data.data.length} total dividends for ${ticker} before date filtering`);
