@@ -39,7 +39,11 @@
       "Bash(sudo tee:*)",
       "Bash(npm test:*)",
       "Bash(gh run view:*)",
-      "Bash(sudo npx playwright install-deps:*)"
+      "Bash(sudo npx playwright install-deps:*)",
+      "Bash(gh run list:*)",
+      "Bash(gh workflow run:*)",
+      "mcp__supabase__*",
+      "mcp__api-supermemory-ai__*"
     ],
     "deny": [],
     "ask": []

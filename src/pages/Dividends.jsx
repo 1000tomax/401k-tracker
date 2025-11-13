@@ -212,6 +212,29 @@ export default function Dividends() {
     const dataPoint = payload[0].payload;
     const funds = dataPoint.funds || [];
 
+    // Get dividends for this period to show share info
+    // The date could be a day (YYYY-MM-DD), week start, or month (YYYY-MM)
+    const groupDate = dataPoint.date;
+    const dateDividends = filteredDividends.filter(d => {
+      if (groupDate.length === 7) {
+        // Monthly grouping (YYYY-MM)
+        return d.date.startsWith(groupDate);
+      } else if (groupDate.length === 10) {
+        // Daily or weekly grouping (YYYY-MM-DD)
+        // For weekly, check if dividend is within that week
+        const divDate = new Date(d.date);
+        const groupStart = new Date(groupDate);
+        const groupEnd = new Date(groupStart);
+        groupEnd.setDate(groupEnd.getDate() + 7);
+        return d.date === groupDate || (divDate >= groupStart && divDate < groupEnd);
+      }
+      return false;
+    });
+
+    const fundsWithShares = dateDividends
+      .filter(d => d.sharesHeld != null && d.dividendPerShare != null)
+      .map(d => `${d.fund}: ${d.sharesHeld.toFixed(2)} shares @ ${formatCurrency(d.dividendPerShare)}/share`);
+
     return (
       <div className="chart-tooltip">
         <div className="chart-tooltip-label">{label}</div>
@@ -227,6 +250,13 @@ export default function Dividends() {
         {funds.length > 0 && (
           <div className="chart-tooltip-meta">
             <strong>From:</strong> {funds.join(', ')}
+          </div>
+        )}
+        {fundsWithShares.length > 0 && (
+          <div className="chart-tooltip-meta" style={{ marginTop: '0.5rem', fontSize: '0.85rem' }}>
+            {fundsWithShares.map((info, idx) => (
+              <div key={idx}>{info}</div>
+            ))}
           </div>
         )}
       </div>
@@ -428,6 +458,7 @@ export default function Dividends() {
                   <th>Fund</th>
                   <th>Total Dividends</th>
                   <th>Payments</th>
+                  <th>Avg Per Share</th>
                   <th>Frequency</th>
                   <th>Yield %</th>
                   <th>Date Range</th>
@@ -438,11 +469,20 @@ export default function Dividends() {
                   const frequency = summary.frequencies[fund.fund];
                   const yieldPercent = summary.yields[fund.fund];
 
+                  // Calculate average dividend per share for this fund
+                  const fundDividends = filteredDividends.filter(d => d.fund === fund.fund && d.dividendPerShare);
+                  const avgPerShare = fundDividends.length > 0
+                    ? fundDividends.reduce((sum, d) => sum + d.dividendPerShare, 0) / fundDividends.length
+                    : null;
+
                   return (
                     <tr key={fund.fund}>
                       <td><strong>{fund.fund}</strong></td>
                       <td>{formatCurrency(fund.totalAmount)}</td>
                       <td>{fund.count}</td>
+                      <td>
+                        {avgPerShare != null ? formatCurrency(avgPerShare) : <span className="meta">—</span>}
+                      </td>
                       <td>
                         {frequency && (
                           <span className={`frequency-badge frequency-${frequency.toLowerCase()}`}>
@@ -577,6 +617,8 @@ export default function Dividends() {
                 <th>Date</th>
                 <th>Fund</th>
                 <th>Account</th>
+                <th>Shares Held</th>
+                <th>Per Share</th>
                 <th>Amount</th>
               </tr>
             </thead>
@@ -589,7 +631,21 @@ export default function Dividends() {
                     <td>{formatDate(dividend.date)}</td>
                     <td><strong>{dividend.fund}</strong></td>
                     <td className="meta">{formatAccountName(dividend.account)}</td>
-                    <td>{formatCurrency(dividend.amount)}</td>
+                    <td>
+                      {dividend.sharesHeld != null ? (
+                        <span>{dividend.sharesHeld.toFixed(4)}</span>
+                      ) : (
+                        <span className="meta">—</span>
+                      )}
+                    </td>
+                    <td>
+                      {dividend.dividendPerShare != null ? (
+                        <span>{formatCurrency(dividend.dividendPerShare)}</span>
+                      ) : (
+                        <span className="meta">—</span>
+                      )}
+                    </td>
+                    <td><strong>{formatCurrency(dividend.amount)}</strong></td>
                   </tr>
                 ))}
             </tbody>
