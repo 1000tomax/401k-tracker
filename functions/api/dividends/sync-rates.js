@@ -28,17 +28,22 @@ async function fetchDividendRates(ticker, apiKey, fromDate, toDate) {
 
     const data = await response.json();
 
+    // Log raw API response for debugging
+    console.log(`📡 Alpha Vantage raw response for ${ticker}:`, JSON.stringify(data).substring(0, 500));
+
     // Alpha Vantage returns: { data: [{ ex_dividend_date, payment_date, amount, ... }] }
     if (!data.data || !Array.isArray(data.data)) {
       console.warn(`Unexpected dividend data format for ${ticker}:`, data);
       return [];
     }
 
+    console.log(`📊 Found ${data.data.length} total dividends for ${ticker} before date filtering`);
+
     // Filter by date range
     const fromDateObj = new Date(fromDate);
     const toDateObj = new Date(toDate);
 
-    return data.data
+    const filtered = data.data
       .filter(div => {
         const payDate = new Date(div.payment_date);
         return payDate >= fromDateObj && payDate <= toDateObj;
@@ -52,6 +57,13 @@ async function fetchDividendRates(ticker, apiKey, fromDate, toDate) {
         recordDate: div.record_date,
         declaredDate: div.declaration_date,
       }));
+
+    console.log(`🔍 After filtering ${fromDate} to ${toDate}: ${filtered.length} dividends for ${ticker}`);
+    if (data.data.length > 0 && filtered.length === 0) {
+      console.warn(`⚠️ All ${data.data.length} dividends filtered out! Latest dividend date: ${data.data[0]?.payment_date}`);
+    }
+
+    return filtered;
   } catch (error) {
     console.error(`Failed to fetch dividends for ${ticker}:`, error.message);
     return [];
@@ -155,6 +167,7 @@ export async function onRequestPost(context) {
           ourDates: tickerDividends.map(d => d.date),
           alphaVantageCount: rates.length,
           alphaVantageDates: rates.slice(0, 5).map(r => r.payDate),
+          alphaVantageAmounts: rates.slice(0, 5).map(r => r.amount),
         };
         results.tickerDetails.push(tickerDebug);
 
