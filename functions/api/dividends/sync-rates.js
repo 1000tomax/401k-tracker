@@ -219,19 +219,32 @@ export async function onRequestPost(context) {
             ? ourDiv.date.toISOString().split('T')[0]
             : String(ourDiv.date);
 
-          // Try to match by payment date (our date field)
-          let matched = rates.find(r => r.payDate === ourDateStr || r.date === ourDateStr);
+          // Normalize to YYYY-MM-DD format (handle edge cases)
+          const normalizedOurDate = ourDateStr.split('T')[0]; // Remove time if present
 
-          console.log(`🔍 Matching dividend ${ourDateStr} (original: ${ourDiv.date}, type: ${typeof ourDiv.date}):`, matched ? 'FOUND' : 'NOT FOUND');
+          // Try to match by payment date (our date field)
+          let matched = rates.find(r => {
+            const ratePayDate = String(r.payDate).split('T')[0]; // Normalize Alpha Vantage date
+            return ratePayDate === normalizedOurDate;
+          });
+
+          console.log(`🔍 Matching dividend ${normalizedOurDate} (original: ${ourDiv.date}, type: ${typeof ourDiv.date}):`, matched ? `FOUND (${matched.payDate} = $${matched.amount})` : 'NOT FOUND');
+          if (!matched && rates.length > 0) {
+            console.log(`   Available Alpha Vantage dates: ${rates.map(r => r.payDate).join(', ')}`);
+          }
 
           // If no exact match, try matching within a week
           if (!matched) {
-            const ourDate = new Date(ourDateStr);
+            const ourDate = new Date(normalizedOurDate);
             matched = rates.find(r => {
-              const rateDate = new Date(r.payDate || r.date);
+              const rateDate = new Date(String(r.payDate).split('T')[0]);
               const diffDays = Math.abs((ourDate - rateDate) / (1000 * 60 * 60 * 24));
               return diffDays <= 7; // Within a week
             });
+
+            if (matched) {
+              console.log(`   ⚠️ FUZZY MATCHED ${normalizedOurDate} to ${matched.payDate} (${Math.abs((ourDate - new Date(matched.payDate)) / (1000 * 60 * 60 * 24)).toFixed(1)} days apart)`);
+            }
           }
 
           if (matched) {
