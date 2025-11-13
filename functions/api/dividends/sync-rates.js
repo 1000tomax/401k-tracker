@@ -12,7 +12,7 @@ import { handleCors, requireSharedToken, jsonResponse } from '../../../src/utils
  * @param {string} apiKey - Alpha Vantage API key
  * @param {string} fromDate - Start date (YYYY-MM-DD)
  * @param {string} toDate - End date (YYYY-MM-DD)
- * @returns {Promise<Array>} Array of dividend records
+ * @returns {Promise<{rates: Array, debug: Object}>} Object with rates array and debug info
  */
 async function fetchDividendRates(ticker, apiKey, fromDate, toDate) {
   const url = `https://www.alphavantage.co/query?function=DIVIDENDS&symbol=${ticker}&apikey=${apiKey}`;
@@ -63,10 +63,25 @@ async function fetchDividendRates(ticker, apiKey, fromDate, toDate) {
       console.warn(`⚠️ All ${data.data.length} dividends filtered out! Latest dividend date: ${data.data[0]?.payment_date}`);
     }
 
-    return filtered;
+    return {
+      rates: filtered,
+      debug: {
+        totalBeforeFilter: data.data.length,
+        totalAfterFilter: filtered.length,
+        latestDividendDate: data.data[0]?.payment_date || null,
+        sampleDividends: data.data.slice(0, 3).map(d => ({ payment_date: d.payment_date, amount: d.amount })),
+      }
+    };
   } catch (error) {
     console.error(`Failed to fetch dividends for ${ticker}:`, error.message);
-    return [];
+    return {
+      rates: [],
+      debug: {
+        error: error.message,
+        totalBeforeFilter: 0,
+        totalAfterFilter: 0,
+      }
+    };
   }
 }
 
@@ -153,7 +168,7 @@ export async function onRequestPost(context) {
     for (const ticker of tickers) {
       try {
         console.log(`🔍 Fetching dividend rates for ${ticker}...`);
-        const rates = await fetchDividendRates(ticker, apiKey, fromDate, toDate);
+        const { rates, debug: apiDebug } = await fetchDividendRates(ticker, apiKey, fromDate, toDate);
 
         results.tickersChecked++;
 
@@ -168,6 +183,7 @@ export async function onRequestPost(context) {
           alphaVantageCount: rates.length,
           alphaVantageDates: rates.slice(0, 5).map(r => r.payDate),
           alphaVantageAmounts: rates.slice(0, 5).map(r => r.amount),
+          apiDebug, // Add raw API debug info
         };
         results.tickerDetails.push(tickerDebug);
 
