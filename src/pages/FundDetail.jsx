@@ -589,7 +589,12 @@ export default function FundDetail() {
                     </td>
                     <td>
                       {div.dividendPerShare != null ? (
-                        <span>{formatCurrency(div.dividendPerShare)}</span>
+                        <span>
+                          {formatCurrency(div.dividendPerShare)}
+                          {div.perShareSource === 'calculated' && (
+                            <span className="meta" style={{ fontSize: '0.75rem', marginLeft: '0.25rem' }} title="Estimated from holdings snapshot">~</span>
+                          )}
+                        </span>
                       ) : (
                         <span className="meta">—</span>
                       )}

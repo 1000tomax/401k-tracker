@@ -640,7 +640,12 @@ export default function Dividends() {
                     </td>
                     <td>
                       {dividend.dividendPerShare != null ? (
-                        <span>{formatCurrency(dividend.dividendPerShare)}</span>
+                        <span>
+                          {formatCurrency(dividend.dividendPerShare)}
+                          {dividend.perShareSource === 'calculated' && (
+                            <span className="meta" style={{ fontSize: '0.75rem', marginLeft: '0.25rem' }} title="Estimated from holdings snapshot">~</span>
+                          )}
+                        </span>
                       ) : (
                         <span className="meta">—</span>
                       )}

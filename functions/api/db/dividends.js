@@ -106,6 +106,7 @@ export async function onRequestGet(context) {
       sharesHeld: div.shares_held ? parseFloat(div.shares_held) : null,
       sharesSnapshotDate: div.shares_snapshot_date,
       dividendPerShare: div.dividend_per_share ? parseFloat(div.dividend_per_share) : null,
+      perShareSource: div.per_share_source || null, // 'finnhub' or 'calculated'
     }));
 
     return jsonResponse({
