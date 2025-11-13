@@ -141,10 +141,22 @@ export default function FundDetail() {
     let transactionTimeline = [];
     let totalDividends = 0;
 
-    // Add dividends to total
+    // Add dividends to total and calculate average per-share
+    let dividendsWithShares = 0;
+    let totalDividendPerShare = 0;
+
     fundDividends.forEach(div => {
       totalDividends += parseFloat(div.amount) || 0;
+
+      if (div.dividendPerShare != null) {
+        dividendsWithShares += 1;
+        totalDividendPerShare += parseFloat(div.dividendPerShare);
+      }
     });
+
+    const avgDividendPerShare = dividendsWithShares > 0
+      ? totalDividendPerShare / dividendsWithShares
+      : null;
 
     // Always build transaction-only timeline for Price History chart
     let totalShares = 0;
@@ -252,6 +264,7 @@ export default function FundDetail() {
         gainLoss,
         gainLossPercent,
         totalDividends,
+        avgDividendPerShare,
         timeline,
         transactionTimeline,
         transactionCount: fundTransactions.length,
@@ -290,6 +303,7 @@ export default function FundDetail() {
       gainLoss,
       gainLossPercent,
       totalDividends,
+      avgDividendPerShare,
       timeline,
       transactionTimeline,
       transactionCount: fundTransactions.length,
@@ -405,7 +419,12 @@ export default function FundDetail() {
           <div className="summary-card">
             <div className="summary-label">Total Dividends</div>
             <div className="summary-value positive">{formatCurrency(fundMetrics.totalDividends)}</div>
-            <div className="summary-meta">{fundMetrics.dividendCount} payments</div>
+            <div className="summary-meta">
+              {fundMetrics.dividendCount} payments
+              {fundMetrics.avgDividendPerShare && (
+                <> • Avg: {formatCurrency(fundMetrics.avgDividendPerShare)}/share</>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -551,6 +570,8 @@ export default function FundDetail() {
               <thead>
                 <tr>
                   <th>Date</th>
+                  <th>Shares Held</th>
+                  <th>Per Share</th>
                   <th>Amount</th>
                   <th>Account</th>
                 </tr>
@@ -559,6 +580,20 @@ export default function FundDetail() {
                 {fundDividends.slice().reverse().map((div, index) => (
                   <tr key={index}>
                     <td>{formatDate(div.date)}</td>
+                    <td>
+                      {div.sharesHeld != null ? (
+                        <span>{formatShares(div.sharesHeld)}</span>
+                      ) : (
+                        <span className="meta">—</span>
+                      )}
+                    </td>
+                    <td>
+                      {div.dividendPerShare != null ? (
+                        <span>{formatCurrency(div.dividendPerShare)}</span>
+                      ) : (
+                        <span className="meta">—</span>
+                      )}
+                    </td>
                     <td className="positive">{formatCurrency(div.amount)}</td>
                     <td className="account-name">{formatAccountName(div.account)}</td>
                   </tr>
@@ -567,6 +602,8 @@ export default function FundDetail() {
               <tfoot>
                 <tr>
                   <td><strong>Total Dividends</strong></td>
+                  <td>—</td>
+                  <td>—</td>
                   <td className="positive"><strong>{formatCurrency(fundMetrics.totalDividends)}</strong></td>
                   <td>—</td>
                 </tr>
