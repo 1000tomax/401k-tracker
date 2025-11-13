@@ -153,6 +153,21 @@ const emailStyles = `
   .stat-value.negative {
     color: #f87171;
   }
+  .portfolio-snapshot {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    border: 2px solid #334155;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 30px;
+  }
+  .portfolio-snapshot h2 {
+    margin: 0 0 20px 0;
+    font-size: 20px;
+    color: #f1f5f9;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
   .cta-button {
     display: inline-block;
     background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
@@ -182,6 +197,8 @@ const emailStyles = `
     .stat-card { background-color: #f1f5f9; }
     .stat-label { color: #64748b; }
     .stat-value { color: #0f172a; }
+    .portfolio-snapshot { background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%); border-color: #e2e8f0; }
+    .portfolio-snapshot h2 { color: #0f172a; }
     .footer { color: #94a3b8; border-top-color: #e2e8f0; }
   }
 </style>
@@ -264,6 +281,32 @@ export function generateTransactionEmail(data) {
       <p>${formatDate(new Date().toISOString())}</p>
     </div>
     <div class="content">
+      <div class="portfolio-snapshot">
+        <h2>📊 Portfolio Snapshot</h2>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">Total Value</div>
+            <div class="stat-value">${formatCurrency(portfolio.totalValue)}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Total Return</div>
+            <div class="stat-value ${portfolio.gainLoss >= 0 ? 'positive' : 'negative'}">
+              ${portfolio.gainLoss >= 0 ? '+' : ''}${formatCurrency(portfolio.gainLoss)}
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Return %</div>
+            <div class="stat-value ${parseFloat(portfolio.gainLossPercent) >= 0 ? 'positive' : 'negative'}">
+              ${parseFloat(portfolio.gainLossPercent) >= 0 ? '+' : ''}${portfolio.gainLossPercent}%
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">YTD Contributions</div>
+            <div class="stat-value">${formatCurrency(ytdContributions)}</div>
+          </div>
+        </div>
+      </div>
+
       ${hasTransactions ? `
       <div class="section">
         <h2 class="section-title">Recent Contributions</h2>
@@ -283,16 +326,17 @@ export function generateTransactionEmail(data) {
       ` : ''}
 
       <div class="section">
+        <h2 class="section-title">📈 New Activity Summary</h2>
         <div class="stats-grid">
           ${hasTransactions ? `
           <div class="stat-card">
-            <div class="stat-label">Contributions</div>
+            <div class="stat-label">New Contributions</div>
             <div class="stat-value positive">${totalAdded}</div>
           </div>
           ` : ''}
           ${hasDividends ? `
           <div class="stat-card">
-            <div class="stat-label">Dividends</div>
+            <div class="stat-label">New Dividends</div>
             <div class="stat-value positive">${formatCurrency(recentActivity.totalDividends)}</div>
           </div>
           ` : ''}
@@ -316,11 +360,21 @@ export function generateTransactionEmail(data) {
   // Build plain text version
   let plainText = `New Retirement Activity - ${formatDate(new Date().toISOString())}\n\n`;
 
+  // Portfolio snapshot
+  plainText += `📊 PORTFOLIO SNAPSHOT\n`;
+  plainText += `${'='.repeat(50)}\n`;
+  plainText += `Total Value:        ${formatCurrency(portfolio.totalValue)}\n`;
+  plainText += `Total Return:       ${portfolio.gainLoss >= 0 ? '+' : ''}${formatCurrency(portfolio.gainLoss)} (${parseFloat(portfolio.gainLossPercent) >= 0 ? '+' : ''}${portfolio.gainLossPercent}%)\n`;
+  plainText += `YTD Contributions:  ${formatCurrency(ytdContributions)}\n\n`;
+
+  // New activity
+  plainText += `📈 NEW ACTIVITY\n`;
+  plainText += `${'='.repeat(50)}\n`;
   if (hasTransactions) {
-    plainText += `Contributions: ${totalAdded}\n`;
+    plainText += `New Contributions: ${totalAdded}\n`;
   }
   if (hasDividends) {
-    plainText += `Dividends: ${formatCurrency(recentActivity.totalDividends)}\n`;
+    plainText += `New Dividends: ${formatCurrency(recentActivity.totalDividends)}\n`;
   }
 
   plainText += `\nView your full dashboard at: https://401k.mreedon.com\n\n`;

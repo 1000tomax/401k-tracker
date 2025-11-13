@@ -1,12 +1,12 @@
 name: Daily Portfolio Snapshot
 
 on:
-  # Run daily at 9:00 AM ET (before market open) for PREVIOUS day
+  # Run daily BEFORE first ETF price sync (before market open) for PREVIOUS day
   # This gives Plaid overnight to sync all of yesterday's transactions
   # Process flow: Sync Plaid → Fetch prices → Create snapshot for yesterday
-  # 14:00 UTC = 9:00 AM ET
+  # 13:00 UTC = 9:00 AM EDT / 8:00 AM EST (always before 9:30 AM market open)
   schedule:
-    - cron: '0 14 * * 2-6'  # Tue-Sat at 9:00 AM ET (creates Mon-Fri snapshots)
+    - cron: '0 13 * * 2-6'  # Tue-Sat at 9:00 AM EDT / 8:00 AM EST (creates Mon-Fri snapshots)
 
   # Allow manual trigger for testing
   workflow_dispatch:
