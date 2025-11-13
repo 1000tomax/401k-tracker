@@ -158,14 +158,19 @@ export async function onRequestPost(context) {
         console.log(`📊 Alpha Vantage rates:`, rates.map(r => ({ payDate: r.payDate, amount: r.amount })));
 
         for (const ourDiv of tickerDividends) {
-          // Try to match by payment date (our date field)
-          let matched = rates.find(r => r.payDate === ourDiv.date || r.date === ourDiv.date);
+          // Normalize our date to YYYY-MM-DD string for comparison
+          const ourDateStr = ourDiv.date instanceof Date
+            ? ourDiv.date.toISOString().split('T')[0]
+            : String(ourDiv.date);
 
-          console.log(`🔍 Matching dividend ${ourDiv.date} (type: ${typeof ourDiv.date}):`, matched ? 'FOUND' : 'NOT FOUND');
+          // Try to match by payment date (our date field)
+          let matched = rates.find(r => r.payDate === ourDateStr || r.date === ourDateStr);
+
+          console.log(`🔍 Matching dividend ${ourDateStr} (original: ${ourDiv.date}, type: ${typeof ourDiv.date}):`, matched ? 'FOUND' : 'NOT FOUND');
 
           // If no exact match, try matching within a week
           if (!matched) {
-            const ourDate = new Date(ourDiv.date);
+            const ourDate = new Date(ourDateStr);
             matched = rates.find(r => {
               const rateDate = new Date(r.payDate || r.date);
               const diffDays = Math.abs((ourDate - rateDate) / (1000 * 60 * 60 * 24));
