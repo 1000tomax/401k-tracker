@@ -154,9 +154,14 @@ export async function onRequestPost(context) {
         // Match Alpha Vantage dividends to our records by date
         const tickerDividends = dividends.filter(d => d.fund === ticker);
 
+        console.log(`📋 Our dividends for ${ticker}:`, tickerDividends.map(d => ({ date: d.date, dateType: typeof d.date })));
+        console.log(`📊 Alpha Vantage rates:`, rates.map(r => ({ payDate: r.payDate, amount: r.amount })));
+
         for (const ourDiv of tickerDividends) {
           // Try to match by payment date (our date field)
           let matched = rates.find(r => r.payDate === ourDiv.date || r.date === ourDiv.date);
+
+          console.log(`🔍 Matching dividend ${ourDiv.date} (type: ${typeof ourDiv.date}):`, matched ? 'FOUND' : 'NOT FOUND');
 
           // If no exact match, try matching within a week
           if (!matched) {
