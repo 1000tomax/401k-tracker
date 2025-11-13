@@ -134,6 +134,7 @@ export async function onRequestPost(context) {
       updated: 0,
       errors: 0,
       details: [],
+      tickerDetails: [],
     };
 
     // Fetch dividend rates for each ticker
@@ -144,15 +145,25 @@ export async function onRequestPost(context) {
 
         results.tickersChecked++;
 
+        // Match Alpha Vantage dividends to our records by date
+        const tickerDividends = dividends.filter(d => d.fund === ticker);
+
+        // Add debug info
+        const tickerDebug = {
+          ticker,
+          ourDividendCount: tickerDividends.length,
+          ourDates: tickerDividends.map(d => d.date),
+          alphaVantageCount: rates.length,
+          alphaVantageDates: rates.slice(0, 5).map(r => r.payDate),
+        };
+        results.tickerDetails.push(tickerDebug);
+
         if (rates.length === 0) {
           console.log(`ℹ️ No Alpha Vantage dividend data found for ${ticker}`);
           continue;
         }
 
         console.log(`✅ Found ${rates.length} Alpha Vantage dividend records for ${ticker}`);
-
-        // Match Alpha Vantage dividends to our records by date
-        const tickerDividends = dividends.filter(d => d.fund === ticker);
 
         console.log(`📋 Our dividends for ${ticker}:`, tickerDividends.map(d => ({ date: d.date, dateType: typeof d.date })));
         console.log(`📊 Alpha Vantage rates:`, rates.map(r => ({ payDate: r.payDate, amount: r.amount })));
