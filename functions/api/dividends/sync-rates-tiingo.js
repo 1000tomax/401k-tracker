@@ -7,6 +7,60 @@ import { createSupabaseAdmin } from '../../../src/lib/supabaseAdmin.js';
 import { handleCors, requireSharedToken, jsonResponse } from '../../../src/utils/cors-workers.js';
 
 /**
+ * Fetches ex-dividend dates from Alpha Vantage (optional enrichment)
+ * @param {string} ticker - The ticker symbol
+ * @param {string} apiKey - Alpha Vantage API key
+ * @param {string} fromDate - Start date (YYYY-MM-DD)
+ * @param {string} toDate - End date (YYYY-MM-DD)
+ * @returns {Promise<{exDates: Map, errors: Array}>} Map of payment date -> ex-date
+ */
+async function fetchExDatesFromAlphaVantage(ticker, apiKey, fromDate, toDate) {
+  if (!apiKey) {
+    return { exDates: new Map(), errors: ['ALPHA_VANTAGE_API_KEY not available'] };
+  }
+
+  const url = `https://www.alphavantage.co/query?function=DIVIDENDS&symbol=${ticker}&apikey=${apiKey}`;
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      return { exDates: new Map(), errors: [`HTTP ${response.status}`] };
+    }
+
+    const data = await response.json();
+
+    // Check for rate limit
+    if (data.Note && data.Note.includes('rate limit')) {
+      return { exDates: new Map(), errors: ['Rate limited - skipping ex-dates'] };
+    }
+
+    if (!data.data || !Array.isArray(data.data)) {
+      return { exDates: new Map(), errors: ['Unexpected API format'] };
+    }
+
+    // Build map of payment_date -> ex_dividend_date
+    const exDates = new Map();
+    const fromDateObj = new Date(fromDate);
+    const toDateObj = new Date(toDate);
+
+    data.data
+      .filter(div => {
+        const payDate = new Date(div.payment_date);
+        return payDate >= fromDateObj && payDate <= toDateObj;
+      })
+      .forEach(div => {
+        exDates.set(div.payment_date, div.ex_dividend_date);
+      });
+
+    console.log(`📅 Alpha Vantage: Found ${exDates.size} ex-dates for ${ticker}`);
+    return { exDates, errors: [] };
+
+  } catch (error) {
+    return { exDates: new Map(), errors: [error.message] };
+  }
+}
+
+/**
  * Fetches dividend data for a ticker from Tiingo API
  * @param {string} ticker - The ticker symbol
  * @param {string} apiKey - Tiingo API key
@@ -204,6 +258,21 @@ export async function onRequestPost(context) {
 
         console.log(`✅ Found ${rates.length} Tiingo dividend records for ${ticker}`);
 
+        // Optional: Enrich with ex-dates from Alpha Vantage (if available and not rate limited)
+        let exDatesMap = new Map();
+        const alphaVantageKey = env.ALPHA_VANTAGE_API_KEY;
+        if (alphaVantageKey && rates.length > 0) {
+          console.log(`📅 Attempting to enrich ${ticker} with ex-dates from Alpha Vantage...`);
+          const { exDates, errors } = await fetchExDatesFromAlphaVantage(ticker, alphaVantageKey, fromDate, toDate);
+          exDatesMap = exDates;
+          
+          if (errors.length > 0) {
+            console.log(`⚠️ Alpha Vantage ex-date enrichment issues for ${ticker}:`, errors.join(', '));
+          } else if (exDatesMap.size > 0) {
+            console.log(`📅 Successfully enriched ${ticker} with ${exDatesMap.size} ex-dates`);
+          }
+        }
+
         console.log(`📋 Our dividends for ${ticker}:`, tickerDividends.map(d => ({ date: d.date, dateType: typeof d.date })));
         console.log(`📊 Tiingo rates:`, rates.map(r => ({ payDate: r.payDate, amount: r.amount })));
 
@@ -244,17 +313,29 @@ export async function onRequestPost(context) {
           if (matched) {
             results.matched++;
 
-            // Update the dividend record with actual per-share rate
+            // Look up ex-date if available
+            const exDate = exDatesMap.get(matched.payDate) || null;
+
+            // Update the dividend record with actual per-share rate and optional ex-date
+            const updateData = {
+              metadata: {
+                ...ourDiv.metadata,
+                tiingo_rate: matched.amount,
+                tiingo_synced_at: new Date().toISOString(),
+                source: 'tiingo',
+              },
+            };
+
+            // Add ex-date if we found one
+            if (exDate) {
+              updateData.ex_date = exDate;
+              updateData.metadata.alpha_vantage_ex_date = exDate;
+              updateData.metadata.ex_date_source = 'alpha_vantage';
+            }
+
             const { error: updateError } = await supabase
               .from('dividends')
-              .update({
-                metadata: {
-                  ...ourDiv.metadata,
-                  tiingo_rate: matched.amount,
-                  tiingo_synced_at: new Date().toISOString(),
-                  source: 'tiingo',
-                },
-              })
+              .update(updateData)
               .eq('id', ourDiv.id);
 
             if (updateError) {
@@ -268,6 +349,7 @@ export async function onRequestPost(context) {
                 ourAmount: ourDiv.amount,
                 tiingoRate: matched.amount,
                 payDate: matched.payDate,
+                exDate: exDate || 'not available',
               });
             }
           }
