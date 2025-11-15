@@ -53,16 +53,16 @@ jobs:
             # Don't fail workflow - snapshot uses yesterday's date, transactions already in DB
           fi
 
-      - name: Sync dividend rates from Alpha Vantage
+      - name: Sync dividend rates from Tiingo
         run: |
-          echo "💎 Syncing dividend per-share rates from Alpha Vantage (last 90 days)..."
+          echo "💎 Syncing dividend per-share rates from Tiingo (last 90 days)..."
 
           # Calculate date range (last 90 days)
           from_date=$(date -u -d '90 days ago' '+%Y-%m-%d')
           to_date=$(date -u '+%Y-%m-%d')
 
           response=$(curl -s -w "\n%{http_code}" -X POST \
-            https://401k.mreedon.com/api/dividends/sync-rates \
+            https://401k.mreedon.com/api/dividends/sync-rates-tiingo \
             -H "X-401K-Token: ${{ secrets.API_SHARED_TOKEN }}" \
             -H "Content-Type: application/json" \
             -d "{\"fromDate\": \"$from_date\", \"toDate\": \"$to_date\"}")
@@ -79,7 +79,7 @@ jobs:
             matched=$(echo "$body" | jq -r '.results.matched // 0' 2>/dev/null)
             updated=$(echo "$body" | jq -r '.results.updated // 0' 2>/dev/null)
             if [ -n "$matched" ] && [ "$matched" != "0" ]; then
-              echo "📊 Matched $matched dividends, updated $updated records with Alpha Vantage rates"
+              echo "📊 Matched $matched dividends, updated $updated records with Tiingo rates"
             fi
           else
             echo "⚠️ Dividend sync failed with status $http_code, continuing anyway (non-critical)"
