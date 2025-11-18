@@ -53,39 +53,6 @@ jobs:
             # Don't fail workflow - snapshot uses yesterday's date, transactions already in DB
           fi
 
-      - name: Sync dividend rates from Tiingo
-        run: |
-          echo "💎 Syncing dividend per-share rates from Tiingo (last 90 days)..."
-
-          # Calculate date range (last 90 days)
-          from_date=$(date -u -d '90 days ago' '+%Y-%m-%d')
-          to_date=$(date -u '+%Y-%m-%d')
-
-          response=$(curl -s -w "\n%{http_code}" -X POST \
-            https://401k.mreedon.com/api/dividends/sync-rates-tiingo \
-            -H "X-401K-Token: ${{ secrets.API_SHARED_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            -d "{\"fromDate\": \"$from_date\", \"toDate\": \"$to_date\"}")
-
-          http_code=$(echo "$response" | tail -n1)
-          body=$(echo "$response" | head -n-1)
-
-          echo "Response: $body"
-          echo "HTTP Status: $http_code"
-
-          if [ "$http_code" -eq 200 ]; then
-            echo "✅ Dividend rates synced successfully"
-            # Extract summary if available
-            matched=$(echo "$body" | jq -r '.results.matched // 0' 2>/dev/null)
-            updated=$(echo "$body" | jq -r '.results.updated // 0' 2>/dev/null)
-            if [ -n "$matched" ] && [ "$matched" != "0" ]; then
-              echo "📊 Matched $matched dividends, updated $updated records with Tiingo rates"
-            fi
-          else
-            echo "⚠️ Dividend sync failed with status $http_code, continuing anyway (non-critical)"
-            # Don't fail the workflow - calculated rates are still available
-          fi
-
       - name: Fetch closing prices
         run: |
           echo "💰 Fetching closing prices from Finnhub (forced)..."

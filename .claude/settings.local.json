@@ -43,7 +43,16 @@
       "Bash(gh run list:*)",
       "Bash(gh workflow run:*)",
       "mcp__supabase__*",
-      "mcp__api-supermemory-ai__*"
+      "mcp__api-supermemory-ai__*",
+      "Bash(wrangler pages secret put:*)",
+      "Bash(wrangler pages deployment tail:*)",
+      "Bash(find:*)",
+      "Bash(git log:*)",
+      "WebFetch(domain:www.tiingo.com)",
+      "mcp__supabase__get_logs",
+      "Bash(if [ -n \"$TIINGO_API_KEY\" ])",
+      "Bash(then echo \"TIINGO_API_KEY is set (length: $#TIINGO_API_KEY)\")",
+      "Bash(else echo \"TIINGO_API_KEY is EMPTY!\")"
     ],
     "deny": [],
     "ask": []
