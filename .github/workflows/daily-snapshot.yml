@@ -103,11 +103,11 @@ jobs:
           echo "HTTP Status: $http_code"
 
           if [ "$http_code" -ne 200 ]; then
-            echo "❌ Price fetch failed with status $http_code"
-            exit 1
+            echo "⚠️ Price fetch failed with status $http_code, continuing anyway"
+            echo "📝 Note: Snapshot will use last known prices (better than no snapshot)"
+          else
+            echo "✅ Closing prices fetched successfully"
           fi
-
-          echo "✅ Closing prices fetched successfully"
 
       - name: Wait for database to settle
         run: |
