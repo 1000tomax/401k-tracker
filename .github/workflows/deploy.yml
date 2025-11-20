@@ -49,6 +49,69 @@ jobs:
           NODE_ENV: production
           VITE_401K_TOKEN: ${{ secrets.VITE_401K_TOKEN }}
 
+      # ============================================
+      # DEPLOYMENT SAFETY GATE: Smoke Tests
+      # ============================================
+      # These tests verify the built application works
+      # before deploying to production. If they fail,
+      # the deployment will be blocked.
+      # ============================================
+
+      - name: Get Playwright version
+        id: playwright-version
+        run: echo "version=$(npm list @playwright/test --depth=0 --json | jq -r '.dependencies["@playwright/test"].version')" >> $GITHUB_OUTPUT
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
+          restore-keys: |
+            playwright-${{ runner.os }}-
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install chromium --with-deps
+
+      - name: Install Playwright system dependencies
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      - name: Run deployment smoke tests
+        run: |
+          # Start preview server in background
+          npm run preview &
+          PREVIEW_PID=$!
+
+          # Wait for server to be ready (max 30 seconds)
+          echo "Waiting for preview server to start..."
+          for i in {1..30}; do
+            if curl -s http://localhost:4173 > /dev/null; then
+              echo "✓ Preview server is ready"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "✗ Preview server failed to start"
+              kill $PREVIEW_PID 2>/dev/null || true
+              exit 1
+            fi
+            sleep 1
+          done
+
+          # Run smoke tests
+          echo "Running smoke tests..."
+          npx playwright test tests/smoke.spec.ts
+          TEST_EXIT_CODE=$?
+
+          # Clean up preview server
+          kill $PREVIEW_PID 2>/dev/null || true
+
+          # Exit with test result
+          exit $TEST_EXIT_CODE
+        env:
+          VITE_401K_TOKEN: ${{ secrets.VITE_401K_TOKEN }}
+
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
