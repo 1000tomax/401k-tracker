@@ -65,9 +65,9 @@ export default function FundDetail() {
         // Fetch fund snapshots first to see if we have historical data
         let snapshotsData = null;
         try {
-          // Map VOO to VOYA_0899 for snapshot queries (401k fund uses internal ticker)
+          // Map VOO to actual fund name used in snapshots (matches transactions table)
           const tickerUpper = ticker.toUpperCase();
-          const snapshotTicker = tickerUpper === 'VOO' ? 'VOYA_0899' : tickerUpper;
+          const snapshotTicker = tickerUpper === 'VOO' ? '0899 Vanguard 500 Index Fund Adm' : tickerUpper;
 
           const snapshotsUrl = `${API_URL}/api/funds/snapshots?ticker=${encodeURIComponent(snapshotTicker)}&days=365`;
           const snapshotsResponse = await fetch(snapshotsUrl, {
