@@ -48,6 +48,7 @@ jobs:
         env:
           NODE_ENV: production
           VITE_401K_TOKEN: ${{ secrets.VITE_401K_TOKEN }}
+          VITE_PLAID_ACCESS_PASSWORD: ${{ secrets.VITE_PLAID_ACCESS_PASSWORD }}
 
       # ============================================
       # DEPLOYMENT SAFETY GATE: Smoke Tests
@@ -111,6 +112,7 @@ jobs:
           exit $TEST_EXIT_CODE
         env:
           VITE_401K_TOKEN: ${{ secrets.VITE_401K_TOKEN }}
+          VITE_PLAID_ACCESS_PASSWORD: ${{ secrets.VITE_PLAID_ACCESS_PASSWORD }}
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
