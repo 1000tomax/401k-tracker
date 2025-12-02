@@ -8,89 +8,11 @@ import { initializePlaidClient } from '../../../src/lib/plaidConfig.js';
 import { createSupabaseAdmin } from '../../../src/lib/supabaseAdmin.js';
 import { handleCors, requireSharedToken, jsonResponse } from '../../../src/utils/cors-workers.js';
 import { decryptJson } from '../../../src/lib/encryption.js';
-
-/**
- * Determines whether a transaction should be imported into the main `transactions` table.
- * This function contains specific business logic, such as only importing certain symbols
- * for Roth IRA accounts and filtering out dividends and cash transfers.
- *
- * @param {object} transaction - The transaction object in the application's standard format.
- * @param {string} accountName - The name of the account the transaction belongs to.
- * @returns {boolean} `true` if the transaction should be imported, `false` otherwise.
- */
-function shouldImportTransaction(transaction, accountName) {
-  // Match Roth IRA accounts
-  const lowerName = (accountName || '').toLowerCase();
-  const isRothIRA = lowerName.includes('roth') && lowerName.includes('ira');
-
-  if (isRothIRA) {
-    // Roth IRA: Only import specific symbols
-    const allowedSymbols = ['VTI', 'DES', 'SCHD', 'QQQM'];
-    const symbol = (transaction.fund || '').toUpperCase().trim();
-
-    if (!allowedSymbols.includes(symbol)) {
-      return false;
-    }
-
-    // Only buy/sell transactions
-    const activity = (transaction.activity || '').toUpperCase();
-    const isAllowedType = ['PURCHASED', 'SOLD', 'BUY', 'SELL'].some(type =>
-      activity.includes(type)
-    );
-
-    if (!isAllowedType) {
-      return false;
-    }
-
-    // Ignore dividends
-    if (/dividend/i.test(transaction.activity || '')) {
-      return false;
-    }
-
-    // Ignore cash transfers
-    const isCashTransfer = /transfer|deposit|ach|cash/i.test(transaction.activity || '');
-    const hasNoShares = !transaction.units || Math.abs(transaction.units) < 0.0001;
-    if (isCashTransfer || hasNoShares) {
-      return false;
-    }
-  }
-
-  // For non-Roth accounts (401k, etc.), import all
-  return true;
-}
-
-/**
- * Generates a simple hash from a transaction's key fields for deduplication purposes.
- * This helps prevent importing the same transaction multiple times.
- * @param {object} tx - The transaction object.
- * @returns {string} A short hexadecimal hash string.
- */
-function generateTransactionHash(tx) {
-  const data = `${tx.date}|${tx.amount}|${tx.fund?.toLowerCase() || ''}|${tx.activity?.toLowerCase() || ''}`;
-  let hash = 0;
-  for (let i = 0; i < data.length; i++) {
-    const char = data.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-  return Math.abs(hash).toString(16).slice(0, 8);
-}
-
-/**
- * Generates a simple hash from a dividend's key fields for deduplication.
- * @param {object} dividend - The dividend object.
- * @returns {string} A short hexadecimal hash string.
- */
-function generateDividendHash(dividend) {
-  const data = `${dividend.date}|${dividend.fund?.toLowerCase() || ''}|${dividend.account?.toLowerCase() || ''}|${dividend.amount}`;
-  let hash = 0;
-  for (let i = 0; i < data.length; i++) {
-    const char = data.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-  return Math.abs(hash).toString(16).slice(0, 8);
-}
+import {
+  generateTransactionHash,
+  generateDividendHash,
+  shouldImportTransaction,
+} from '../../../src/utils/transactionSync.js';
 
 /**
  * Handles POST requests to trigger a transaction sync. This function iterates through all
