@@ -52,7 +52,8 @@
       "mcp__supabase__get_logs",
       "Bash(if [ -n \"$TIINGO_API_KEY\" ])",
       "Bash(then echo \"TIINGO_API_KEY is set (length: $#TIINGO_API_KEY)\")",
-      "Bash(else echo \"TIINGO_API_KEY is EMPTY!\")"
+      "Bash(else echo \"TIINGO_API_KEY is EMPTY!\")",
+      "mcp__supabase__list_tables"
     ],
     "deny": [],
     "ask": []

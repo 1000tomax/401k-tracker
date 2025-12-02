@@ -33,6 +33,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard.jsx'));
 const Accounts = lazy(() => import('./pages/Accounts.jsx'));
 const Dividends = lazy(() => import('./pages/Dividends.jsx'));
 const Transactions = lazy(() => import('./pages/Transactions.jsx'));
+const Snapshots = lazy(() => import('./pages/Snapshots.jsx'));
 const FundDetail = lazy(() => import('./pages/FundDetail.jsx'));
 const PerformanceDashboard = lazy(() => import('./components/PerformanceDashboard.jsx'));
 
@@ -555,6 +556,9 @@ export default function App() {
                 <NavLink to="/accounts" className={({ isActive }) => (isActive ? 'active' : '')}>
                   Accounts
                 </NavLink>
+                <NavLink to="/snapshots" className={({ isActive }) => (isActive ? 'active' : '')}>
+                  Snapshots
+                </NavLink>
                 {import.meta.env.DEV && (
                   <NavLink to="/performance-debug" className={({ isActive }) => (isActive ? 'active' : '')}>
                     Debug
@@ -615,6 +619,7 @@ export default function App() {
                 <Route path="/accounts" element={<Accounts />} />
                 <Route path="/dividends" element={<Dividends />} />
                 <Route path="/transactions" element={<Transactions />} />
+                <Route path="/snapshots" element={<Snapshots />} />
                 <Route path="/fund/:ticker" element={<FundDetail />} />
                 {import.meta.env.DEV && (
                   <Route path="/performance-debug" element={<PerformanceDashboard />} />
