@@ -210,12 +210,15 @@ export default function Snapshots() {
             View and manage your daily portfolio snapshots. Each snapshot captures your portfolio value at a point in time.
           </p>
         </div>
-        <button
-          className="btn btn-primary"
-          onClick={() => setShowCreateForm(!showCreateForm)}
+        <PinProtection
+          onSuccess={() => setShowCreateForm(!showCreateForm)}
+          actionName="create a new snapshot"
+          description="Creating a snapshot manually will generate a new portfolio snapshot for the selected date."
         >
-          {showCreateForm ? 'Cancel' : 'Create Snapshot'}
-        </button>
+          <button className="btn btn-primary">
+            {showCreateForm ? 'Cancel' : 'Create Snapshot'}
+          </button>
+        </PinProtection>
       </div>
 
       {error && (
@@ -239,13 +242,19 @@ export default function Snapshots() {
                 required
               />
             </div>
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={actionInProgress === 'create'}
+            <PinProtection
+              onSuccess={(e) => handleCreate(e || { preventDefault: () => {} })}
+              actionName="create this snapshot"
+              description="This will create a new portfolio snapshot for the selected date with current data."
             >
-              {actionInProgress === 'create' ? 'Creating...' : 'Create Snapshot'}
-            </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={actionInProgress === 'create'}
+              >
+                {actionInProgress === 'create' ? 'Creating...' : 'Create Snapshot'}
+              </button>
+            </PinProtection>
           </form>
         </div>
       )}
