@@ -484,25 +484,40 @@ export async function onRequestPost(context) {
         }
 
         // Query existing transactions to identify duplicates
+        // Check BOTH plaid_transaction_id AND transaction_hash to handle re-linked accounts
         if (transactionsToInsert.length > 0) {
-          // Get list of plaid_transaction_ids we're trying to insert
+          // Get list of plaid_transaction_ids and hashes we're trying to insert
           const plaidTxIds = transactionsToInsert.map(tx => tx.plaid_transaction_id);
+          const txHashes = transactionsToInsert.map(tx => tx.transaction_hash);
 
-          // Query for existing transactions
-          const { data: existingTxs, error: queryError } = await supabase
+          // Query for existing transactions by plaid_transaction_id
+          const { data: existingByPlaidId, error: queryError1 } = await supabase
             .from('transactions')
             .select('plaid_transaction_id')
             .in('plaid_transaction_id', plaidTxIds);
 
-          if (queryError) {
-            console.error('Error querying existing transactions:', queryError);
+          if (queryError1) {
+            console.error('Error querying existing transactions by plaid_id:', queryError1);
           }
 
-          // Create set of existing IDs for fast lookup
-          const existingIds = new Set((existingTxs || []).map(tx => tx.plaid_transaction_id));
+          // Query for existing transactions by transaction_hash (catches re-linked duplicates)
+          const { data: existingByHash, error: queryError2 } = await supabase
+            .from('transactions')
+            .select('transaction_hash')
+            .in('transaction_hash', txHashes);
 
-          // Separate new from duplicate transactions
-          const newTransactions = transactionsToInsert.filter(tx => !existingIds.has(tx.plaid_transaction_id));
+          if (queryError2) {
+            console.error('Error querying existing transactions by hash:', queryError2);
+          }
+
+          // Create sets for fast lookup
+          const existingPlaidIds = new Set((existingByPlaidId || []).map(tx => tx.plaid_transaction_id));
+          const existingHashes = new Set((existingByHash || []).map(tx => tx.transaction_hash));
+
+          // Separate new from duplicate transactions (check both ID and hash)
+          const newTransactions = transactionsToInsert.filter(tx =>
+            !existingPlaidIds.has(tx.plaid_transaction_id) && !existingHashes.has(tx.transaction_hash)
+          );
           const duplicateCount = transactionsToInsert.length - newTransactions.length;
 
           connectionDuplicates = duplicateCount;
