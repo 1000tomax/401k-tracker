@@ -25,6 +25,7 @@ import {
   calculateDividendMetrics,
 } from './utils/portfolioMetrics.js';
 import OfflineBanner from './components/OfflineBanner.jsx';
+import PlaidConnectionBanner from './components/PlaidConnectionBanner.jsx';
 // import InstallPrompt from './components/InstallPrompt.jsx'; // OPTIONAL: Uncomment to enable install prompt
 
 // Lazy load route components for code splitting
@@ -517,6 +518,7 @@ export default function App() {
     <PlaidAuthProvider>
       <BrowserRouter>
         <OfflineBanner />
+        <PlaidConnectionBanner />
         {/* <InstallPrompt /> */} {/* OPTIONAL: Uncomment to enable install prompt */}
 
         <div className="app">

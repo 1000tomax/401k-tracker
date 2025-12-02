@@ -21,6 +21,50 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Check Plaid connections
+        run: |
+          echo "🔌 Checking Plaid connection status..."
+
+          response=$(curl -s -w "\n%{http_code}" -X GET \
+            https://401k.mreedon.com/api/db/plaid \
+            -H "X-401K-Token: ${{ secrets.API_SHARED_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            --connect-timeout 10 \
+            --max-time 30)
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | head -n-1)
+
+          if [ "$http_code" -ne 200 ]; then
+            echo "⚠️ Could not check Plaid connections (HTTP $http_code)"
+          else
+            connections=$(echo "$body" | jq -r '.connections // []')
+            count=$(echo "$connections" | jq 'length')
+
+            if [ "$count" -eq 0 ]; then
+              echo "::warning::🔴 NO PLAID CONNECTIONS FOUND - Transaction sync will not work!"
+              echo "❌ No Plaid connections configured. Please re-link your accounts."
+            else
+              echo "✅ Found $count Plaid connection(s)"
+
+              # Check for stale connections (no sync in 5+ days)
+              five_days_ago=$(date -u -d '5 days ago' '+%Y-%m-%dT%H:%M:%SZ')
+
+              echo "$connections" | jq -c '.[]' | while read -r conn; do
+                institution=$(echo "$conn" | jq -r '.institution_name')
+                last_synced=$(echo "$conn" | jq -r '.last_synced_at // "never"')
+
+                if [ "$last_synced" = "null" ] || [ "$last_synced" = "never" ]; then
+                  echo "::warning::⚠️ $institution has never synced successfully"
+                elif [[ "$last_synced" < "$five_days_ago" ]]; then
+                  echo "::warning::⚠️ $institution last synced on $last_synced (over 5 days ago)"
+                else
+                  echo "  ✓ $institution - last synced: $last_synced"
+                fi
+              done
+            fi
+          fi
+
       - name: Sync Plaid transactions
         run: |
           echo "🔄 Syncing Plaid transactions (overnight sync ensures all yesterday's trades captured)..."
