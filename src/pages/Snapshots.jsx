@@ -4,6 +4,7 @@
  */
 import React, { useState, useEffect, useCallback } from 'react';
 import { formatCurrency, formatDate } from '../utils/formatters.js';
+import PinProtection from '../components/PinProtection.jsx';
 
 const API_URL = window.location.origin;
 const API_TOKEN = import.meta.env.VITE_401K_TOKEN || '';
@@ -332,22 +333,32 @@ export default function Snapshots() {
                       </div>
                     ) : (
                       <div className="action-buttons">
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => handleRegenerate(snapshot.date)}
-                          disabled={actionInProgress !== null}
-                          title="Regenerate snapshot with current data"
+                        <PinProtection
+                          onSuccess={() => handleRegenerate(snapshot.date)}
+                          actionName="regenerate this snapshot"
+                          description="Regenerating a snapshot will delete the current data and recreate it with fresh data."
                         >
-                          {actionInProgress === snapshot.date ? 'Regenerating...' : 'Regenerate'}
-                        </button>
-                        <button
-                          className="btn btn-danger btn-sm"
-                          onClick={() => setConfirmDelete(snapshot.date)}
-                          disabled={actionInProgress !== null}
-                          title="Delete this snapshot"
+                          <button
+                            className="btn btn-secondary btn-sm"
+                            disabled={actionInProgress !== null}
+                            title="Regenerate snapshot with current data"
+                          >
+                            {actionInProgress === snapshot.date ? 'Regenerating...' : 'Regenerate'}
+                          </button>
+                        </PinProtection>
+                        <PinProtection
+                          onSuccess={() => setConfirmDelete(snapshot.date)}
+                          actionName="delete this snapshot"
+                          description="Deleting a snapshot permanently removes it from your history. This action cannot be undone."
                         >
-                          Delete
-                        </button>
+                          <button
+                            className="btn btn-danger btn-sm"
+                            disabled={actionInProgress !== null}
+                            title="Delete this snapshot"
+                          >
+                            Delete
+                          </button>
+                        </PinProtection>
                       </div>
                     )}
                   </td>

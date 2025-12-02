@@ -2071,6 +2071,100 @@ details ul {
   }
 }
 
+/* PIN Protection Component */
+.pin-protection-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.pin-protection-modal {
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  padding: 2rem;
+  width: 400px;
+  max-width: 90vw;
+  box-shadow: var(--shadow-xl);
+}
+
+.pin-protection-header {
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.pin-protection-header h3 {
+  color: var(--gray-100);
+  margin: 0 0 0.5rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.pin-protection-header p {
+  color: var(--gray-400);
+  margin: 0.25rem 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.pin-protection-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.pin-protection-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.pin-protection-form label {
+  color: var(--gray-300);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.pin-protection-form input {
+  padding: 0.75rem;
+  background: var(--surface-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  color: var(--gray-100);
+  font-size: 1rem;
+}
+
+.pin-protection-form input:focus {
+  outline: none;
+  border-color: var(--blue-500);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.pin-protection-error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 6px;
+  padding: 0.75rem;
+  color: #fca5a5;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.pin-protection-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+
 /* Plaid Link Component Styles */
 .plaid-link-container {
   display: flex;
