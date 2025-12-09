@@ -6,6 +6,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import PlaidLink from './PlaidLink.jsx';
+import PinProtection from './PinProtection.jsx';
 
 const API_URL = window.location.origin;
 const API_TOKEN = import.meta.env.VITE_401K_TOKEN || '';
@@ -79,6 +80,18 @@ const AccountManager = () => {
         console.log('✅ Connection saved to database');
         // Refresh the account list
         await fetchAccounts();
+
+        // Trigger initial sync to prevent "Sync Issue Detected" banner
+        console.log('🔄 Triggering initial transaction sync...');
+        fetch(`${API_URL}/api/sync/transactions`, {
+            method: 'POST',
+            headers: {
+                'X-401K-Token': API_TOKEN,
+            },
+        }).then(res => res.json())
+          .then(data => console.log('✅ Initial sync complete:', data))
+          .catch(err => console.error('❌ Initial sync failed:', err));
+
       } else {
         const error = await response.json();
         console.error('❌ Failed to save connection:', error);
@@ -105,11 +118,8 @@ const AccountManager = () => {
     const accountKey = account.item_id || account.access_token;
     if (removing.has(accountKey)) return;
 
-    const institutionName = account.institution_name || 'this account';
-    if (!window.confirm(`Are you sure you want to disconnect ${institutionName}?\n\nThis will stop automatic syncing. You can reconnect later if needed.`)) {
-      return;
-    }
-
+    // PIN Protection is now used instead of window.confirm
+    
     setRemoving(prev => new Set(prev).add(accountKey));
 
     try {
@@ -181,14 +191,19 @@ const AccountManager = () => {
                         Connected {account.created_at ? new Date(account.created_at).toLocaleDateString() : ''}
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      className="secondary small warning"
-                      onClick={() => handleDisconnectAccount(account)}
-                      disabled={isRemoving}
+                    <PinProtection
+                      onSuccess={() => handleDisconnectAccount(account)}
+                      actionName="disconnect this account"
+                      description={`Disconnecting ${account.institution_name || 'this account'} will stop automatic syncing. You can reconnect later if needed.`}
                     >
-                      {isRemoving ? 'Removing...' : 'Disconnect'}
-                    </button>
+                      <button
+                        type="button"
+                        className="secondary small warning"
+                        disabled={isRemoving}
+                      >
+                        {isRemoving ? 'Removing...' : 'Disconnect'}
+                      </button>
+                    </PinProtection>
                   </div>
                 </div>
               );
