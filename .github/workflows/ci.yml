@@ -108,7 +108,7 @@ jobs:
 
           # Run smoke tests
           echo "Running smoke tests..."
-px playwright test tests/smoke.spec.ts
+          npx playwright test tests/smoke.spec.ts
           TEST_EXIT_CODE=$?
 
           # Clean up preview server
