@@ -7,6 +7,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { usePlaidLink } from 'react-plaid-link';
 import PlaidService from '../services/PlaidService';
+import PinProtection from './PinProtection.jsx';
 
 // Global variables to implement a singleton pattern for the Plaid link_token.
 // This prevents multiple instances of the component from creating redundant tokens.
@@ -208,32 +209,37 @@ const PlaidLink = ({ onSuccess, onError, disabled = false }) => {
 
   return (
     <div className="plaid-link-container">
-      <button
-        onClick={handleClick}
-        disabled={!ready || disabled || loading}
-        className="plaid-link-button"
-        type="button"
+      <PinProtection
+        onSuccess={handleClick}
+        actionName="connect your account"
+        description="This will allow you to link your 401k or investment account via Plaid."
       >
-        {!ready ? (
-          <>
-            <div className="loading-spinner"></div>
-            Loading...
-          </>
-        ) : (
-          <>
-            <svg
-              className="plaid-icon"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-            >
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm4.59-12.42L10 14.17l-2.59-2.58L6 13l4 4 8-8-1.41-1.42z"/>
-            </svg>
-            Connect Your 401k Account
-          </>
-        )}
-      </button>
+        <button
+          disabled={!ready || disabled || loading}
+          className="plaid-link-button"
+          type="button"
+        >
+          {!ready ? (
+            <>
+              <div className="loading-spinner"></div>
+              Loading...
+            </>
+          ) : (
+            <>
+              <svg
+                className="plaid-icon"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm4.59-12.42L10 14.17l-2.59-2.58L6 13l4 4 8-8-1.41-1.42z"/>
+              </svg>
+              Connect Your 401k Account
+            </>
+          )}
+        </button>
+      </PinProtection>
       <p className="plaid-description">
         Securely connect your 401k or investment account to automatically import transactions and holdings.
       </p>

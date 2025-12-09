@@ -6,6 +6,7 @@
  */
 import React, { useState } from 'react';
 import MockPlaidService, { mockConnectionData, mockPlaidData } from '../services/MockPlaidService';
+import PinProtection from './PinProtection';
 
 /**
  * The MockPlaidLink component.
@@ -89,23 +90,28 @@ const MockPlaidLink = ({ onSuccess, onError, disabled = false }) => {
 
   return (
     <div className="plaid-link-container">
-      <button
-        onClick={handleMockConnection}
-        disabled={disabled || loading}
-        className="plaid-link-button mock-button"
-        type="button"
+      <PinProtection
+        onSuccess={handleMockConnection}
+        actionName="connect (mock)"
+        description="This will simulate a Plaid connection for development purposes."
       >
-        <svg
-          className="plaid-icon"
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="currentColor"
+        <button
+          disabled={disabled || loading}
+          className="plaid-link-button mock-button"
+          type="button"
         >
-          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm4.59-12.42L10 14.17l-2.59-2.58L6 13l4 4 8-8-1.41-1.42z"/>
-        </svg>
-        Connect Mock 401k Account (Dev)
-      </button>
+          <svg
+            className="plaid-icon"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+          >
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm4.59-12.42L10 14.17l-2.59-2.58L6 13l4 4 8-8-1.41-1.42z"/>
+          </svg>
+          Connect Mock 401k Account (Dev)
+        </button>
+      </PinProtection>
       <p className="plaid-description mock-description">
         <strong>Dev Mode:</strong> This will simulate connecting to a mock investment account with sample transaction data for testing the debugging interface.
       </p>

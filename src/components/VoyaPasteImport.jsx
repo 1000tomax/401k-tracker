@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react';
 import VoyaParser from '../services/VoyaParser';
 import VoyaDatabaseService from '../services/VoyaDatabaseService';
 import { formatCurrency, formatShares, formatUnitPrice, formatDate, formatFundName, formatSourceName } from '../utils/formatters.js';
+import PinProtection from './PinProtection.jsx';
 import './VoyaPasteImport.css';
 
 /**
@@ -284,13 +285,18 @@ function VoyaPasteImport({ onImportSuccess, onImportError }) {
         </div>
 
         <div className="button-group">
-          <button
-            onClick={handleParse}
-            disabled={isProcessing || !pastedText.trim()}
-            className="btn-primary"
+          <PinProtection
+            onSuccess={handleParse}
+            actionName="parse and import data"
+            description="This will parse the pasted data and allow you to import it into your account."
           >
-            {isProcessing ? '⏳ Processing...' : '🔍 Parse & Preview'}
-          </button>
+            <button
+              disabled={isProcessing || !pastedText.trim()}
+              className="btn-primary"
+            >
+              {isProcessing ? '⏳ Processing...' : '🔍 Parse & Preview'}
+            </button>
+          </PinProtection>
           {pastedText && (
             <button
               onClick={handleClear}
