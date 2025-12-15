@@ -11,6 +11,9 @@ import { formatCurrency, formatShares, formatUnitPrice, formatDate, formatFundNa
 import PinProtection from './PinProtection.jsx';
 import './VoyaPasteImport.css';
 
+const API_URL = typeof window !== 'undefined' ? window.location.origin : '';
+const API_TOKEN = import.meta.env.VITE_401K_TOKEN || '';
+
 /**
  * The VoyaPasteImport component.
  * @param {object} props - The component's props.
@@ -95,6 +98,44 @@ function VoyaPasteImport({ onImportSuccess, onImportError }) {
         : `Imported ${result.imported} new transaction(s) successfully!`;
 
       alert(message);
+
+      // Automatically rebuild snapshots covering the imported date range
+      const importedDates = (parsedData.transactions || [])
+        .map(tx => tx.date)
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b));
+
+      if (importedDates.length > 0) {
+        const startDate = importedDates[0];
+        const endDate = importedDates[importedDates.length - 1];
+
+        try {
+          console.log(`🔁 Rebuilding snapshots from ${startDate} to ${endDate} after Voya import...`);
+          const rebuildResponse = await fetch(`${API_URL}/api/snapshots/rebuild-range`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-401K-Token': API_TOKEN,
+            },
+            body: JSON.stringify({
+              startDate,
+              endDate,
+              source: 'voya-import',
+              force: true,
+            }),
+          });
+
+          if (rebuildResponse.ok) {
+            const rebuildData = await rebuildResponse.json();
+            console.log(`✅ Rebuilt ${rebuildData.rebuilt || 0} snapshot(s) for imported range`);
+          } else {
+            const rebuildError = await rebuildResponse.json().catch(() => ({}));
+            console.error('⚠️ Snapshot rebuild failed:', rebuildError);
+          }
+        } catch (rebuildError) {
+          console.error('⚠️ Error triggering snapshot rebuild:', rebuildError);
+        }
+      }
 
       // Reload latest transactions
       await loadLatestTransactions();
