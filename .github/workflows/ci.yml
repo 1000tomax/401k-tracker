@@ -127,6 +127,18 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy dist --project-name=401k-tracker --commit-dirty=true
 
+      - name: Install MCP worker dependencies
+        run: npm ci
+        working-directory: functions/mcp
+
+      - name: Deploy MCP Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: functions/mcp
+          command: deploy --env production
+
       - name: Create CI/CD Comment (PR only)
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7

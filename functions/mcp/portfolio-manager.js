@@ -723,6 +723,24 @@ function handleToolsList() {
           },
           required: []
         }
+      },
+      {
+        name: 'rebuild_snapshots',
+        description: 'Regenerate portfolio snapshots for a date range. Use this to fix historical snapshots after late-posted transactions are imported (e.g., Voya delays). Rebuilds from start_date through today by default.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            start_date: {
+              type: 'string',
+              description: 'First date to rebuild snapshots from (YYYY-MM-DD). Required.'
+            },
+            end_date: {
+              type: 'string',
+              description: 'Last date to rebuild snapshots through (YYYY-MM-DD). Defaults to today.'
+            }
+          },
+          required: ['start_date']
+        }
       }
     ]
   };
@@ -789,6 +807,63 @@ async function handleParseTransactions(args) {
 /**
  * Handle import_voya_transactions tool call
  */
+/**
+ * Calls the Pages rebuild-range API to regenerate portfolio snapshots for a date range.
+ * Returns a summary object (never throws — errors are captured and returned).
+ */
+async function rebuildSnapshots(env, startDate, endDate) {
+  const today = new Date().toISOString().split('T')[0];
+  const start = startDate;
+  const end = endDate || today;
+
+  try {
+    const response = await fetch('https://401k.mreedon.com/api/snapshots/rebuild-range', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${env.API_SHARED_TOKEN}`,
+      },
+      body: JSON.stringify({ startDate: start, endDate: end, source: 'mcp-import', force: true }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return { success: false, error: data.error || `HTTP ${response.status}`, start, end };
+    }
+
+    return {
+      success: data.ok,
+      rebuilt: data.rebuilt,
+      failed: data.failed,
+      start,
+      end,
+    };
+  } catch (error) {
+    return { success: false, error: error.message, start, end };
+  }
+}
+
+async function handleRebuildSnapshots(args, env) {
+  const today = new Date().toISOString().split('T')[0];
+  const startDate = args.start_date;
+  const endDate = args.end_date || today;
+
+  if (!startDate) {
+    return {
+      content: [{ type: 'text', text: JSON.stringify({ error: 'start_date is required' }) }],
+      isError: true,
+    };
+  }
+
+  const result = await rebuildSnapshots(env, startDate, endDate);
+
+  return {
+    content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+    isError: !result.success,
+  };
+}
+
 async function handleImportTransactions(args, env) {
   const { text } = args;
 
@@ -864,6 +939,15 @@ async function handleImportTransactions(args, env) {
 
     const duplicates = transactions.length - inserted;
 
+    // Auto-rebuild snapshots from the earliest new transaction date forward
+    let snapshotRebuild = null;
+    if (inserted > 0) {
+      const earliestDate = newTransactions
+        .map(t => t.date)
+        .sort()[0];
+      snapshotRebuild = await rebuildSnapshots(env, earliestDate);
+    }
+
     return {
       content: [{
         type: 'text',
@@ -872,7 +956,8 @@ async function handleImportTransactions(args, env) {
           imported: inserted,
           duplicates: duplicates,
           total: transactions.length,
-          summary: generateSummary(newTransactions)
+          summary: generateSummary(newTransactions),
+          snapshot_rebuild: snapshotRebuild,
         }, null, 2)
       }]
     };
@@ -1765,7 +1850,7 @@ export default {
         status: 'ok',
         message: 'Voya MCP Server',
         version: '1.0.0',
-        tools: ['parse_voya_transactions', 'import_voya_transactions', 'get_portfolio_summary']
+        tools: ['parse_voya_transactions', 'import_voya_transactions', 'get_portfolio_summary', 'get_holdings', 'get_dividend_history', 'search_transactions', 'get_performance_history', 'get_fund_performance', 'get_current_prices', 'rebuild_snapshots']
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -1848,6 +1933,8 @@ export default {
           result = await handleGetFundPerformance(args, env);
         } else if (name === 'get_current_prices') {
           result = await handleGetCurrentPrices(args, env);
+        } else if (name === 'rebuild_snapshots') {
+          result = await handleRebuildSnapshots(args, env);
         } else {
           result = {
             content: [{

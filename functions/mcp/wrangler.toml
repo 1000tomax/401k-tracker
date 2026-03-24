@@ -9,10 +9,10 @@ compatibility_flags = ["nodejs_compat"]
 # Or via custom domain route
 
 # Secrets (set via: wrangler secret put SECRET_NAME):
-# - MCP_AUTH_TOKEN: Bearer token for protecting the endpoint
+# - MCP_AUTH_TOKEN: Bearer token for protecting the MCP endpoint
 # - SUPABASE_URL: Your Supabase project URL
 # - SUPABASE_ANON_KEY: Your Supabase anon key
-# - VITE_401K_TOKEN: Your 401k API token (if needed for future features)
+# - API_SHARED_TOKEN: Shared token for calling the 401k Pages API (e.g. snapshot rebuild)
 
 [env.production]
 name = "401k-mcp-portfolio-manager"
