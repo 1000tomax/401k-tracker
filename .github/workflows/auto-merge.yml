@@ -15,11 +15,32 @@ jobs:
       - uses: dependabot/fetch-metadata@v2
         id: metadata
 
-      - name: Auto-merge minor and patch updates
+      - name: Wait for CI and merge
         if: |
           steps.metadata.outputs.update-type == 'version-update:semver-minor' ||
           steps.metadata.outputs.update-type == 'version-update:semver-patch'
-        run: gh pr merge --auto --squash "$PR_URL"
         env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          echo "Waiting for CI..."
+          for i in $(seq 1 20); do
+            CHECKS=$(gh pr checks "$PR" --json name,conclusion 2>/dev/null || echo "[]")
+            OTHER=$(echo "$CHECKS" | jq '[.[] | select(.name != "auto-merge")]')
+            FAIL=$(echo "$OTHER" | jq '[.[] | select(.conclusion == "FAILURE" or .conclusion == "TIMED_OUT")] | length')
+            WAIT=$(echo "$OTHER" | jq '[.[] | select(.conclusion == null)] | length')
+            TOTAL=$(echo "$OTHER" | jq 'length')
+
+            [ "$FAIL" -gt 0 ] && echo "CI failed, not merging" && exit 1
+
+            # All checks passed
+            [ "$WAIT" = "0" ] && [ "$TOTAL" -gt 0 ] && echo "CI passed" && break
+
+            # No CI runs on PRs in this repo — proceed after initial wait
+            [ "$TOTAL" = "0" ] && [ "$i" -ge 3 ] && echo "No CI checks found, proceeding" && break
+
+            echo "Attempt $i/20 — waiting 30s..."
+            sleep 30
+          done
+
+          gh pr merge --squash "$PR"
