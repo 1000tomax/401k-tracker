@@ -156,7 +156,10 @@ describe('formatDate', () => {
 
 describe('formatFundName', () => {
   it('should apply fund name overrides', () => {
-    expect(formatFundName('0899 Vanguard 500 Index Fund Adm')).toBe('Vanguard 500');
+    expect(formatFundName('0899 Vanguard 500 Index Fund Adm')).toBe('VAN 500 (VOO)');
+    expect(formatFundName('0756 Vanguard Mid-Cap Index Fund Adm')).toBe('VAN Mid-Cap (VO)');
+    expect(formatFundName('0757 Vanguard Small-Cap Index Fund Adm')).toBe('VAN Small-Cap (VB)');
+    expect(formatFundName('3368 Vanguard Intl Explorer Fund Inv')).toBe('VAN Intl (VSS)');
   });
 
   it('should return original name when no override exists', () => {
