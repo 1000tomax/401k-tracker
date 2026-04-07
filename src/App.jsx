@@ -160,16 +160,15 @@ export default function App() {
       }
 
       // Separate Voya transactions for special handling with live pricing
-      const voyaTransactions = transactions.filter(tx =>
+      const isVoyaTx = tx =>
         tx.source_type === 'voya' ||
         tx.sourceType === 'voya' ||
-        (tx.fund && tx.fund.includes('0899'))
-      );
+        (tx.fund && /^(0899|0756|0757|3368)\s/.test(tx.fund));
+
+      const voyaTransactions = transactions.filter(isVoyaTx);
 
       // Exclude Voya transactions from main portfolio aggregation
-      const nonVoyaTransactions = transactions.filter(tx =>
-        !(tx.source_type === 'voya' || tx.sourceType === 'voya' || (tx.fund && tx.fund.includes('0899')))
-      );
+      const nonVoyaTransactions = transactions.filter(tx => !isVoyaTx(tx));
 
       // Fetch live ETF prices (for Roth IRA holdings)
       console.log('💰 Fetching live ETF prices...');

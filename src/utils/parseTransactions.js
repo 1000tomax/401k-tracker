@@ -43,6 +43,9 @@ const KNOWN_ACTIVITIES = [
  */
 const FUND_TO_TICKER_MAP = {
   '0899 Vanguard 500 Index Fund Adm': 'VOYA_0899',
+  '0756 Vanguard Mid-Cap Index Fund Adm': 'VOYA_0756',
+  '0757 Vanguard Small-Cap Index Fund Adm': 'VOYA_0757',
+  '3368 Vanguard Intl Explorer Fund Inv': 'VOYA_3368',
   // Other funds use their name as ticker (VTI, QQQM, SCHD, DES)
 };
 

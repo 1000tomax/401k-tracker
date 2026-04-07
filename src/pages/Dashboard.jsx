@@ -153,6 +153,16 @@ function Dashboard({ summary, isLoading }) {
   const [expandedAccounts, setExpandedAccounts] = useState(new Set());
   const [portfolioFilter, setPortfolioFilter] = useState('all');
 
+  // Formats Voya 401k fund names to short display names.
+  const formatVoyaFundName = (name) => {
+    if (!name) return name;
+    if (name.includes('Vanguard 500') || name.includes('0899')) return 'VAN 500';
+    if (name.includes('Mid-Cap') || name.includes('0756')) return 'VAN Mid-Cap';
+    if (name.includes('Small-Cap') || name.includes('0757')) return 'VAN Small-Cap';
+    if (name.includes('Intl Explorer') || name.includes('3368')) return 'Intl Explorer';
+    return name;
+  };
+
   /**
    * Extracts stock ticker symbol from various fund name formats.
    * Handles patterns like "Fund Name (SYMBOL)" or "SYMBOL - Fund Name".
@@ -318,7 +328,7 @@ function Dashboard({ summary, isLoading }) {
     const fundMap = new Map();
     for (const holding of filteredHoldings) {
       if (!holding.accountName) continue; // Skip if accountName is undefined
-      const fundName = holding.fund.includes('Vanguard 500') ? 'VAN 500' : holding.fund;
+      const fundName = formatVoyaFundName(holding.fund);
       const subtype = getAccountSubtype(holding.accountName);
       const key = `${fundName} (${subtype})`;
       const existing = fundMap.get(key) || 0;
@@ -650,14 +660,8 @@ function Dashboard({ summary, isLoading }) {
                         : '0.00';
                       const gainLossClass = holding.gainLoss >= 0 ? 'positive' : 'negative';
 
-                      // Format fund name nicely
-                      const formatFundName = (name) => {
-                        // "0899 Vanguard 500 Index Fund Adm" -> "VAN 500"
-                        if (name.includes('Vanguard 500')) {
-                          return 'VAN 500';
-                        }
-                        return name;
-                      };
+                      // Format fund name nicely (uses component-level formatVoyaFundName)
+                      const formatFundName = formatVoyaFundName;
 
                       const ticker = extractTicker(holding.fund);
 
@@ -674,7 +678,7 @@ function Dashboard({ summary, isLoading }) {
                             {holding.isVoyaLive && (
                               <span
                                 className="live-badge"
-                                title="Live pricing via VOO proxy - Voya's proprietary fund 0899 tracks the S&P 500 but isn't publicly traded. We use VOO (Vanguard S&P 500 ETF) as a proxy with a 15.577 conversion ratio for real-time pricing. Historical accuracy: 99.8%"
+                                title="Live pricing via proxy ETF - Voya's proprietary funds aren't publicly traded. We derive prices using a correlated ETF (VOO/VO/VB/VSS) with a conversion ratio calibrated from actual transaction NAVs."
                                 style={{
                                   marginLeft: '8px',
                                   padding: '2px 6px',

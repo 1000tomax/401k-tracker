@@ -96,6 +96,9 @@ export function formatDate(value) {
  */
 const FUND_NAME_OVERRIDES = {
   '0899 Vanguard 500 Index Fund Adm': 'Vanguard 500',
+  '0756 Vanguard Mid-Cap Index Fund Adm': 'Vanguard Mid-Cap',
+  '0757 Vanguard Small-Cap Index Fund Adm': 'Vanguard Small-Cap',
+  '3368 Vanguard Intl Explorer Fund Inv': 'Intl Explorer',
 };
 
 /**

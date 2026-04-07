@@ -65,9 +65,15 @@ export default function FundDetail() {
         // Fetch fund snapshots first to see if we have historical data
         let snapshotsData = null;
         try {
-          // Map VOO to actual fund name used in snapshots (matches transactions table)
+          // Map proxy ETF tickers back to full Voya fund names used in snapshots/transactions
           const tickerUpper = ticker.toUpperCase();
-          const snapshotTicker = tickerUpper === 'VOO' ? '0899 Vanguard 500 Index Fund Adm' : tickerUpper;
+          const VOYA_SNAPSHOT_MAP = {
+            'VOO': '0899 Vanguard 500 Index Fund Adm',
+            'VO':  '0756 Vanguard Mid-Cap Index Fund Adm',
+            'VB':  '0757 Vanguard Small-Cap Index Fund Adm',
+            'VSS': '3368 Vanguard Intl Explorer Fund Inv',
+          };
+          const snapshotTicker = VOYA_SNAPSHOT_MAP[tickerUpper] ?? tickerUpper;
 
           const snapshotsUrl = `${API_URL}/api/funds/snapshots?ticker=${encodeURIComponent(snapshotTicker)}&days=365`;
           const snapshotsResponse = await fetch(snapshotsUrl, {
@@ -112,8 +118,10 @@ export default function FundDetail() {
         const fundName = tx.fund?.toUpperCase() || '';
         const tickerUpper = ticker.toUpperCase();
 
-        // Special handling for VOO - also match Voya fund 0899
-        if (tickerUpper === 'VOO' && fundName.includes('0899')) {
+        // Map proxy ETF tickers to Voya fund codes for transaction matching
+        const VOYA_PROXY_TO_CODE = { VOO: '0899', VO: '0756', VB: '0757', VSS: '3368' };
+        const voyaCode = VOYA_PROXY_TO_CODE[tickerUpper];
+        if (voyaCode && fundName.includes(voyaCode)) {
           return true;
         }
 
@@ -242,12 +250,12 @@ export default function FundDetail() {
       const avgCost = latest.avgCost;
       const latestPrice = latest.currentPrice;
 
-      // Check if these are Voya transactions (they have fund name with "0899")
-      const isVoyaFund = fundTransactions.length > 0 &&
-                         fundTransactions[0].fund?.includes('0899');
+      // Check if these are Voya transactions (fund name starts with a 4-digit code)
+      const voyaFundCode = fundTransactions[0]?.fund?.match(/^(\d{4})\s/)?.[1];
+      const isVoyaFund = Boolean(voyaFundCode);
 
       // Use live price if available
-      const livePriceTicker = isVoyaFund ? 'VOYA_0899' : ticker?.toUpperCase();
+      const livePriceTicker = isVoyaFund ? `VOYA_${voyaFundCode}` : ticker?.toUpperCase();
       const livePrice = livePrices[livePriceTicker]?.price || latestPrice;
       const marketValue = currentShares * livePrice;
       const gainLoss = marketValue - currentCostBasis;
@@ -284,9 +292,9 @@ export default function FundDetail() {
     const latestEntry = timeline[timeline.length - 1];
     const latestPrice = latestEntry?.price || fundTransactions[fundTransactions.length - 1]?.unit_price || 0;
 
-    const isVoyaFund = fundTransactions.length > 0 &&
-                       fundTransactions[0].fund?.includes('0899');
-    const livePriceTicker = isVoyaFund ? 'VOYA_0899' : ticker?.toUpperCase();
+    const voyaFundCode = fundTransactions[0]?.fund?.match(/^(\d{4})\s/)?.[1];
+    const isVoyaFund = Boolean(voyaFundCode);
+    const livePriceTicker = isVoyaFund ? `VOYA_${voyaFundCode}` : ticker?.toUpperCase();
     const livePrice = livePrices[livePriceTicker]?.price || latestPrice;
     const marketValue = currentShares * livePrice;
     const gainLoss = marketValue - currentCostBasis;

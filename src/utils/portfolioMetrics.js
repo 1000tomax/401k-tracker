@@ -14,7 +14,10 @@ export const FUND_EXPENSE_RATIOS = {
   'VXUS': 0.07,  // Vanguard Total International Stock ETF
   'VAN 500': 0.04, // Vanguard 500 Index Fund Admiral (approximate)
   'VANGUARD 500': 0.04,
-  '0899': 0.04,  // Voya's Vanguard 500 fund
+  '0899': 0.04,  // Voya Vanguard 500 Index Fund Adm
+  '0756': 0.05,  // Voya Vanguard Mid-Cap Index Fund Adm
+  '0757': 0.05,  // Voya Vanguard Small-Cap Index Fund Adm
+  '3368': 0.37,  // Voya Vanguard Intl Explorer Fund Inv (actively managed)
 
   // Invesco
   'QQQM': 0.15,  // Invesco NASDAQ 100 ETF

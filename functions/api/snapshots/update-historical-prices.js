@@ -11,7 +11,14 @@
 import { createSupabaseAdmin } from '../../../src/lib/supabaseAdmin.js';
 import { handleCors, requireSharedToken, jsonResponse } from '../../../src/utils/cors-workers.js';
 
-const VOYA_CONVERSION_RATIO = 15.577; // VOO to Voya 0899 conversion ratio
+// Maps Voya fund code substrings to their proxy ETF and conversion ratio.
+// ratio = proxy_ETF_price / Voya_fund_NAV  (null = ratio not yet calibrated)
+const VOYA_FUND_PROXIES = [
+  { fundMatch: '0899', proxy: 'VOO', ratio: 15.577 }, // calibrated Oct 2025 (30-day avg)
+  { fundMatch: '0756', proxy: 'VO',  ratio: 10.417 }, // calibrated Mar 2026 (30-day avg, pre-tariff-shock)
+  { fundMatch: '0757', proxy: 'VB',  ratio: 10.137 }, // calibrated Mar 2026 (30-day avg, pre-tariff-shock)
+  { fundMatch: '3368', proxy: 'VSS', ratio: 6.540 },  // calibrated Mar 2026 (30-day avg; actively managed — recalibrate ~6mo)
+];
 
 /**
  * Fetches historical closing prices from Finnhub for a date range
@@ -112,8 +119,8 @@ export async function onRequestPost(context) {
 
     console.log(`Fetching historical prices from ${startDate} to ${endDate}`);
 
-    // Fetch historical prices for all tickers
-    const tickers = ['VTI', 'QQQM', 'DES', 'SCHD', 'VOO'];
+    // Fetch historical prices for all tickers (Roth IRA + Voya proxies)
+    const tickers = ['VTI', 'QQQM', 'DES', 'SCHD', 'VOO', 'VO', 'VB', 'VSS'];
     const historicalPrices = new Map();
 
     for (const ticker of tickers) {
@@ -175,16 +182,22 @@ export async function onRequestPost(context) {
             let priceSource = 'transaction';
             let matchedTicker = null;
 
-            // Check if it's Voya fund (use VOO as proxy)
-            if (holding.fund.includes('0899') || holding.fund.toLowerCase().includes('vanguard 500')) {
-              const vooPrices = historicalPrices.get('VOO');
-              if (vooPrices && vooPrices.has(date)) {
-                historicalPrice = vooPrices.get(date) / VOYA_CONVERSION_RATIO;
-                priceSource = 'proxy';
-                matchedTicker = 'VOO';
-                pricesFound++;
-              } else {
+            // Check if it's a Voya fund (use proxy ETF with conversion ratio)
+            const voyaFund = VOYA_FUND_PROXIES.find(f => holding.fund.includes(f.fundMatch));
+            if (voyaFund) {
+              if (voyaFund.ratio === null) {
+                // Ratio not yet calibrated — fall through to use transaction price
                 pricesMissing++;
+              } else {
+                const proxyPrices = historicalPrices.get(voyaFund.proxy);
+                if (proxyPrices && proxyPrices.has(date)) {
+                  historicalPrice = proxyPrices.get(date) / voyaFund.ratio;
+                  priceSource = 'proxy';
+                  matchedTicker = voyaFund.proxy;
+                  pricesFound++;
+                } else {
+                  pricesMissing++;
+                }
               }
             } else {
               // Try to match ticker from fund name

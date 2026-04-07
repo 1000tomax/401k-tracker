@@ -7,11 +7,27 @@ import { createSupabaseAdmin } from '../../../src/lib/supabaseAdmin.js';
 import { handleCors, requireSharedToken, jsonResponse } from '../../../src/utils/cors-workers.js';
 
 /**
- * A predefined list of ETF tickers for which to fetch live prices.
+ * ETF tickers to fetch live prices for. Includes Roth IRA holdings and all
+ * Voya proxy ETFs (VOO, VO, VB, VSS).
  * @type {string[]}
  */
-const ROTH_IRA_TICKERS = ['VTI', 'SCHD', 'QQQM', 'DES', 'VOO'];
-const VOYA_CONVERSION_RATIO = 15.577; // VOO to Voya 0899 conversion ratio (calculated from Oct 2025 data)
+const ROTH_IRA_TICKERS = ['VTI', 'SCHD', 'QQQM', 'DES', 'VOO', 'VO', 'VB', 'VSS'];
+
+/**
+ * Maps each Voya 401k fund code to its proxy ETF and conversion ratio.
+ * ratio: proxy_ETF_price / Voya_fund_NAV  (computed from actual transaction data)
+ *
+ * To recalibrate: ratio = avg(proxy_ETF_close / Voya_fund_NAV) over ~30 trading days.
+ * Index funds are stable long-term; actively managed funds (3368) drift — recalibrate ~6mo.
+ *
+ * @type {Array<{proxy: string, ticker: string, ratio: number}>}
+ */
+const VOYA_FUND_PROXIES = [
+  { proxy: 'VOO', ticker: 'VOYA_0899', ratio: 15.577 }, // calibrated Oct 2025 (30-day avg)
+  { proxy: 'VO',  ticker: 'VOYA_0756', ratio: 10.417 }, // calibrated Mar 2026 (30-day avg, pre-tariff-shock)
+  { proxy: 'VB',  ticker: 'VOYA_0757', ratio: 10.137 }, // calibrated Mar 2026 (30-day avg, pre-tariff-shock)
+  { proxy: 'VSS', ticker: 'VOYA_3368', ratio: 6.540 },  // calibrated Mar 2026 (30-day avg; actively managed — recalibrate ~6mo)
+];
 
 /**
  * Determines if a given date is in US Eastern Daylight Time (EDT) or Eastern Standard Time (EST).
@@ -196,27 +212,30 @@ export async function onRequestPost(context) {
 
       updates.push({ ticker, price, changePercent });
 
-      // If this is VOO, also store the converted Voya 0899 price
-      if (ticker === 'VOO') {
-        const voyaPrice = price / VOYA_CONVERSION_RATIO;
+      // For each Voya fund that uses this ticker as a proxy (and has a ratio set),
+      // derive and store the fund NAV price.
+      for (const fund of VOYA_FUND_PROXIES) {
+        if (fund.proxy !== ticker || fund.ratio === null) continue;
+
+        const voyaPrice = price / fund.ratio;
         const { error: voyaError } = await supabase
           .from('current_etf_prices')
           .upsert({
-            ticker: 'VOYA_0899',
+            ticker: fund.ticker,
             price: voyaPrice,
-            change_percent: changePercent, // Same % change as VFIAX
+            change_percent: changePercent,
             updated_at: new Date().toISOString(),
           }, {
             onConflict: 'ticker',
           });
 
         if (voyaError) {
-          console.error('Failed to update VOYA_0899:', voyaError);
+          console.error(`Failed to update ${fund.ticker}:`, voyaError);
           throw voyaError;
         }
 
-        updates.push({ ticker: 'VOYA_0899', price: voyaPrice, changePercent });
-        console.log(`✅ Stored VOYA_0899 price: $${voyaPrice.toFixed(4)} (VOO $${price} ÷ ${VOYA_CONVERSION_RATIO})`);
+        updates.push({ ticker: fund.ticker, price: voyaPrice, changePercent });
+        console.log(`✅ Stored ${fund.ticker} price: $${voyaPrice.toFixed(4)} (${ticker} $${price} ÷ ${fund.ratio})`);
       }
     }
 

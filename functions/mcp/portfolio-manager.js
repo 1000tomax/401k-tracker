@@ -821,7 +821,7 @@ async function rebuildSnapshots(env, startDate, endDate) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${env.API_SHARED_TOKEN}`,
+        'X-401K-Token': env.API_SHARED_TOKEN,
       },
       body: JSON.stringify({ startDate: start, endDate: end, source: 'mcp-import', force: true }),
     });
