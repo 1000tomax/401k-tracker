@@ -78,10 +78,10 @@ export default function Transactions() {
   // Helper function to format fund names
   const formatFundName = (fund) => {
     if (!fund) return '—';
-    if (fund.includes('Vanguard 500') || fund.includes('0899')) return 'VAN 500';
-    if (fund.includes('Mid-Cap') || fund.includes('0756')) return 'VAN Mid-Cap';
-    if (fund.includes('Small-Cap') || fund.includes('0757')) return 'VAN Small-Cap';
-    if (fund.includes('Intl Explorer') || fund.includes('3368')) return 'Intl Explorer';
+    if (fund.includes('Vanguard 500') || fund.includes('0899')) return 'VAN 500 (VOO)';
+    if (fund.includes('Mid-Cap') || fund.includes('0756')) return 'VAN Mid-Cap (VO)';
+    if (fund.includes('Small-Cap') || fund.includes('0757')) return 'VAN Small-Cap (VB)';
+    if (fund.includes('Intl Explorer') || fund.includes('3368')) return 'VAN Intl (VSS)';
     return fund;
   };
 

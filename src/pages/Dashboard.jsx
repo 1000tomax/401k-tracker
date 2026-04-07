@@ -156,10 +156,10 @@ function Dashboard({ summary, isLoading }) {
   // Formats Voya 401k fund names to short display names.
   const formatVoyaFundName = (name) => {
     if (!name) return name;
-    if (name.includes('Vanguard 500') || name.includes('0899')) return 'VAN 500';
-    if (name.includes('Mid-Cap') || name.includes('0756')) return 'VAN Mid-Cap';
-    if (name.includes('Small-Cap') || name.includes('0757')) return 'VAN Small-Cap';
-    if (name.includes('Intl Explorer') || name.includes('3368')) return 'Intl Explorer';
+    if (name.includes('Vanguard 500') || name.includes('0899')) return 'VAN 500 (VOO)';
+    if (name.includes('Mid-Cap') || name.includes('0756')) return 'VAN Mid-Cap (VO)';
+    if (name.includes('Small-Cap') || name.includes('0757')) return 'VAN Small-Cap (VB)';
+    if (name.includes('Intl Explorer') || name.includes('3368')) return 'VAN Intl (VSS)';
     return name;
   };
 
@@ -674,26 +674,6 @@ function Dashboard({ summary, isLoading }) {
                               </Link>
                             ) : (
                               formatFundName(holding.fund)
-                            )}
-                            {holding.isVoyaLive && (
-                              <span
-                                className="live-badge"
-                                title="Live pricing via proxy ETF - Voya's proprietary funds aren't publicly traded. We derive prices using a correlated ETF (VOO/VO/VB/VSS) with a conversion ratio calibrated from actual transaction NAVs."
-                                style={{
-                                  marginLeft: '8px',
-                                  padding: '2px 6px',
-                                  fontSize: '0.7rem',
-                                  fontWeight: '600',
-                                  color: '#10b981',
-                                  backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                                  border: '1px solid rgba(16, 185, 129, 0.3)',
-                                  borderRadius: '4px',
-                                  textTransform: 'uppercase',
-                                  letterSpacing: '0.5px',
-                                }}
-                              >
-                                Live
-                              </span>
                             )}
                           </td>
                           <td className="numeric">{holding.shares.toFixed(4)}</td>
