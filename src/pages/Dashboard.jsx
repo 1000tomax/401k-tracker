@@ -324,15 +324,13 @@ function Dashboard({ summary, isLoading }) {
     // Calculate total for filtered holdings
     const filteredTotal = filteredHoldings.reduce((sum, h) => sum + h.marketValue, 0);
 
-    // Fund allocation by account type (e.g., "VAN 500 (Roth)")
+    // Fund allocation — aggregate by fund name only (subtype breakdown is in "By Account")
     const fundMap = new Map();
     for (const holding of filteredHoldings) {
-      if (!holding.accountName) continue; // Skip if accountName is undefined
+      if (!holding.accountName) continue;
       const fundName = formatVoyaFundName(holding.fund);
-      const subtype = getAccountSubtype(holding.accountName);
-      const key = `${fundName} (${subtype})`;
-      const existing = fundMap.get(key) || 0;
-      fundMap.set(key, existing + holding.marketValue);
+      const existing = fundMap.get(fundName) || 0;
+      fundMap.set(fundName, existing + holding.marketValue);
     }
 
     const fundAllocation = Array.from(fundMap.entries())
