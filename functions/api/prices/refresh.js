@@ -24,7 +24,7 @@ const ROTH_IRA_TICKERS = ['VTI', 'SCHD', 'QQQM', 'DES', 'VOO', 'VO', 'VB', 'VSS'
  */
 const VOYA_FUND_PROXIES = [
   { proxy: 'VOO', ticker: 'VOYA_0899', ratio: 15.577 }, // calibrated Oct 2025 (30-day avg)
-  { proxy: 'VO',  ticker: 'VOYA_0756', ratio: 10.417 }, // calibrated Mar 2026 (30-day avg, pre-tariff-shock)
+  { proxy: 'VO',  ticker: 'VOYA_0756', ratio: 2.604 },  // calibrated Mar 2026 (30-day avg, pre-tariff-shock); divided by 4 for VO 4:1 split 2026-04-21
   { proxy: 'VB',  ticker: 'VOYA_0757', ratio: 10.137 }, // calibrated Mar 2026 (30-day avg, pre-tariff-shock)
   { proxy: 'VSS', ticker: 'VOYA_3368', ratio: 6.540 },  // calibrated Mar 2026 (30-day avg; actively managed — recalibrate ~6mo)
 ];
